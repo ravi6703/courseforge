@@ -30,7 +30,6 @@ const THRESHOLDS: Record<string, { min: number; max: number; label: string }> = 
 
 export default function NewCoursePage() {
   const router = useRouter();
-  const supabase = createClient();
 
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -92,9 +91,20 @@ export default function NewCoursePage() {
 
   async function handleCreate() {
     setLoading(true);
-    const { error } = await supabase
+
+    // Get the current user's ID for created_by
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      alert("You must be logged in to create a course.");
+      setLoading(false);
+      return;
+    }
+
+    const { data, error } = await supabase
       .from("courses")
       .insert({
+        created_by: user.id,
         title: config.title,
         short_description: `${config.domain} course for ${config.target_audience}`,
         platform,
@@ -116,7 +126,7 @@ export default function NewCoursePage() {
       alert(error.message);
       setLoading(false);
     } else {
-      router.push(`/courses`);
+      router.push(`/courses/${data.id}`);
     }
   }
 
