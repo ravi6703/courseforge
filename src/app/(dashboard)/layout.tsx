@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { SignOutButton } from "@/components/SignOutButton";
 
 export default async function DashboardLayout({
   children,
@@ -68,7 +69,7 @@ export default async function DashboardLayout({
 
         {/* User */}
         <div className="p-4 border-t border-[hsl(217,33%,17%)]">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 mb-3">
             <div className="w-8 h-8 rounded-full bg-[hsl(217,91%,60%)] flex items-center justify-center text-white text-sm font-medium">
               {profile?.full_name?.[0] || user.email?.[0]?.toUpperCase()}
             </div>
@@ -79,6 +80,7 @@ export default async function DashboardLayout({
               <p className="text-xs text-[hsl(215,20%,45%)] truncate">{user.email}</p>
             </div>
           </div>
+          <SignOutButton />
         </div>
       </aside>
 

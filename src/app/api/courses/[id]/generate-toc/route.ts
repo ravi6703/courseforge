@@ -36,7 +36,18 @@ interface ContentItem {
   orderIndex: number;
 }
 
-async function generateTOCWithClaude(courseData: any): Promise<TOCModule[]> {
+interface CourseData {
+  title: string;
+  domain: string;
+  level: string;
+  platform: string;
+  target_audience: string;
+  course_length_hours: number;
+  hands_on_percent: number;
+  video_length_minutes: number;
+}
+
+async function generateTOCWithClaude(courseData: CourseData): Promise<TOCModule[]> {
   const moduleCount = Math.max(4, Math.ceil(courseData.course_length_hours / 4.5));
 
   const prompt = `You are an expert course designer. Generate a comprehensive Table of Contents (TOC) for the following course:
@@ -127,7 +138,7 @@ Return ONLY valid JSON with this exact structure (no markdown, no code blocks):
   }
 }
 
-function generateFallbackTOC(courseData: any): TOCModule[] {
+function generateFallbackTOC(courseData: CourseData): TOCModule[] {
   const moduleCount = Math.max(4, Math.ceil(courseData.course_length_hours / 4.5));
   const hoursPerModule = courseData.course_length_hours / moduleCount;
   const minutesPerLesson = (hoursPerModule * 60) / 3;
@@ -245,23 +256,23 @@ function generateFallbackTOC(courseData: any): TOCModule[] {
 }
 
 async function createTOCInDatabase(
-  supabase: any,
+  supabase: unknown,
   courseId: string,
   modules: TOCModule[]
 ) {
   try {
     // Create modules and lessons
-    for (const module of modules) {
+    for (const tocModule of modules) {
       // Create module
       const { data: moduleData, error: moduleError } = await supabase
         .from("toc_modules")
         .insert({
           course_id: courseId,
-          sort_order: module.moduleNumber,
-          name: module.name,
-          description: module.description,
-          total_length_hours: module.lengthHours,
-          learning_objectives: module.learningObjectives,
+          sort_order: tocModule.moduleNumber,
+          name: tocModule.name,
+          description: tocModule.description,
+          total_length_hours: tocModule.lengthHours,
+          learning_objectives: tocModule.learningObjectives,
         })
         .select()
         .single();
@@ -271,7 +282,7 @@ async function createTOCInDatabase(
       const moduleId = moduleData.id;
 
       // Create lessons and content items
-      for (const lesson of module.lessons) {
+      for (const lesson of tocModule.lessons) {
         const { data: lessonData, error: lessonError } = await supabase
           .from("toc_lessons")
           .insert({
@@ -366,7 +377,7 @@ export async function POST(
     let modules: TOCModule[];
     try {
       modules = await generateTOCWithClaude(courseData);
-    } catch (error) {
+    } catch {
       console.warn("Claude generation failed, using fallback template");
       modules = generateFallbackTOC(courseData);
     }

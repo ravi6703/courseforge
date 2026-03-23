@@ -2,7 +2,6 @@ export const dynamic = "force-dynamic";
 
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { Suspense } from "react";
 
 export default async function CoursesPage(
   props: {
@@ -182,7 +181,17 @@ export default async function CoursesPage(
   );
 }
 
-function CourseCard({ course }: { course: any }) {
+interface Course {
+  id: string;
+  title: string;
+  status: string;
+  created_at: string;
+  platform: string;
+  domain: string;
+  profiles?: { full_name: string };
+}
+
+function CourseCard({ course }: { course: Course }) {
   const createdDate = new Date(course.created_at).toLocaleDateString("en-US", {
     year: "numeric",
     month: "short",
@@ -243,7 +252,7 @@ function CourseCard({ course }: { course: any }) {
   );
 }
 
-function CourseListRow({ course }: { course: any }) {
+function CourseListRow({ course }: { course: Course }) {
   const createdDate = new Date(course.created_at).toLocaleDateString("en-US", {
     year: "numeric",
     month: "short",

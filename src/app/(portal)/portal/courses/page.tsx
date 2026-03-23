@@ -54,7 +54,16 @@ export default async function CoachCoursesPage() {
   );
 }
 
-function CourseRow({ course }: { course: any }) {
+interface Course {
+  id: string;
+  title: string;
+  platform: string;
+  domain: string;
+  updated_at: string;
+  status: string;
+}
+
+function CourseRow({ course }: { course: Course }) {
   const lastUpdated = new Date(course.updated_at).toLocaleDateString("en-US", {
     year: "numeric",
     month: "short",

@@ -46,7 +46,18 @@ export default async function OpportunitiesPage() {
   );
 }
 
-function CourseOpportunityCard({ course }: { course: any }) {
+interface Course {
+  id: string;
+  title: string;
+  platform: string;
+  domain: string;
+  course_level: string;
+  target_audience?: string;
+  course_length?: number;
+  number_of_modules?: number;
+}
+
+function CourseOpportunityCard({ course }: { course: Course }) {
   return (
     <div className="bg-[hsl(222,47%,8%)] border border-[hsl(217,33%,17%)] rounded-xl overflow-hidden hover:border-[hsl(217,91%,60%)] transition-all">
       {/* Card Header */}

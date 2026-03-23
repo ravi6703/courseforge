@@ -247,7 +247,7 @@ export function ContentItemDrawer({
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-[hsl(215,20%,65%)]">Status</span>
-                <StatusBadge status={item.status as any} />
+                <StatusBadge status={item.status as string} />
               </div>
 
               {item.duration && (

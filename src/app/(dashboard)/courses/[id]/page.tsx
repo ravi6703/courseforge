@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { ContentItemDrawer } from "@/components/ContentItemDrawer";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getContentType, getStatusBadgeVariant } from "@/lib/content-types";
+import { getContentType } from "@/lib/content-types";
 
 interface ContentItem {
   id: string;
@@ -14,7 +14,7 @@ interface ContentItem {
   duration?: number;
   description?: string;
   learning_objectives?: string[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   comments?: Array<{
     id: string;
     author: string;
@@ -86,9 +86,6 @@ export default function CourseDetailPage({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [changeReason, setChangeReason] = useState("");
-  const [userRole, setUserRole] = useState<"pm" | "coach" | "content_creator">(
-    "content_creator"
-  );
 
   useEffect(() => {
     const fetchData = async () => {
@@ -271,7 +268,7 @@ export default function CourseDetailPage({
               </h1>
               <p className="text-[hsl(215,20%,65%)] mt-1">{course.domain}</p>
             </div>
-            <StatusBadge status={course.status as any} />
+            <StatusBadge status={course.status as string} />
           </div>
 
           <div className="grid grid-cols-4 gap-4 text-sm">
@@ -656,7 +653,7 @@ export default function CourseDetailPage({
                                               </span>
                                               <StatusBadge
                                                 status={
-                                                  item.status as any
+                                                  item.status as string
                                                 }
                                                 showIcon={false}
                                               />
@@ -713,7 +710,7 @@ export default function CourseDetailPage({
 
                     <div className="space-y-4">
                       {Object.entries(distribution).map(
-                        ([type, data]: [string, any]) => {
+                        ([type, data]: [string, { count: number; percentage: number; duration: number }]) => {
                           const config = getContentType(type);
                           return (
                             <div key={type} className="space-y-2">
@@ -773,7 +770,7 @@ export default function CourseDetailPage({
                       </p>
                       <p className="text-2xl font-bold text-[hsl(217,91%,60%)]">
                         {Object.values(distribution).reduce(
-                          (sum: number, item: any) =>
+                          (sum: number, item: { count: number; percentage: number; duration: number }) =>
                             sum + (item.duration || 0),
                           0
                         )}{" "}
@@ -794,7 +791,7 @@ export default function CourseDetailPage({
               ) : (
                 <div className="bg-[hsl(222,47%,8%)] border border-[hsl(217,33%,17%)] rounded-lg p-12 text-center">
                   <p className="text-[hsl(215,20%,65%)]">
-                    Click "Suggest Distribution" to view content recommendations.
+                    Click &quot;Suggest Distribution&quot; to view content recommendations.
                   </p>
                 </div>
               )}

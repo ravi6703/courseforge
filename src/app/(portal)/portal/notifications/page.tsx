@@ -26,7 +26,7 @@ export default async function CoachNotificationsPage() {
       {notifications && notifications.length > 0 ? (
         <div className="space-y-2 max-w-2xl">
           {notifications.map((notification) => (
-            <NotificationItem key={notification.id} notification={notification} supabase={supabase} userId={user.id} />
+            <NotificationItem key={notification.id} notification={notification} />
           ))}
         </div>
       ) : (
@@ -37,14 +37,22 @@ export default async function CoachNotificationsPage() {
             </svg>
           </div>
           <h3 className="text-lg font-medium text-[hsl(210,40%,98%)] mb-2">No notifications yet</h3>
-          <p className="text-[hsl(215,20%,65%)] text-sm">You'll see updates about your courses and new opportunities here.</p>
+          <p className="text-[hsl(215,20%,65%)] text-sm">You&apos;ll see updates about your courses and new opportunities here.</p>
         </div>
       )}
     </div>
   );
 }
 
-function NotificationItem({ notification, supabase, userId }: { notification: any; supabase: any; userId: string }) {
+interface Notification {
+  id: string;
+  type: string;
+  message: string;
+  created_at: string;
+  course_id?: string;
+}
+
+function NotificationItem({ notification }: { notification: Notification }) {
   const notificationDate = new Date(notification.created_at).toLocaleDateString("en-US", {
     year: "numeric",
     month: "short",
