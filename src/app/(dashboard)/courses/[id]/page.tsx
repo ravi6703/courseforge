@@ -268,7 +268,7 @@ export default function CourseDetailPage({
               </h1>
               <p className="text-[hsl(215,20%,65%)] mt-1">{course.domain}</p>
             </div>
-            <StatusBadge status={course.status as string} />
+            <StatusBadge status={course.status } />
           </div>
 
           <div className="grid grid-cols-4 gap-4 text-sm">
@@ -652,9 +652,7 @@ export default function CourseDetailPage({
                                                 {config?.label}
                                               </span>
                                               <StatusBadge
-                                                status={
-                                                  item.status as string
-                                                }
+                                                status={item.status}
                                                 showIcon={false}
                                               />
                                               {item.duration && (

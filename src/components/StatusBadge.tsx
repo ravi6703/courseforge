@@ -1,10 +1,10 @@
 "use client";
 
-import { getStatusBadgeVariant, ContentStatus } from "@/lib/content-types";
+import { getStatusBadgeVariant } from "@/lib/content-types";
 import { cn } from "@/lib/utils";
 
 interface StatusBadgeProps {
-  status: ContentStatus;
+  status: string;
   className?: string;
   showIcon?: boolean;
 }
