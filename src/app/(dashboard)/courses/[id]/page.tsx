@@ -86,6 +86,7 @@ export default function CourseDetailPage({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [changeReason, setChangeReason] = useState("");
+  const [userRole] = useState<"pm" | "coach">("pm"); // TODO: derive from auth/session
 
   useEffect(() => {
     const fetchData = async () => {

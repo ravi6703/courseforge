@@ -2,6 +2,16 @@ export const dynamic = "force-dynamic";
 
 import { createClient } from "@/lib/supabase/server";
 
+interface AppNotification {
+  id: string;
+  user_id: string;
+  type: string;
+  title: string;
+  body: string;
+  is_read: boolean;
+  created_at: string;
+}
+
 export default async function PMNotificationsPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -44,15 +54,7 @@ export default async function PMNotificationsPage() {
   );
 }
 
-interface Notification {
-  id: string;
-  type: string;
-  message: string;
-  created_at: string;
-  course_id?: string;
-}
-
-function NotificationItem({ notification }: { notification: Notification }) {
+function NotificationItem({ notification }: { notification: AppNotification }) {
   const notificationDate = new Date(notification.created_at).toLocaleDateString("en-US", {
     year: "numeric",
     month: "short",

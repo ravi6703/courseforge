@@ -38,6 +38,15 @@ interface ContentItemDrawerProps {
   userRole?: "pm" | "coach" | "content_creator";
 }
 
+interface QualityScore {
+  overallScore: number;
+  plagiarismScore: number;
+  readabilityScore: number;
+  aiDetectionScore: number;
+  suggestions: string[];
+  status: string;
+}
+
 export function ContentItemDrawer({
   item,
   isOpen,
@@ -47,6 +56,8 @@ export function ContentItemDrawer({
   const [isLoading, setIsLoading] = useState(false);
   const [newComment, setNewComment] = useState("");
   const [comments, setComments] = useState(item?.comments || []);
+  const [qualityScore, setQualityScore] = useState<QualityScore | null>(null);
+  const [isCheckingQuality, setIsCheckingQuality] = useState(false);
 
   if (!item) return null;
 
@@ -168,6 +179,32 @@ export function ContentItemDrawer({
       console.error("Failed to submit for review:", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleQualityCheck = async () => {
+    setIsCheckingQuality(true);
+    try {
+      const contentToCheck = item.metadata?.content_preview || item.description || item.title;
+      const response = await fetch("/api/quality-check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: contentToCheck,
+          contentType: item.type,
+          courseId: "current",
+          itemId: item.id,
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setQualityScore(result.data);
+      }
+    } catch (error) {
+      console.error("Failed to run quality check:", error);
+    } finally {
+      setIsCheckingQuality(false);
     }
   };
 
@@ -421,6 +458,96 @@ export function ContentItemDrawer({
                 </button>
               </div>
             )}
+
+            {/* Quality Check Section */}
+            <div className="space-y-4 p-4 bg-[hsl(222,47%,6%)] rounded-lg">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-[hsl(210,40%,98%)]">
+                  Quality Check
+                </h3>
+                <button
+                  onClick={handleQualityCheck}
+                  disabled={isCheckingQuality}
+                  className="py-1.5 px-3 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-medium disabled:opacity-50 transition-colors"
+                >
+                  {isCheckingQuality ? "Checking..." : "Run Quality Check"}
+                </button>
+              </div>
+
+              {qualityScore && (
+                <div className="space-y-3">
+                  {/* Score bars */}
+                  <div className="space-y-2">
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-[hsl(215,20%,65%)]">Overall</span>
+                        <span className={cn(
+                          "font-bold",
+                          qualityScore.overallScore >= 70 ? "text-green-400" :
+                          qualityScore.overallScore >= 50 ? "text-amber-400" : "text-red-400"
+                        )}>{qualityScore.overallScore}/100</span>
+                      </div>
+                      <div className="w-full h-2 bg-[hsl(217,33%,17%)] rounded-full overflow-hidden">
+                        <div
+                          className={cn(
+                            "h-full rounded-full transition-all",
+                            qualityScore.overallScore >= 70 ? "bg-green-500" :
+                            qualityScore.overallScore >= 50 ? "bg-amber-500" : "bg-red-500"
+                          )}
+                          style={{ width: `${qualityScore.overallScore}%` }}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-[hsl(215,20%,65%)]">Readability</span>
+                        <span className="text-[hsl(210,40%,98%)]">{Math.round(qualityScore.readabilityScore)}/100</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-[hsl(217,33%,17%)] rounded-full overflow-hidden">
+                        <div className="h-full bg-blue-500 rounded-full" style={{ width: `${qualityScore.readabilityScore}%` }} />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-[hsl(215,20%,65%)]">Originality</span>
+                        <span className="text-[hsl(210,40%,98%)]">{qualityScore.plagiarismScore}/100</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-[hsl(217,33%,17%)] rounded-full overflow-hidden">
+                        <div className="h-full bg-green-500 rounded-full" style={{ width: `${qualityScore.plagiarismScore}%` }} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Status badge */}
+                  <div className="flex items-center gap-2">
+                    <span className={cn(
+                      "text-xs px-2 py-0.5 rounded-full font-medium",
+                      qualityScore.status === "passed" ? "bg-green-500/20 text-green-400" :
+                      qualityScore.status === "flagged" ? "bg-amber-500/20 text-amber-400" :
+                      qualityScore.status === "failed" ? "bg-red-500/20 text-red-400" :
+                      "bg-blue-500/20 text-blue-400"
+                    )}>
+                      {qualityScore.status.toUpperCase()}
+                    </span>
+                  </div>
+
+                  {/* Suggestions */}
+                  {qualityScore.suggestions.length > 0 && (
+                    <div>
+                      <p className="text-xs text-[hsl(215,20%,65%)] mb-1">Suggestions:</p>
+                      <ul className="space-y-1">
+                        {qualityScore.suggestions.map((s, i) => (
+                          <li key={i} className="text-xs text-amber-400 flex gap-1.5">
+                            <span className="shrink-0">!</span>
+                            <span>{s}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* Comments Section */}
             <div className="space-y-4 pt-6 border-t border-[hsl(217,33%,17%)]">

@@ -256,7 +256,7 @@ function generateFallbackTOC(courseData: CourseData): TOCModule[] {
 }
 
 async function createTOCInDatabase(
-  supabase: unknown,
+  supabase: Awaited<ReturnType<typeof createClient>>,
   courseId: string,
   modules: TOCModule[]
 ) {

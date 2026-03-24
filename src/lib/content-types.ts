@@ -147,7 +147,7 @@ export function isAvailableOnPlatform(
 }
 
 export function getStatusBadgeVariant(
-  status: ContentStatus
+  status: ContentStatus | string
 ): {
   bgColor: string;
   textColor: string;
@@ -203,5 +203,9 @@ export function getStatusBadgeVariant(
     },
   };
 
-  return statusConfig[status];
+  return statusConfig[status as ContentStatus] || {
+    bgColor: "bg-gray-500/20",
+    textColor: "text-gray-400",
+    label: status,
+  };
 }
