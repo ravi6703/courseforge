@@ -8,12 +8,12 @@ import { StatusBadge } from "./StatusBadge";
 interface ContentItem {
   id: string;
   title: string;
-  type: string;
+  item_type: string;
   status: string;
-  duration?: number;
+  duration_minutes?: number;
   description?: string;
   learning_objectives?: string[];
-  metadata?: {
+  config?: {
     video_type?: string;
     theory_ratio?: number;
     hands_ratio?: number;
@@ -21,6 +21,7 @@ interface ContentItem {
     screen_share?: boolean;
     question_count?: number;
     content_preview?: string;
+    content?: string;
   };
   comments?: Array<{
     id: string;
@@ -61,7 +62,7 @@ export function ContentItemDrawer({
 
   if (!item) return null;
 
-  const contentConfig = getContentType(item.type);
+  const contentConfig = getContentType(item.item_type);
 
   const handleAddComment = async () => {
     if (!newComment.trim()) return;
@@ -113,7 +114,7 @@ export function ContentItemDrawer({
       const response = await fetch(`/api/content-items/${item.id}/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: item.type }),
+        body: JSON.stringify({ item_type: item.item_type }),
       });
 
       if (response.ok) {
@@ -185,13 +186,13 @@ export function ContentItemDrawer({
   const handleQualityCheck = async () => {
     setIsCheckingQuality(true);
     try {
-      const contentToCheck = item.metadata?.content_preview || item.description || item.title;
+      const contentToCheck = item.config?.content_preview || item.description || item.title;
       const response = await fetch("/api/quality-check", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           content: contentToCheck,
-          contentType: item.type,
+          contentType: item.item_type,
           courseId: "current",
           itemId: item.id,
         }),
@@ -287,11 +288,11 @@ export function ContentItemDrawer({
                 <StatusBadge status={item.status} />
               </div>
 
-              {item.duration && (
+              {item.duration_minutes && (
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-[hsl(215,20%,65%)]">Duration</span>
                   <span className="text-sm text-[hsl(210,40%,98%)]">
-                    {item.duration} minutes
+                    {item.duration_minutes} minutes
                   </span>
                 </div>
               )}
@@ -328,57 +329,57 @@ export function ContentItemDrawer({
             </div>
 
             {/* Type-Specific Content */}
-            {item.type === "video" && (
+            {item.item_type === "video" && (
               <div className="space-y-4 p-4 bg-[hsl(222,47%,6%)] rounded-lg">
                 <h3 className="font-semibold text-[hsl(210,40%,98%)]">
                   Video Settings
                 </h3>
 
-                {item.metadata?.video_type && (
+                {item.config?.video_type && (
                   <div>
                     <span className="text-sm text-[hsl(215,20%,65%)]">
                       Video Type
                     </span>
                     <p className="text-sm text-[hsl(210,40%,98%)] capitalize">
-                      {item.metadata.video_type}
+                      {item.config?.video_type}
                     </p>
                   </div>
                 )}
 
-                {item.metadata?.theory_ratio !== undefined && (
+                {item.config?.theory_ratio !== undefined && (
                   <div>
                     <span className="text-sm text-[hsl(215,20%,65%)] block mb-2">
                       Theory/Hands Ratio
                     </span>
                     <div className="flex gap-2 text-sm">
                       <span className="text-[hsl(210,40%,98%)]">
-                        Theory: {item.metadata.theory_ratio}%
+                        Theory: {item.config?.theory_ratio}%
                       </span>
                       <span className="text-[hsl(210,40%,98%)]">
-                        Hands: {item.metadata.hands_ratio}%
+                        Hands: {item.config?.hands_ratio}%
                       </span>
                     </div>
                   </div>
                 )}
 
-                {item.metadata?.recording_option && (
+                {item.config?.recording_option && (
                   <div>
                     <span className="text-sm text-[hsl(215,20%,65%)]">
                       Recording Option
                     </span>
                     <p className="text-sm text-[hsl(210,40%,98%)] capitalize">
-                      {item.metadata.recording_option.replace(/_/g, " ")}
+                      {item.config?.recording_option?.replace(/_/g, " ")}
                     </p>
                   </div>
                 )}
 
-                {item.metadata?.screen_share !== undefined && (
+                {item.config?.screen_share !== undefined && (
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-[hsl(215,20%,65%)]">
                       Screen Share
                     </span>
                     <span className="text-sm text-[hsl(210,40%,98%)]">
-                      {item.metadata.screen_share ? "Enabled" : "Disabled"}
+                      {item.config?.screen_share ? "Enabled" : "Disabled"}
                     </span>
                   </div>
                 )}
@@ -393,30 +394,30 @@ export function ContentItemDrawer({
               </div>
             )}
 
-            {(item.type === "practice_quiz" || item.type === "graded_quiz") && (
+            {(item.item_type === "practice_quiz" || item.item_type === "graded_quiz") && (
               <div className="space-y-4 p-4 bg-[hsl(222,47%,6%)] rounded-lg">
                 <h3 className="font-semibold text-[hsl(210,40%,98%)]">
                   Quiz Settings
                 </h3>
 
-                {item.metadata?.question_count && (
+                {item.config?.question_count && (
                   <div>
                     <span className="text-sm text-[hsl(215,20%,65%)]">
                       Question Count
                     </span>
                     <p className="text-sm text-[hsl(210,40%,98%)]">
-                      {item.metadata.question_count} questions
+                      {item.config?.question_count} questions
                     </p>
                   </div>
                 )}
 
-                {item.metadata?.content_preview && (
+                {item.config?.content_preview && (
                   <div>
                     <span className="text-sm text-[hsl(215,20%,65%)] block mb-2">
                       Preview
                     </span>
                     <p className="text-sm text-[hsl(210,40%,98%)] line-clamp-3">
-                      {item.metadata.content_preview}
+                      {item.config?.content_preview}
                     </p>
                   </div>
                 )}
@@ -437,15 +438,15 @@ export function ContentItemDrawer({
               "discussion_prompt",
               "case_study",
               "glossary",
-            ].includes(item.type) && (
+            ].includes(item.item_type) && (
               <div className="space-y-4 p-4 bg-[hsl(222,47%,6%)] rounded-lg">
                 <h3 className="font-semibold text-[hsl(210,40%,98%)]">
                   Content Preview
                 </h3>
 
-                {item.metadata?.content_preview && (
+                {item.config?.content_preview && (
                   <p className="text-sm text-[hsl(210,40%,98%)] line-clamp-4">
-                    {item.metadata.content_preview}
+                    {item.config?.content_preview}
                   </p>
                 )}
 

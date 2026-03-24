@@ -5,7 +5,6 @@ import { cn } from "@/lib/utils";
 import { ContentItemDrawer } from "@/components/ContentItemDrawer";
 import { StatusBadge } from "@/components/StatusBadge";
 import { getContentType } from "@/lib/content-types";
-import { createClient } from "@/lib/supabase/client";
 
 interface ContentItem {
   id: string;
@@ -60,15 +59,7 @@ interface Stats {
   completion_percentage: number;
 }
 
-interface ContentDistribution {
-  [key: string]: {
-    count: number;
-    percentage: number;
-    duration: number;
-  };
-}
-
-export default function CourseDetailPage({
+export default function CoachCourseDetailPage({
   params,
 }: {
   params: { id: string };
@@ -78,7 +69,6 @@ export default function CourseDetailPage({
   const [course, setCourse] = useState<Course | null>(null);
   const [modules, setModules] = useState<Module[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
-  const [distribution, setDistribution] = useState<ContentDistribution>({});
   const [expandedModules, setExpandedModules] = useState<Set<string>>(
     new Set()
   );
@@ -86,59 +76,26 @@ export default function CourseDetailPage({
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [changeReason, setChangeReason] = useState("");
-  const [userRole, setUserRole] = useState<"pm" | "coach">("pm");
-
-  useEffect(() => {
-    const fetchUserRole = async () => {
-      try {
-        const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-
-        if (user) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("role")
-            .eq("id", user.id)
-            .single();
-
-          if (profile?.role === "coach") {
-            setUserRole("coach");
-          } else {
-            setUserRole("pm");
-          }
-        }
-      } catch (err) {
-        console.error("Error fetching user role:", err);
-        setUserRole("pm");
-      }
-    };
-
-    fetchUserRole();
-  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const [courseRes, statsRes, distributionRes] = await Promise.all([
+        const [courseRes, statsRes] = await Promise.all([
           fetch(`/api/courses/${courseId}`),
           fetch(`/api/courses/${courseId}/stats`),
-          fetch(`/api/courses/${courseId}/distribution`),
         ]);
 
-        if (!courseRes.ok || !statsRes.ok || !distributionRes.ok) {
+        if (!courseRes.ok || !statsRes.ok) {
           throw new Error("Failed to fetch course data");
         }
 
         const courseData = await courseRes.json();
         const statsData = await statsRes.json();
-        const distributionData = await distributionRes.json();
 
         setCourse(courseData.course);
         setModules(courseData.modules || []);
         setStats(statsData);
-        setDistribution(distributionData.distribution || {});
       } catch (err) {
         setError(err instanceof Error ? err.message : "An error occurred");
       } finally {
@@ -169,33 +126,10 @@ export default function CourseDetailPage({
     setSelectedItem(null);
   };
 
-  const handleGenerateTOC = async () => {
-    if (!course) return;
-
+  const handleAcceptOpportunity = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/courses/${courseId}/generate-toc`, {
-        method: "POST",
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setModules(data.modules || []);
-        setError(null);
-      } else {
-        setError("Failed to generate TOC");
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleApproveTOC = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch(`/api/courses/${courseId}/approve-toc`, {
+      const response = await fetch(`/api/courses/${courseId}/accept`, {
         method: "POST",
       });
 
@@ -204,55 +138,7 @@ export default function CourseDetailPage({
         setCourse(data.course);
         setError(null);
       } else {
-        setError("Failed to approve TOC");
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleRequestChange = async () => {
-    if (!changeReason || changeReason.length < 20) {
-      setError("Please provide a reason with at least 20 characters");
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      const response = await fetch(`/api/courses/${courseId}/request-change`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason: changeReason }),
-      });
-
-      if (response.ok) {
-        setChangeReason("");
-        setError(null);
-      } else {
-        setError("Failed to request change");
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSuggestDistribution = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch(`/api/courses/${courseId}/suggest-distribution`, {
-        method: "POST",
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setDistribution(data.distribution || {});
-        setError(null);
-      } else {
-        setError("Failed to suggest distribution");
+        setError("Failed to accept opportunity");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
@@ -298,7 +184,7 @@ export default function CourseDetailPage({
               </h1>
               <p className="text-[hsl(215,20%,65%)] mt-1">{course.domain}</p>
             </div>
-            <StatusBadge status={course.status } />
+            <StatusBadge status={course.status} />
           </div>
 
           <div className="grid grid-cols-4 gap-4 text-sm">
@@ -328,8 +214,6 @@ export default function CourseDetailPage({
           {[
             { id: "overview", label: "Overview" },
             { id: "toc", label: "Table of Contents" },
-            { id: "distribution", label: "Content Distribution" },
-            { id: "settings", label: "Settings" },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -351,6 +235,27 @@ export default function CourseDetailPage({
           {/* Overview Tab */}
           {activeTab === "overview" && (
             <div className="space-y-8">
+              {/* Accept Opportunity Button */}
+              {course.status === "coach_review" && (
+                <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-6 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-[hsl(210,40%,98%)]">
+                      Course Opportunity
+                    </h3>
+                    <p className="text-sm text-[hsl(215,20%,65%)] mt-1">
+                      This course is ready for your review. Click the button to accept and start working on it.
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleAcceptOpportunity}
+                    disabled={isLoading}
+                    className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium disabled:opacity-50 transition-colors flex-shrink-0 ml-4"
+                  >
+                    {isLoading ? "Accepting..." : "Accept Opportunity"}
+                  </button>
+                </div>
+              )}
+
               {/* Course Info Card */}
               <div className="bg-[hsl(222,47%,8%)] border border-[hsl(217,33%,17%)] rounded-lg p-6">
                 <h2 className="text-lg font-semibold text-[hsl(210,40%,98%)] mb-4">
@@ -485,73 +390,6 @@ export default function CourseDetailPage({
           {/* TOC Tab */}
           {activeTab === "toc" && (
             <div className="space-y-6">
-              {/* Action Buttons */}
-              <div className="flex gap-3 flex-wrap">
-                {course.status === "draft" && (
-                  <button
-                    onClick={handleGenerateTOC}
-                    disabled={isLoading}
-                    className="px-4 py-2 bg-[hsl(217,91%,60%)] hover:bg-[hsl(217,91%,55%)] text-white rounded-lg text-sm font-medium disabled:opacity-50 transition-colors"
-                  >
-                    {isLoading ? "Generating..." : "Generate TOC with AI"}
-                  </button>
-                )}
-
-                {course.status === "toc_review" && userRole === "pm" && (
-                  <button
-                    onClick={handleApproveTOC}
-                    disabled={isLoading}
-                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium disabled:opacity-50 transition-colors"
-                  >
-                    Approve TOC
-                  </button>
-                )}
-
-                {course.status === "coach_review" && userRole === "coach" && (
-                  <button
-                    onClick={handleApproveTOC}
-                    disabled={isLoading}
-                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium disabled:opacity-50 transition-colors"
-                  >
-                    Accept & Lock TOC
-                  </button>
-                )}
-
-                {course.status === "toc_locked" && (
-                  <div className="flex items-center gap-2 text-sm text-[hsl(215,20%,65%)]">
-                    <span>🔒</span>
-                    <span>Table of Contents is locked</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Request Change Form */}
-              {course.status === "toc_locked" && (
-                <div className="bg-[hsl(222,47%,8%)] border border-[hsl(217,33%,17%)] rounded-lg p-6">
-                  <h3 className="text-lg font-semibold text-[hsl(210,40%,98%)] mb-4">
-                    Request a Change
-                  </h3>
-                  <div className="space-y-4">
-                    <textarea
-                      value={changeReason}
-                      onChange={(e) => setChangeReason(e.target.value)}
-                      placeholder="Describe the changes needed (minimum 20 characters)..."
-                      className="w-full p-3 bg-[hsl(222,47%,6%)] border border-[hsl(217,33%,17%)] rounded-lg text-sm text-[hsl(210,40%,98%)] placeholder-[hsl(215,20%,45%)] focus:outline-none focus:border-[hsl(217,91%,60%)]"
-                      rows={4}
-                    />
-                    <button
-                      onClick={handleRequestChange}
-                      disabled={
-                        !changeReason || changeReason.length < 20 || isLoading
-                      }
-                      className="px-4 py-2 bg-[hsl(217,91%,60%)] hover:bg-[hsl(217,91%,55%)] text-white rounded-lg text-sm font-medium disabled:opacity-50 transition-colors"
-                    >
-                      Submit Request
-                    </button>
-                  </div>
-                </div>
-              )}
-
               {/* TOC Accordion */}
               {modules.length > 0 ? (
                 <div className="space-y-3">
@@ -708,212 +546,10 @@ export default function CourseDetailPage({
               ) : (
                 <div className="bg-[hsl(222,47%,8%)] border border-[hsl(217,33%,17%)] rounded-lg p-12 text-center">
                   <p className="text-[hsl(215,20%,65%)]">
-                    No modules yet. Generate a table of contents to get started.
+                    No modules available yet.
                   </p>
                 </div>
               )}
-            </div>
-          )}
-
-          {/* Content Distribution Tab */}
-          {activeTab === "distribution" && (
-            <div className="space-y-6">
-              <div className="flex gap-3">
-                <button
-                  onClick={handleSuggestDistribution}
-                  disabled={isLoading}
-                  className="px-4 py-2 bg-[hsl(217,91%,60%)] hover:bg-[hsl(217,91%,55%)] text-white rounded-lg text-sm font-medium disabled:opacity-50 transition-colors"
-                >
-                  {isLoading ? "Loading..." : "Suggest Distribution"}
-                </button>
-              </div>
-
-              {Object.keys(distribution).length > 0 ? (
-                <div className="space-y-4">
-                  {/* Distribution Chart */}
-                  <div className="bg-[hsl(222,47%,8%)] border border-[hsl(217,33%,17%)] rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-[hsl(210,40%,98%)] mb-6">
-                      Content Type Distribution
-                    </h3>
-
-                    <div className="space-y-4">
-                      {Object.entries(distribution).map(
-                        ([type, data]: [string, { count: number; percentage: number; duration: number }]) => {
-                          const config = getContentType(type);
-                          return (
-                            <div key={type} className="space-y-2">
-                              <div className="flex items-center gap-3 justify-between">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xl">
-                                    {config?.icon}
-                                  </span>
-                                  <span className="text-sm font-medium text-[hsl(210,40%,98%)]">
-                                    {config?.label}
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                  <span className="text-sm text-[hsl(215,20%,65%)]">
-                                    {data.count}
-                                  </span>
-                                  <div className="flex gap-1">
-                                    <button className="p-1 hover:bg-[hsl(217,33%,17%)] rounded text-xs text-[hsl(215,20%,65%)]">
-                                      −
-                                    </button>
-                                    <button className="p-1 hover:bg-[hsl(217,33%,17%)] rounded text-xs text-[hsl(215,20%,65%)]">
-                                      +
-                                    </button>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-3">
-                                <div className="flex-1 bg-[hsl(217,33%,17%)] rounded-full h-2 overflow-hidden">
-                                  <div
-                                    className="bg-[hsl(217,91%,60%)] h-full"
-                                    style={{
-                                      width: `${data.percentage}%`,
-                                    }}
-                                  />
-                                </div>
-                                <span className="text-xs text-[hsl(215,20%,65%)] w-12 text-right">
-                                  {data.percentage}%
-                                </span>
-                              </div>
-
-                              <p className="text-xs text-[hsl(215,20%,65%)]">
-                                Total: {data.duration} minutes
-                              </p>
-                            </div>
-                          );
-                        }
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Summary Statistics */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-[hsl(222,47%,8%)] border border-[hsl(217,33%,17%)] rounded-lg p-6">
-                      <p className="text-sm text-[hsl(215,20%,65%)] mb-2">
-                        Total Duration
-                      </p>
-                      <p className="text-2xl font-bold text-[hsl(217,91%,60%)]">
-                        {Object.values(distribution).reduce(
-                          (sum: number, item: { count: number; percentage: number; duration: number }) =>
-                            sum + (item.duration || 0),
-                          0
-                        )}{" "}
-                        min
-                      </p>
-                    </div>
-
-                    <div className="bg-[hsl(222,47%,8%)] border border-[hsl(217,33%,17%)] rounded-lg p-6">
-                      <p className="text-sm text-[hsl(215,20%,65%)] mb-2">
-                        Video Time
-                      </p>
-                      <p className="text-2xl font-bold text-blue-400">
-                        {(distribution.video?.duration || 0)} min
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-[hsl(222,47%,8%)] border border-[hsl(217,33%,17%)] rounded-lg p-12 text-center">
-                  <p className="text-[hsl(215,20%,65%)]">
-                    Click &quot;Suggest Distribution&quot; to view content recommendations.
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Settings Tab */}
-          {activeTab === "settings" && (
-            <div className="space-y-6 max-w-2xl">
-              {/* Assign Coach */}
-              <div className="bg-[hsl(222,47%,8%)] border border-[hsl(217,33%,17%)] rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-[hsl(210,40%,98%)] mb-4">
-                  Assign Coach
-                </h3>
-                <input
-                  type="email"
-                  placeholder="Enter coach email..."
-                  className="w-full p-3 bg-[hsl(222,47%,6%)] border border-[hsl(217,33%,17%)] rounded-lg text-sm text-[hsl(210,40%,98%)] placeholder-[hsl(215,20%,45%)] focus:outline-none focus:border-[hsl(217,91%,60%)]"
-                />
-                <button className="mt-4 px-4 py-2 bg-[hsl(217,91%,60%)] hover:bg-[hsl(217,91%,55%)] text-white rounded-lg text-sm font-medium transition-colors">
-                  Assign Coach
-                </button>
-              </div>
-
-              {/* Content Types Toggle */}
-              <div className="bg-[hsl(222,47%,8%)] border border-[hsl(217,33%,17%)] rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-[hsl(210,40%,98%)] mb-4">
-                  Content Types
-                </h3>
-                <p className="text-sm text-[hsl(215,20%,65%)] mb-4">
-                  Enable or disable content types for this course.
-                </p>
-                <div className="space-y-3">
-                  {[
-                    "video",
-                    "reading",
-                    "practice_quiz",
-                    "graded_quiz",
-                    "plugin",
-                    "ai_dialogue",
-                  ].map((type) => {
-                    const config = getContentType(type);
-                    return (
-                      <label
-                        key={type}
-                        className="flex items-center gap-3 cursor-pointer"
-                      >
-                        <input
-                          type="checkbox"
-                          defaultChecked
-                          className="w-4 h-4 rounded border-[hsl(217,33%,17%)] accent-[hsl(217,91%,60%)]"
-                        />
-                        <span className="text-sm text-[hsl(210,40%,98%)]">
-                          {config?.label}
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Metadata */}
-              <div className="bg-[hsl(222,47%,8%)] border border-[hsl(217,33%,17%)] rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-[hsl(210,40%,98%)] mb-4">
-                  Course Metadata
-                </h3>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm text-[hsl(215,20%,65%)] mb-2">
-                      Title
-                    </label>
-                    <input
-                      type="text"
-                      defaultValue={course.title}
-                      className="w-full p-3 bg-[hsl(222,47%,6%)] border border-[hsl(217,33%,17%)] rounded-lg text-sm text-[hsl(210,40%,98%)] focus:outline-none focus:border-[hsl(217,91%,60%)]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm text-[hsl(215,20%,65%)] mb-2">
-                      Domain
-                    </label>
-                    <input
-                      type="text"
-                      defaultValue={course.domain}
-                      className="w-full p-3 bg-[hsl(222,47%,6%)] border border-[hsl(217,33%,17%)] rounded-lg text-sm text-[hsl(210,40%,98%)] focus:outline-none focus:border-[hsl(217,91%,60%)]"
-                    />
-                  </div>
-
-                  <button className="mt-4 px-4 py-2 bg-[hsl(217,91%,60%)] hover:bg-[hsl(217,91%,55%)] text-white rounded-lg text-sm font-medium transition-colors">
-                    Save Changes
-                  </button>
-                </div>
-              </div>
             </div>
           )}
 
@@ -931,7 +567,7 @@ export default function CourseDetailPage({
         item={selectedItem}
         isOpen={isDrawerOpen}
         onClose={handleCloseDrawer}
-        userRole={userRole}
+        userRole="coach"
       />
     </div>
   );
