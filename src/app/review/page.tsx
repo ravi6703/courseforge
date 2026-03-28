@@ -20,7 +20,6 @@ export default function ReviewQueuePage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [courses, setCourses] = useState<Course[]>([]);
-  const [currentView, setCurrentView] = useState("review-queue");
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -55,13 +54,6 @@ export default function ReviewQueuePage() {
     init();
   }, [router]);
 
-  const handleNavigate = (view: string) => {
-    if (view === "dashboard") router.push("/dashboard");
-    else if (view === "create-course") router.push("/create");
-    else if (view === "review-queue") setCurrentView("review-queue");
-    else setCurrentView(view);
-  };
-
   const handleLogout = () => {
     localStorage.removeItem("courseforge_user");
     router.push("/");
@@ -77,10 +69,15 @@ export default function ReviewQueuePage() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar currentView={currentView} onNavigate={handleNavigate} user={user} onLogout={handleLogout} />
+      <Sidebar user={user} onLogout={handleLogout} />
 
       <main className="flex-1 md:ml-64 overflow-auto">
         <div className="p-8 max-w-5xl">
+          <nav className="flex items-center gap-2 text-sm text-gray-600 mb-8">
+            <Link href="/dashboard" className="text-blue-600 hover:underline">Dashboard</Link>
+            <span>&gt;</span>
+            <span>Review Queue</span>
+          </nav>
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900">Review Queue</h1>
             <p className="text-gray-600 mt-2">

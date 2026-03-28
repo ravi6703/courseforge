@@ -50,7 +50,6 @@ export default function CourseDetailPage() {
   const [course, setCourse] = useState<Course | null>(null);
   const [modules, setModules] = useState<Module[]>([]);
   const [comments, setComments] = useState<TOCComment[]>([]);
-  const [currentView, setCurrentView] = useState("course-detail");
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
   const [comment, setComment] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -94,11 +93,6 @@ export default function CourseDetailPage() {
 
     init();
   }, [courseId, router]);
-
-  const handleNavigate = (view: string) => {
-    if (view === "dashboard") router.push("/dashboard");
-    else setCurrentView(view);
-  };
 
   const handleLogout = () => {
     localStorage.removeItem("courseforge_user");
@@ -208,7 +202,7 @@ export default function CourseDetailPage() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar currentView={currentView} onNavigate={handleNavigate} user={user} onLogout={handleLogout} />
+      <Sidebar user={user} onLogout={handleLogout} />
 
       <main className="flex-1 md:ml-64 overflow-auto">
         <div className="p-8 max-w-5xl">
@@ -219,6 +213,13 @@ export default function CourseDetailPage() {
             </svg>
             Back to Dashboard
           </Link>
+
+          {/* Breadcrumb */}
+          <div className="mb-6 text-sm">
+            <Link href="/dashboard" className="text-blue-600 hover:text-blue-700">Dashboard</Link>
+            <span className="text-gray-500 mx-2">&gt;</span>
+            <span className="text-gray-700">{course.title}</span>
+          </div>
 
           {/* Course Header */}
           <div className="bg-white rounded-lg border border-gray-200 p-8 mb-6">

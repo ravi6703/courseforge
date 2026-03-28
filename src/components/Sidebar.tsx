@@ -1,136 +1,128 @@
 "use client";
 
-import { User, Role } from "@/types";
+import { User } from "@/types";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 interface SidebarProps {
-  currentView: string;
-  onNavigate: (view: string) => void;
   user: User | null;
   onLogout: () => void;
 }
 
-const navigationItems = [
-  { id: "dashboard", label: "Dashboard", icon: "dashboard" },
-  { id: "create-course", label: "Create Course", icon: "plus" },
-  { id: "toc-builder", label: "TOC Builder", icon: "layers" },
-  { id: "content-studio", label: "Content Studio", icon: "edit" },
-  { id: "review-queue", label: "Review Queue", icon: "check" },
-  { id: "video-studio", label: "Video Studio", icon: "video" },
-];
-
-function getIcon(iconType: string) {
-  switch (iconType) {
-    case "dashboard":
-      return (
-        <svg
-          className="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M3 12l2-3m2 3l2-3m2 3l2-3m2-4l2 3m-2-3V7a1 1 0 011-1h6a1 1 0 011 1v3m0 0l2 3m-2-3V7"
-          />
-        </svg>
-      );
-    case "plus":
-      return (
-        <svg
-          className="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M12 4v16m8-8H4"
-          />
-        </svg>
-      );
-    case "layers":
-      return (
-        <svg
-          className="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.5a2 2 0 00-1 3.75A2 2 0 0010 15H3.75a2 2 0 00-2-2H1a2 2 0 00-2 2v4a2 2 0 002 2z"
-          />
-        </svg>
-      );
-    case "edit":
-      return (
-        <svg
-          className="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-          />
-        </svg>
-      );
-    case "check":
-      return (
-        <svg
-          className="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-      );
-    case "video":
-      return (
-        <svg
-          className="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
-          />
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-      );
-    default:
-      return null;
-  }
+interface NavItem {
+  label: string;
+  href: string;
+  icon: (props: { className: string }) => React.ReactNode;
+  pmOnly?: boolean;
 }
 
-export function Sidebar({ currentView, onNavigate, user, onLogout }: SidebarProps) {
+const navigationItems: NavItem[] = [
+  {
+    label: "Dashboard",
+    href: "/dashboard",
+    icon: ({ className }) => (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M3 12l2-3m2 3l2-3m2 3l2-3m2-4l2 3m-2-3V7a1 1 0 011-1h6a1 1 0 011 1v3m0 0l2 3m-2-3V7"
+        />
+      </svg>
+    ),
+  },
+  {
+    label: "Create Course",
+    href: "/create",
+    icon: ({ className }) => (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M12 4v16m8-8H4"
+        />
+      </svg>
+    ),
+    pmOnly: true,
+  },
+  {
+    label: "TOC Builder",
+    href: "/toc-builder",
+    icon: ({ className }) => (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.5a2 2 0 00-1 3.75A2 2 0 0010 15H3.75a2 2 0 00-2-2H1a2 2 0 00-2 2v4a2 2 0 002 2z"
+        />
+      </svg>
+    ),
+  },
+  {
+    label: "Video Studio",
+    href: "/video-studio",
+    icon: ({ className }) => (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+        />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+        />
+      </svg>
+    ),
+  },
+  {
+    label: "Content Studio",
+    href: "/content-studio",
+    icon: ({ className }) => (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+        />
+      </svg>
+    ),
+  },
+  {
+    label: "Review Queue",
+    href: "/review",
+    icon: ({ className }) => (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+        />
+      </svg>
+    ),
+    pmOnly: true,
+  },
+];
+
+export function Sidebar({ user, onLogout }: SidebarProps) {
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+
+  const isActive = (href: string) => pathname === href;
+
+  // Filter items based on user role
+  const visibleItems = navigationItems.filter(
+    (item) => !item.pmOnly || user?.role === "pm"
+  );
 
   return (
     <>
@@ -138,6 +130,7 @@ export function Sidebar({ currentView, onNavigate, user, onLogout }: SidebarProp
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="md:hidden fixed top-4 left-4 z-50 p-2 bg-white border border-gray-200 rounded-lg"
+        aria-label="Toggle sidebar"
       >
         <svg
           className="w-5 h-5"
@@ -179,23 +172,21 @@ export function Sidebar({ currentView, onNavigate, user, onLogout }: SidebarProp
 
         {/* Navigation */}
         <nav className="flex-1 px-4 py-6 space-y-2">
-          {navigationItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => {
-                onNavigate(item.id);
-                setIsOpen(false);
-              }}
+          {visibleItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={() => setIsOpen(false)}
               className={cn(
-                "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors",
-                currentView === item.id
+                "flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors",
+                isActive(item.href)
                   ? "bg-blue-50 text-blue-600"
                   : "text-gray-700 hover:bg-gray-50"
               )}
             >
-              {getIcon(item.icon)}
+              {item.icon({ className: "w-5 h-5" })}
               <span className="text-sm font-medium">{item.label}</span>
-            </button>
+            </Link>
           ))}
         </nav>
 
@@ -209,7 +200,9 @@ export function Sidebar({ currentView, onNavigate, user, onLogout }: SidebarProp
               <p className="text-sm font-medium text-gray-900 mt-1">
                 {user.name}
               </p>
-              <p className="text-xs text-gray-600 capitalize">{user.role}</p>
+              <p className="text-xs text-gray-600">
+                {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+              </p>
             </div>
             <button
               onClick={() => {
@@ -229,6 +222,7 @@ export function Sidebar({ currentView, onNavigate, user, onLogout }: SidebarProp
         <div
           className="fixed inset-0 bg-black/20 md:hidden z-30"
           onClick={() => setIsOpen(false)}
+          aria-hidden="true"
         />
       )}
     </>

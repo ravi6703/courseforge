@@ -41,7 +41,6 @@ export default function CreateCoursePage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [currentStep, setCurrentStep] = useState<Step>(1);
-  const [currentView, setCurrentView] = useState("create-course");
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedTOC, setGeneratedTOC] = useState<Module[] | null>(null);
@@ -54,6 +53,8 @@ export default function CreateCoursePage() {
   const [courseDescription, setCourseDescription] = useState("");
   const [audienceLevel, setAudienceLevel] = useState<"beginner" | "intermediate" | "advanced">("intermediate");
   const [durationWeeks, setDurationWeeks] = useState(6);
+  const [videoLength, setVideoLength] = useState<"5-10 min" | "10-15 min" | "15-20 min" | "20-30 min">("10-15 min");
+  const [theoryRatio, setTheoryRatio] = useState<"80:20" | "70:30" | "60:40" | "50:50">("70:30");
   const [selectedContentTypes, setSelectedContentTypes] = useState<ContentType[]>(["reading", "practice_quiz", "graded_quiz", "discussion"]);
 
   useEffect(() => {
@@ -62,11 +63,6 @@ export default function CreateCoursePage() {
     try { setUser(JSON.parse(storedUser)); } catch { router.push("/"); return; }
     setIsLoading(false);
   }, [router]);
-
-  const handleNavigate = (view: string) => {
-    if (view === "dashboard") router.push("/dashboard");
-    else setCurrentView(view);
-  };
 
   const handleLogout = () => {
     localStorage.removeItem("courseforge_user");
@@ -185,7 +181,7 @@ export default function CreateCoursePage() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar currentView={currentView} onNavigate={handleNavigate} user={user} onLogout={handleLogout} />
+      <Sidebar user={user} onLogout={handleLogout} />
 
       <main className="flex-1 md:ml-64 overflow-auto">
         <div className="max-w-4xl mx-auto p-8">
@@ -257,6 +253,26 @@ export default function CreateCoursePage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Duration (weeks)</label>
                     <input type="number" min="2" max="52" value={durationWeeks} onChange={(e) => setDurationWeeks(parseInt(e.target.value) || 6)} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Target Video Length</label>
+                    <select value={videoLength} onChange={(e) => setVideoLength(e.target.value as typeof videoLength)} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <option value="5-10 min">5-10 min</option>
+                      <option value="10-15 min">10-15 min</option>
+                      <option value="15-20 min">15-20 min</option>
+                      <option value="20-30 min">20-30 min</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Theory : Hands-on Ratio</label>
+                    <select value={theoryRatio} onChange={(e) => setTheoryRatio(e.target.value as typeof theoryRatio)} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <option value="80:20">80:20</option>
+                      <option value="70:30">70:30</option>
+                      <option value="60:40">60:40</option>
+                      <option value="50:50">50:50</option>
+                    </select>
                   </div>
                 </div>
               </div>

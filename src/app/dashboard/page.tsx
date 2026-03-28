@@ -46,7 +46,6 @@ export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
   const [courses, setCourses] = useState<Course[]>([]);
   const [coachNames, setCoachNames] = useState<Record<string, string>>({});
-  const [currentView, setCurrentView] = useState("dashboard");
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -91,13 +90,6 @@ export default function DashboardPage() {
     init();
   }, [router]);
 
-  const handleNavigate = (view: string) => {
-    if (view === "dashboard") setCurrentView("dashboard");
-    else if (view === "create-course") router.push("/create");
-    else if (view === "review-queue") router.push("/review");
-    else setCurrentView(view);
-  };
-
   const handleLogout = () => {
     localStorage.removeItem("courseforge_user");
     router.push("/");
@@ -123,7 +115,7 @@ export default function DashboardPage() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar currentView={currentView} onNavigate={handleNavigate} user={user} onLogout={handleLogout} />
+      <Sidebar user={user} onLogout={handleLogout} />
 
       <main className="flex-1 md:ml-64 overflow-auto">
         <div className="p-8">
