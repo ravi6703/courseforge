@@ -89,6 +89,8 @@ export default function CreateCoursePage() {
           audience_level: audienceLevel,
           duration_weeks: durationWeeks,
           content_types: selectedContentTypes,
+          video_length: videoLength,
+          theory_ratio: theoryRatio,
         }),
       });
 
@@ -334,30 +336,50 @@ export default function CreateCoursePage() {
                 <div className="bg-white rounded-lg border border-gray-200 p-6">
                   <div className="flex items-center gap-2 mb-4">
                     <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
-                    <span className="font-medium text-gray-900">TOC Generated — {generatedTOC.length} modules, {generatedTOC.reduce((a, m) => a + m.lessons.length, 0)} lessons</span>
+                    <span className="font-medium text-gray-900">
+                      TOC Generated — {generatedTOC.length} modules, {generatedTOC.reduce((a, m) => a + m.lessons.length, 0)} lessons, {generatedTOC.reduce((a, m) => a + m.lessons.reduce((la: number, l: any) => la + (l.content_items?.length || 0), 0), 0)} content items
+                    </span>
                   </div>
 
-                  <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-                    {generatedTOC.map((mod) => (
+                  <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+                    {generatedTOC.map((mod: any) => (
                       <div key={mod.id} className="border-l-4 border-blue-600 pl-4 py-2">
-                        <h4 className="font-semibold text-gray-900">{mod.title}</h4>
-                        <p className="text-sm text-gray-500 mt-1">{mod.description}</p>
-                        <div className="mt-2 space-y-1">
-                          {mod.lessons.map((les) => (
-                            <div key={les.id} className="flex items-center gap-2 text-sm text-gray-600">
-                              <span className="w-1.5 h-1.5 bg-gray-400 rounded-full shrink-0" />
-                              <span>{les.title}</span>
-                              <span className="text-gray-400">({les.videos.length} videos, {les.content_types.length} content types)</span>
-                            </div>
-                          ))}
+                        <div className="flex items-center gap-3">
+                          <h4 className="font-bold text-gray-900">{mod.title}</h4>
+                          {mod.duration && <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">{mod.duration}</span>}
                         </div>
-                        <div className="mt-2 flex flex-wrap gap-1">
-                          {mod.learning_objectives.map((lo) => (
-                            <span key={lo.id} className={`text-xs px-2 py-0.5 rounded-full ${
-                              {remember:"bg-red-100 text-red-700",understand:"bg-orange-100 text-orange-700",apply:"bg-yellow-100 text-yellow-700",analyze:"bg-green-100 text-green-700",evaluate:"bg-blue-100 text-blue-700",create:"bg-purple-100 text-purple-700"}[lo.bloom_level] || "bg-gray-100 text-gray-700"
+                        <p className="text-sm text-gray-500 mt-1 line-clamp-2">{mod.description}</p>
+                        {/* Bloom badges */}
+                        <div className="mt-1.5 flex flex-wrap gap-1">
+                          {mod.learning_objectives.map((lo: any) => (
+                            <span key={lo.id} className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                              {remember:"bg-red-100 text-red-700",understand:"bg-orange-100 text-orange-700",apply:"bg-yellow-100 text-yellow-700",analyze:"bg-green-100 text-green-700",evaluate:"bg-blue-100 text-blue-700",create:"bg-purple-100 text-purple-700"}[lo.bloom_level as string] || "bg-gray-100 text-gray-700"
                             }`}>
                               {lo.bloom_level}
                             </span>
+                          ))}
+                        </div>
+                        {/* Lessons with content items */}
+                        <div className="mt-3 space-y-2">
+                          {mod.lessons.map((les: any) => (
+                            <div key={les.id} className="bg-gray-50 rounded-lg p-3">
+                              <p className="text-sm font-semibold text-gray-800">{les.title}</p>
+                              {les.content_items && les.content_items.length > 0 && (
+                                <div className="mt-2 space-y-0.5">
+                                  {les.content_items.slice(0, 8).map((item: any, idx: number) => (
+                                    <p key={item.id || idx} className="text-xs text-gray-600 pl-3 flex items-start gap-1.5">
+                                      <span className="flex-shrink-0 mt-0.5">
+                                        {item.type === "video" ? "▶" : item.type === "reading" ? "📖" : item.type === "practice_quiz" || item.type === "graded_quiz" ? "✏️" : item.type === "discussion" ? "💬" : item.type === "ungraded_lab" ? "🧪" : "•"}
+                                      </span>
+                                      <span>{item.title}</span>
+                                    </p>
+                                  ))}
+                                  {les.content_items.length > 8 && (
+                                    <p className="text-xs text-gray-400 pl-3">+ {les.content_items.length - 8} more items</p>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                           ))}
                         </div>
                       </div>

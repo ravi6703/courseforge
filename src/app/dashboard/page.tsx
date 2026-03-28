@@ -4,8 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/Sidebar";
 import { Course, User } from "@/types";
-import { getCourses, getProfileById } from "@/lib/db";
-import { isSupabaseConfigured } from "@/lib/supabase";
 import { loadState } from "@/lib/store";
 import Link from "next/link";
 
@@ -13,12 +11,16 @@ const statusBadgeColors: Record<string, { bg: string; text: string }> = {
   draft: { bg: "bg-gray-100", text: "text-gray-700" },
   toc_generation: { bg: "bg-blue-100", text: "text-blue-700" },
   toc_review: { bg: "bg-yellow-100", text: "text-yellow-700" },
-  toc_locked: { bg: "bg-indigo-100", text: "text-indigo-700" },
-  content_generation: { bg: "bg-purple-100", text: "text-purple-700" },
+  toc_approved: { bg: "bg-indigo-100", text: "text-indigo-700" },
+  content_briefs: { bg: "bg-purple-100", text: "text-purple-700" },
   ppt_generation: { bg: "bg-pink-100", text: "text-pink-700" },
-  video_recording: { bg: "bg-orange-100", text: "text-orange-700" },
-  review: { bg: "bg-amber-100", text: "text-amber-700" },
-  completed: { bg: "bg-green-100", text: "text-green-700" },
+  ppt_review: { bg: "bg-pink-100", text: "text-pink-700" },
+  recording: { bg: "bg-orange-100", text: "text-orange-700" },
+  transcription: { bg: "bg-orange-100", text: "text-orange-700" },
+  content_generation: { bg: "bg-purple-100", text: "text-purple-700" },
+  content_review: { bg: "bg-amber-100", text: "text-amber-700" },
+  final_review: { bg: "bg-amber-100", text: "text-amber-700" },
+  published: { bg: "bg-green-100", text: "text-green-700" },
 };
 
 const platformBadgeColors: Record<string, string> = {
@@ -33,19 +35,22 @@ const statusProgress: Record<string, number> = {
   draft: 5,
   toc_generation: 15,
   toc_review: 30,
-  toc_locked: 40,
-  content_generation: 55,
-  ppt_generation: 65,
-  video_recording: 75,
-  review: 90,
-  completed: 100,
+  toc_approved: 40,
+  content_briefs: 50,
+  ppt_generation: 60,
+  ppt_review: 65,
+  recording: 75,
+  transcription: 80,
+  content_generation: 85,
+  content_review: 90,
+  final_review: 95,
+  published: 100,
 };
 
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [courses, setCourses] = useState<Course[]>([]);
-  const [coachNames, setCoachNames] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -60,24 +65,9 @@ export default function DashboardPage() {
         const parsedUser = JSON.parse(storedUser);
         setUser(parsedUser);
 
-        if (isSupabaseConfigured) {
-          // Load from Supabase
-          const allCourses = await getCourses();
-          setCourses(allCourses);
-
-          // Resolve coach names
-          const coachIds = [...new Set(allCourses.map((c) => c.assigned_coach).filter(Boolean))] as string[];
-          const names: Record<string, string> = {};
-          for (const id of coachIds) {
-            const profile = await getProfileById(id);
-            if (profile) names[id] = profile.name;
-          }
-          setCoachNames(names);
-        } else {
-          // Fallback to localStorage
-          const state = loadState();
-          setCourses(state.courses);
-        }
+        // Load from localStorage
+        const state = loadState();
+        setCourses(state.courses);
       } catch (err) {
         console.error("Dashboard load error:", err);
         router.push("/");
@@ -108,9 +98,9 @@ export default function DashboardPage() {
 
   const stats = {
     total: courses.length,
-    inProgress: courses.filter((c) => !["draft", "completed", "review"].includes(c.status)).length,
-    completed: courses.filter((c) => c.status === "completed").length,
-    pendingReview: courses.filter((c) => c.status === "review" || c.status === "toc_review").length,
+    inProgress: courses.filter((c) => !["draft", "published"].includes(c.status)).length,
+    published: courses.filter((c) => c.status === "published").length,
+    inReview: courses.filter((c) => c.status.includes("review")).length,
   };
 
   return (
@@ -125,12 +115,12 @@ export default function DashboardPage() {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
             {[
               { label: "Total Courses", value: stats.total, color: "blue", icon: "M12 6.253v13m0-13C6.228 6.228 2 10.428 2 15.5c0 5.072 4.228 9.272 10 9.272s10-4.2 10-9.272c0-5.072-4.228-9.247-10-9.247z" },
               { label: "In Progress", value: stats.inProgress, color: "orange", icon: "M13 10V3L4 14h7v7l9-11h-7z" },
-              { label: "Completed", value: stats.completed, color: "green", icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" },
-              { label: "Pending Review", value: stats.pendingReview, color: "amber", icon: "M15 12a3 3 0 11-6 0 3 3 0 016 0z" },
+              { label: "In Review", value: stats.inReview, color: "yellow", icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" },
+              { label: "Published", value: stats.published, color: "green", icon: "M5 13l4 4L19 7" },
             ].map((stat) => (
               <div key={stat.label} className="bg-white rounded-lg border border-gray-200 p-6">
                 <div className="flex items-center justify-between">
@@ -148,81 +138,96 @@ export default function DashboardPage() {
             ))}
           </div>
 
-          {/* Action */}
-          {user.role === "pm" && (
-            <div className="mb-8">
-              <button
-                onClick={() => router.push("/create")}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Create New Course
-              </button>
-            </div>
-          )}
-
-          {/* Courses Grid */}
+          {/* Courses */}
           <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-6">
-              {user.role === "coach" ? "Assigned Courses" : "All Courses"}
-            </h2>
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Your Courses</h2>
+              {user.role === "pm" && (
+                <p className="text-gray-600 mt-2">Create and manage your courses here.</p>
+              )}
+            </div>
+
             {courses.length === 0 ? (
-              <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
-                <svg className="w-12 h-12 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              <div className="text-center py-16 bg-white rounded-lg border border-gray-200">
+                <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C6.228 6.228 2 10.428 2 15.5c0 5.072 4.228 9.272 10 9.272s10-4.2 10-9.272c0-5.072-4.228-9.247-10-9.247z" />
                 </svg>
-                <p className="text-gray-600 mb-4">No courses yet.</p>
+                <p className="text-gray-600 font-medium">No courses yet</p>
+                <p className="text-gray-400 text-sm mt-1">Create your first course to get started</p>
                 {user.role === "pm" && (
-                  <button onClick={() => router.push("/create")} className="text-blue-600 font-medium hover:underline">
-                    Create your first course
-                  </button>
+                  <Link href="/create">
+                    <button className="mt-6 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
+                      Create Course
+                    </button>
+                  </Link>
                 )}
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {courses.map((course) => {
-                  const colors = statusBadgeColors[course.status] || { bg: "bg-gray-100", text: "text-gray-700" };
                   const progress = statusProgress[course.status] || 0;
-                  const coachName = course.assigned_coach ? coachNames[course.assigned_coach] || "Assigned" : "Unassigned";
+                  const statusColor = statusBadgeColors[course.status] || { bg: "bg-gray-100", text: "text-gray-700" };
 
                   return (
                     <Link key={course.id} href={`/course/${course.id}`}>
-                      <div className="bg-white rounded-lg border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer h-full">
-                        <div className="p-6">
+                      <div className="bg-white rounded-lg border border-gray-200 hover:border-blue-400 hover:shadow-lg transition-all overflow-hidden cursor-pointer">
+                        {/* Header */}
+                        <div className="p-6 pb-4">
                           <div className="flex items-start justify-between mb-3">
-                            <h3 className="font-bold text-gray-900 flex-1 line-clamp-2">{course.title}</h3>
+                            <div className="flex-1">
+                              <h3 className="font-bold text-gray-900 line-clamp-2">{course.title}</h3>
+                            </div>
+                            <span className={`text-xs font-medium px-2.5 py-1 rounded-full ml-2 flex-shrink-0 ${statusColor.bg} ${statusColor.text}`}>
+                              {course.status.split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ").substring(0, 20)}
+                            </span>
                           </div>
 
-                          <div className="flex items-center gap-2 mb-4">
-                            <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${platformBadgeColors[course.platform] || "bg-gray-100 text-gray-700"}`}>
+                          <p className="text-sm text-gray-600 line-clamp-2">{course.description}</p>
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-medium text-gray-600">Progress</span>
+                            <span className="text-xs text-gray-500">{progress}%</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div
+                              className="bg-blue-600 h-2 rounded-full transition-all"
+                              style={{ width: `${progress}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Meta */}
+                        <div className="px-6 py-4 border-t border-gray-200 space-y-3">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600">Platform</span>
+                            <span className={`text-xs font-medium px-2 py-1 rounded ${platformBadgeColors[course.platform]}`}>
                               {course.platform.charAt(0).toUpperCase() + course.platform.slice(1)}
                             </span>
-                            <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${colors.bg} ${colors.text}`}>
-                              {course.status.split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}
-                            </span>
                           </div>
-
-                          <p className="text-sm text-gray-600 mb-4 line-clamp-2">{course.description}</p>
-
-                          <div className="space-y-2 mb-4 text-sm">
-                            <div className="flex justify-between text-gray-700">
-                              <span>Coach:</span>
-                              <span className="font-medium">{coachName}</span>
-                            </div>
-                            <div className="flex justify-between text-gray-700">
-                              <span>Duration:</span>
-                              <span className="font-medium">{course.duration_weeks} weeks</span>
-                            </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600">Audience Level</span>
+                            <span className="text-xs font-medium text-gray-700 capitalize">{course.audience_level}</span>
                           </div>
-
-                          <div className="pt-4 border-t border-gray-200">
-                            <div className="w-full bg-gray-200 rounded-full h-2">
-                              <div className="bg-blue-600 h-2 rounded-full transition-all" style={{ width: `${progress}%` }} />
-                            </div>
-                            <p className="text-xs text-gray-500 mt-2">Progress: {progress}%</p>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600">Duration</span>
+                            <span className="text-xs font-medium text-gray-700">{course.duration_weeks} weeks</span>
                           </div>
+                          {course.assigned_coach && (
+                            <div className="flex items-center justify-between text-sm pt-2 border-t border-gray-100">
+                              <span className="text-gray-600">Assigned Coach</span>
+                              <span className="text-xs font-medium text-gray-700">Coach</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* CTA */}
+                        <div className="px-6 py-3 bg-blue-50 border-t border-gray-200">
+                          <button className="w-full text-sm font-medium text-blue-600 hover:text-blue-700">
+                            View Details →
+                          </button>
                         </div>
                       </div>
                     </Link>

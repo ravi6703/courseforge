@@ -276,13 +276,15 @@ export async function getCommentsByCourse(courseId: string): Promise<TOCComment[
   if (error) throw error;
   return (data || []).map((row) => ({
     id: row.id,
-    author: row.author_name,
+    course_id: row.course_id,
+    author: row.author_name || row.author,
     author_role: row.author_role,
     text: row.text,
     target_type: row.target_type,
     target_id: row.target_id,
     resolved: row.resolved,
     created_at: row.created_at,
+    updated_at: row.updated_at || row.created_at,
   }));
 }
 
@@ -303,13 +305,15 @@ export async function createComment(comment: {
   if (error) throw error;
   return {
     id: data.id,
-    author: data.author_name,
+    course_id: data.course_id,
+    author: data.author_name || data.author,
     author_role: data.author_role,
     text: data.text,
     target_type: data.target_type,
     target_id: data.target_id,
     resolved: data.resolved,
     created_at: data.created_at,
+    updated_at: data.updated_at || data.created_at,
   };
 }
 

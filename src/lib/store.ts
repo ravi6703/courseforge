@@ -3,7 +3,23 @@
 // Simple client-side store for MVP (replaces Supabase until connected)
 // This uses localStorage + React state for persistence during development
 
-import { Course, Module, Lesson, User, Role, GeneratedTOC, TOCComment, ContentType, Platform } from "@/types";
+import {
+  Course,
+  Module,
+  Lesson,
+  User,
+  Role,
+  GeneratedTOC,
+  TOCComment,
+  ContentType,
+  Platform,
+  ContentBrief,
+  PPTSlide,
+  Recording,
+  Transcript,
+  Comment,
+  ContentItem,
+} from "@/types";
 
 const STORAGE_KEY = "courseforge_data";
 
@@ -11,7 +27,12 @@ export interface AppState {
   currentUser: User | null;
   courses: Course[];
   modules: Record<string, Module[]>; // keyed by course_id
-  comments: TOCComment[];
+  comments: Comment[];
+  contentBriefs: ContentBrief[];
+  pptSlides: PPTSlide[];
+  recordings: Recording[];
+  transcripts: Transcript[];
+  contentItems: ContentItem[];
 }
 
 const defaultState: AppState = {
@@ -19,6 +40,11 @@ const defaultState: AppState = {
   courses: [],
   modules: {},
   comments: [],
+  contentBriefs: [],
+  pptSlides: [],
+  recordings: [],
+  transcripts: [],
+  contentItems: [],
 };
 
 // Demo users
@@ -239,4 +265,218 @@ export function saveState(state: AppState): void {
 
 export function generateId(): string {
   return Math.random().toString(36).substring(2, 10);
+}
+
+// ─── COURSE OPERATIONS ───────────────────────────────────────────
+
+export function addCourse(course: Course): void {
+  const state = loadState();
+  state.courses.push(course);
+  saveState(state);
+}
+
+export function updateCourse(courseId: string, updates: Partial<Course>): void {
+  const state = loadState();
+  const course = state.courses.find((c) => c.id === courseId);
+  if (course) {
+    Object.assign(course, updates, { updated_at: new Date().toISOString() });
+    saveState(state);
+  }
+}
+
+export function getCourseById(courseId: string): Course | undefined {
+  const state = loadState();
+  return state.courses.find((c) => c.id === courseId);
+}
+
+// ─── MODULE OPERATIONS ───────────────────────────────────────────
+
+export function getModulesByCourse(courseId: string): Module[] {
+  const state = loadState();
+  return state.modules[courseId] || [];
+}
+
+export function addModules(courseId: string, modules: Module[]): void {
+  const state = loadState();
+  state.modules[courseId] = modules;
+  saveState(state);
+}
+
+export function updateModule(courseId: string, moduleId: string, updates: Partial<Module>): void {
+  const state = loadState();
+  const modules = state.modules[courseId];
+  if (modules) {
+    const module = modules.find((m) => m.id === moduleId);
+    if (module) {
+      Object.assign(module, updates);
+      saveState(state);
+    }
+  }
+}
+
+// ─── LESSON OPERATIONS ───────────────────────────────────────────
+
+export function getLessonById(courseId: string, lessonId: string): Lesson | undefined {
+  const state = loadState();
+  const modules = state.modules[courseId];
+  if (!modules) return undefined;
+  for (const mod of modules) {
+    const lesson = mod.lessons.find((l) => l.id === lessonId);
+    if (lesson) return lesson;
+  }
+  return undefined;
+}
+
+export function updateLesson(
+  courseId: string,
+  lessonId: string,
+  updates: Partial<Lesson>
+): void {
+  const state = loadState();
+  const modules = state.modules[courseId];
+  if (!modules) return;
+  for (const mod of modules) {
+    const lesson = mod.lessons.find((l) => l.id === lessonId);
+    if (lesson) {
+      Object.assign(lesson, updates);
+      saveState(state);
+      return;
+    }
+  }
+}
+
+// ─── COMMENT OPERATIONS ──────────────────────────────────────────
+
+export function addComment(comment: Comment): void {
+  const state = loadState();
+  state.comments.push(comment);
+  saveState(state);
+}
+
+export function getCommentsByCourse(courseId: string): Comment[] {
+  const state = loadState();
+  return state.comments.filter((c) => c.course_id === courseId);
+}
+
+export function updateComment(commentId: string, updates: Partial<Comment>): void {
+  const state = loadState();
+  const comment = state.comments.find((c) => c.id === commentId);
+  if (comment) {
+    Object.assign(comment, updates, { updated_at: new Date().toISOString() });
+    saveState(state);
+  }
+}
+
+export function resolveComment(commentId: string): void {
+  updateComment(commentId, { resolved: true });
+}
+
+// ─── CONTENT BRIEF OPERATIONS ───────────────────────────────────
+
+export function addContentBrief(brief: ContentBrief): void {
+  const state = loadState();
+  state.contentBriefs.push(brief);
+  saveState(state);
+}
+
+export function getContentBriefsByVideo(videoId: string): ContentBrief[] {
+  const state = loadState();
+  return state.contentBriefs.filter((b) => b.video_id === videoId);
+}
+
+export function updateContentBrief(briefId: string, updates: Partial<ContentBrief>): void {
+  const state = loadState();
+  const brief = state.contentBriefs.find((b) => b.id === briefId);
+  if (brief) {
+    Object.assign(brief, updates, { updated_at: new Date().toISOString() });
+    saveState(state);
+  }
+}
+
+// ─── PPT SLIDE OPERATIONS ──────────────────────────────────────
+
+export function addPPTSlide(slide: PPTSlide): void {
+  const state = loadState();
+  state.pptSlides.push(slide);
+  saveState(state);
+}
+
+export function getPPTSlidesByVideo(videoId: string): PPTSlide[] {
+  const state = loadState();
+  return state.pptSlides.filter((s) => s.video_id === videoId);
+}
+
+export function updatePPTSlide(slideId: string, updates: Partial<PPTSlide>): void {
+  const state = loadState();
+  const slide = state.pptSlides.find((s) => s.id === slideId);
+  if (slide) {
+    Object.assign(slide, updates);
+    saveState(state);
+  }
+}
+
+// ─── RECORDING OPERATIONS ────────────────────────────────────────
+
+export function addRecording(recording: Recording): void {
+  const state = loadState();
+  state.recordings.push(recording);
+  saveState(state);
+}
+
+export function getRecordingByVideo(videoId: string): Recording | undefined {
+  const state = loadState();
+  return state.recordings.find((r) => r.video_id === videoId);
+}
+
+export function updateRecording(recordingId: string, updates: Partial<Recording>): void {
+  const state = loadState();
+  const recording = state.recordings.find((r) => r.id === recordingId);
+  if (recording) {
+    Object.assign(recording, updates, { updated_at: new Date().toISOString() });
+    saveState(state);
+  }
+}
+
+// ─── TRANSCRIPT OPERATIONS ───────────────────────────────────────
+
+export function addTranscript(transcript: Transcript): void {
+  const state = loadState();
+  state.transcripts.push(transcript);
+  saveState(state);
+}
+
+export function getTranscriptByRecording(recordingId: string): Transcript | undefined {
+  const state = loadState();
+  return state.transcripts.find((t) => t.recording_id === recordingId);
+}
+
+export function updateTranscript(transcriptId: string, updates: Partial<Transcript>): void {
+  const state = loadState();
+  const transcript = state.transcripts.find((t) => t.id === transcriptId);
+  if (transcript) {
+    Object.assign(transcript, updates, { updated_at: new Date().toISOString() });
+    saveState(state);
+  }
+}
+
+// ─── CONTENT ITEM OPERATIONS ─────────────────────────────────────
+
+export function addContentItem(item: ContentItem): void {
+  const state = loadState();
+  state.contentItems.push(item);
+  saveState(state);
+}
+
+export function getContentItemsByLesson(lessonId: string): ContentItem[] {
+  const state = loadState();
+  return state.contentItems.filter((c) => c.lesson_id === lessonId);
+}
+
+export function updateContentItem(itemId: string, updates: Partial<ContentItem>): void {
+  const state = loadState();
+  const item = state.contentItems.find((c) => c.id === itemId);
+  if (item) {
+    Object.assign(item, updates);
+    saveState(state);
+  }
 }
