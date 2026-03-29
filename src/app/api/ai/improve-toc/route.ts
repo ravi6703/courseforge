@@ -1,29 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Module, LearningObjective } from "@/types";
-
-interface Comment {
-  text: string;
-  target_type: string;
-  target_id: string;
-}
+import { Module } from "@/types";
 
 interface ImproveTOCRequest {
   courseId: string;
-  currentTOC: Module[];
-  comments: Comment[];
+  modules: Module[];
+  comments: Array<{
+    text: string;
+    target_type: string;
+    target_id: string;
+  }>;
+  courseTitle: string;
 }
 
-function generateFallbackImprovement(request: ImproveTOCRequest): Module[] {
-  // Return modules with minor modifications
-  return request.currentTOC.map((module, idx) => ({
+function generateFallbackImprovement(modules: Module[]): Module[] {
+  // Return modules with minor text modifications
+  return modules.map((module) => ({
     ...module,
-    title: `${module.title} (Updated)`,
+    title: `${module.title} (Reviewed)`,
     lessons: module.lessons.map((lesson) => ({
       ...lesson,
       learning_objectives: [
         ...lesson.learning_objectives,
         {
-          id: `lo-new-${Date.now()}`,
+          id: `lo-updated-${Date.now()}`,
           text: "Apply feedback from course review",
           bloom_level: "apply" as const,
         },
@@ -37,11 +36,13 @@ async function improveWithAI(request: ImproveTOCRequest): Promise<Module[]> {
     .map((c) => `[${c.target_type} ${c.target_id}]: ${c.text}`)
     .join("\n");
 
-  const prompt = `You are a curriculum improvement specialist. The following comments have been made on a course Table of Contents. 
+  const prompt = `You are a curriculum improvement specialist. The following comments have been made on a course Table of Contents.
+
+Course Title: ${request.courseTitle}
 
 CURRENT TOC (modules only):
 ${JSON.stringify(
-  request.currentTOC.map((m) => ({
+  request.modules.map((m) => ({
     id: m.id,
     title: m.title,
     lessons: m.lessons.map((l) => ({ id: l.id, title: l.title })),
@@ -79,7 +80,7 @@ Return the improved modules as a JSON array matching the Module interface. Inclu
 
     if (!response.ok) {
       console.error("Claude API error:", response.status);
-      return generateFallbackImprovement(request);
+      return generateFallbackImprovement(request.modules);
     }
 
     const data = await response.json();
@@ -87,14 +88,14 @@ Return the improved modules as a JSON array matching the Module interface. Inclu
 
     const jsonMatch = content.match(/\[[\s\S]*\]/);
     if (!jsonMatch) {
-      return generateFallbackImprovement(request);
+      return generateFallbackImprovement(request.modules);
     }
 
     const improved = JSON.parse(jsonMatch[0]) as Module[];
     return improved;
   } catch (error) {
     console.error("Error calling Claude API:", error);
-    return generateFallbackImprovement(request);
+    return generateFallbackImprovement(request.modules);
   }
 }
 
@@ -104,13 +105,13 @@ export async function POST(request: NextRequest) {
 
     const modules = process.env.ANTHROPIC_API_KEY
       ? await improveWithAI(body)
-      : generateFallbackImprovement(body);
+      : generateFallbackImprovement(body.modules);
 
-    return NextResponse.json({ modules });
+    return NextResponse.json({ success: true, modules });
   } catch (error) {
     console.error("Error in /api/ai/improve-toc:", error);
     return NextResponse.json(
-      { error: "Failed to improve TOC" },
+      { success: false, error: "Failed to improve TOC" },
       { status: 500 }
     );
   }

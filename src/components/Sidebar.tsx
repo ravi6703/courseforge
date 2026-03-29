@@ -1,203 +1,123 @@
 "use client";
 
-import { useState } from "react";
-import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   LayoutDashboard,
   PlusCircle,
-  BookOpen,
-  ListTree,
-  Video,
-  FileText,
-  CheckSquare,
-  Bell,
-  ScrollText,
   ChevronLeft,
   ChevronRight,
+  LogOut,
 } from "lucide-react";
 import { loadState } from "@/lib/store";
 
 export function Sidebar() {
   const [isExpanded, setIsExpanded] = useState(false);
   const pathname = usePathname();
-  const state = loadState();
-  const user = state.currentUser;
+  const router = useRouter();
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const state = loadState();
+    setUser(state.currentUser);
+  }, []);
 
   if (!user) return null;
 
-  const isActive = (href: string) => pathname === href;
+  const isActive = (href: string) => pathname === href || pathname?.startsWith(href + "/");
 
-  // Get initials for avatar
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
+  const getInitials = (name: string) =>
+    name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+
+  const handleLogout = () => {
+    localStorage.removeItem("courseforge_user");
+    localStorage.removeItem("courseforge_data");
+    router.push("/");
   };
 
-  // Get notification count (mocked for now)
-  const notificationCount = 3;
-
-  // Navigation sections
-  const mainNavItems = [
+  const navItems = [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    {
-      label: "Create Course",
-      href: "/create",
-      icon: PlusCircle,
-      pmOnly: true,
-    },
+    ...(user.role === "pm"
+      ? [{ label: "Create Course", href: "/create", icon: PlusCircle }]
+      : []),
   ];
-
-  const coursesNavItems = [
-    { label: "All Courses", href: "/courses", icon: BookOpen },
-    { label: "TOC Builder", href: "/toc-builder", icon: ListTree },
-    { label: "Video Studio", href: "/video-studio", icon: Video },
-    { label: "Content Studio", href: "/content-studio", icon: FileText },
-    {
-      label: "Review Queue",
-      href: "/review",
-      icon: CheckSquare,
-      pmOnly: true,
-    },
-  ];
-
-  const activityNavItems = [
-    { label: "Notifications", href: "/notifications", icon: Bell, badge: notificationCount },
-    { label: "Activity Log", href: "/activity", icon: ScrollText, pmOnly: true },
-  ];
-
-  const filterByRole = (items: typeof mainNavItems) =>
-    items.filter((item) => !item.pmOnly || user.role === "pm");
-
-  const NavItem = ({
-    item,
-  }: {
-    item: (typeof mainNavItems | typeof activityNavItems)[number];
-  }) => {
-    const Icon = item.icon as React.ComponentType<React.SVGProps<SVGSVGElement>>;
-    const active = isActive(item.href);
-
-    return (
-      <Link href={item.href}>
-        <div
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${
-            active
-              ? "bg-white/20 text-white"
-              : "text-blue-100 hover:bg-white/10"
-          }`}
-        >
-          <Icon className="w-5 h-5 flex-shrink-0" />
-          {isExpanded && (
-            <span className="text-sm font-medium whitespace-nowrap">
-              {item.label}
-            </span>
-          )}
-          {isExpanded && "badge" in item && (item as typeof activityNavItems[number]).badge && (
-            <span className="ml-auto bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-              {(item as typeof activityNavItems[number]).badge}
-            </span>
-          )}
-        </div>
-      </Link>
-    );
-  };
-
-  const NavSection = ({
-    title,
-    items,
-  }: {
-    title: string;
-    items: typeof mainNavItems;
-  }) => {
-    const visibleItems = filterByRole(items);
-    if (visibleItems.length === 0) return null;
-
-    return (
-      <div>
-        {isExpanded && (
-          <h3 className="text-xs font-semibold text-blue-200 uppercase tracking-wider px-3 py-2 mt-4 first:mt-0">
-            {title}
-          </h3>
-        )}
-        <div className="space-y-1">
-          {visibleItems.map((item) => (
-            <NavItem key={item.href} item={item} />
-          ))}
-        </div>
-      </div>
-    );
-  };
 
   return (
-    <div
-      className={`fixed left-0 top-0 h-screen bg-gradient-to-b from-blue-900 to-blue-950 border-r border-blue-800 flex flex-col transition-all duration-300 z-40 ${
+    <aside
+      className={`fixed left-0 top-0 h-screen bg-gradient-to-b from-slate-900 to-slate-950 border-r border-slate-800 flex flex-col transition-all duration-300 z-50 ${
         isExpanded ? "w-60" : "w-16"
       }`}
     >
-      {/* Logo Section */}
-      <div className="flex items-center justify-between h-16 px-3 border-b border-blue-800">
+      {/* Logo */}
+      <div className="flex items-center h-16 px-4 border-b border-slate-800">
+        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+          CF
+        </div>
         {isExpanded && (
-          <span className="text-white font-bold text-lg">CourseForge</span>
-        )}
-        {!isExpanded && (
-          <span className="text-white font-bold text-lg">CF</span>
+          <span className="text-white font-bold text-lg ml-3">CourseForge</span>
         )}
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-2 py-4 space-y-6">
-        <NavSection title="Main" items={mainNavItems} />
-        <NavSection title="Courses" items={coursesNavItems} />
-        <NavSection title="Activity" items={activityNavItems} />
+      {/* Nav */}
+      <nav className="flex-1 overflow-y-auto px-2 py-4">
+        <div className="space-y-1">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const active = isActive(item.href);
+            return (
+              <Link key={item.href} href={item.href}>
+                <div
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
+                    active
+                      ? "bg-blue-600 text-white"
+                      : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                  }`}
+                >
+                  <Icon className="w-5 h-5 flex-shrink-0" />
+                  {isExpanded && (
+                    <span className="text-sm font-medium">{item.label}</span>
+                  )}
+                </div>
+              </Link>
+            );
+          })}
+        </div>
       </nav>
 
-      {/* User Info Section */}
-      <div className="border-t border-blue-800 p-3 space-y-3">
+      {/* User + Logout */}
+      <div className="border-t border-slate-800 p-3 space-y-2">
         <div className="flex items-center gap-3">
-          <div
-            className={`flex-shrink-0 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold ${
-              isExpanded ? "w-10 h-10" : "w-8 h-8"
-            }`}
-          >
+          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
             {getInitials(user.name)}
           </div>
           {isExpanded && (
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-white truncate">
-                {user.name}
-              </p>
-              <div className="flex items-center gap-1 mt-1">
-                <span
-                  className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                    user.role === "pm"
-                      ? "bg-blue-500 text-white"
-                      : "bg-green-500 text-white"
-                  }`}
-                >
-                  {user.role === "pm" ? "PM" : "Coach"}
-                </span>
-              </div>
+              <p className="text-sm font-medium text-white truncate">{user.name}</p>
+              <span className={`text-xs px-2 py-0.5 rounded-full ${
+                user.role === "pm" ? "bg-blue-600 text-white" : "bg-emerald-600 text-white"
+              }`}>
+                {user.role === "pm" ? "PM" : "Coach"}
+              </span>
             </div>
           )}
         </div>
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:bg-red-900/30 hover:text-red-400 transition-all w-full"
+        >
+          <LogOut className="w-5 h-5 flex-shrink-0" />
+          {isExpanded && <span className="text-sm">Logout</span>}
+        </button>
       </div>
 
-      {/* Collapse/Expand Toggle */}
+      {/* Toggle */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full h-12 flex items-center justify-center border-t border-blue-800 text-blue-300 hover:text-white hover:bg-blue-800/50 transition-colors"
-        aria-label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
+        className="h-10 flex items-center justify-center border-t border-slate-800 text-slate-500 hover:text-white transition-colors"
       >
-        {isExpanded ? (
-          <ChevronLeft className="w-5 h-5" />
-        ) : (
-          <ChevronRight className="w-5 h-5" />
-        )}
+        {isExpanded ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
       </button>
-    </div>
+    </aside>
   );
 }

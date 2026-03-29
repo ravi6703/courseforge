@@ -317,7 +317,7 @@ export default function CreateCoursePage() {
     <div className="flex h-screen bg-gray-50">
       <Sidebar />
 
-      <main className="flex-1 md:ml-16 overflow-auto">
+      <main className="flex-1 ml-16 overflow-auto">
         <div className="max-w-5xl mx-auto p-8">
           {/* Header */}
           <div className="mb-8">

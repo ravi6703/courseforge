@@ -1,35 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
-import { CoachInput } from "@/types";
 
 interface GenerateBriefRequest {
   videoId: string;
   videoTitle: string;
   lessonTitle: string;
   moduleTitle: string;
-  coachInput?: CoachInput;
+  coachInput?: {
+    key_topics?: string;
+    examples?: string;
+    visual_requirements?: string;
+    difficulty_notes?: string;
+    references?: string;
+  };
+  courseTitle: string;
 }
 
-interface ContentBriefResponse {
-  what_to_cover: string;
-  examples: string;
+interface ContentBrief {
+  talking_points: string;
   visual_cues: string;
   key_takeaways: string;
   script_outline: string;
+  estimated_duration: string;
+  status: string;
 }
 
-function generateFallbackBrief(request: GenerateBriefRequest): ContentBriefResponse {
-  const topic = `${request.moduleTitle} - ${request.lessonTitle}`;
-  const withCoachInput = request.coachInput ? `\n\nCoach guidance: ${request.coachInput.key_topics}` : "";
+function generateFallbackBrief(request: GenerateBriefRequest): ContentBrief {
+  const withCoachInput = request.coachInput
+    ? `\n\nCoach guidance: ${request.coachInput.key_topics || ""}`
+    : "";
 
   return {
-    what_to_cover: `Overview of ${request.videoTitle}
+    talking_points: `Overview of ${request.videoTitle}
 - Core concepts and definitions
 - Key principles and theories
 - Practical applications${withCoachInput}`,
-    examples: `1. Real-world example showing practical implementation
-2. Step-by-step walkthrough of common use case
-3. Edge case handling and best practices
-4. Integration with related concepts`,
     visual_cues: `- Animated diagrams showing concept flow
 - Code snippets with syntax highlighting
 - Before/after comparison visuals
@@ -46,33 +50,38 @@ function generateFallbackBrief(request: GenerateBriefRequest): ContentBriefRespo
 [5:00-7:00] Second Example & Application
 [7:00-8:00] Common Mistakes & Best Practices
 [8:00-8:30] Summary & Next Steps`,
+    estimated_duration: "8-10 minutes",
+    status: "generated",
   };
 }
 
-async function generateWithAI(request: GenerateBriefRequest): Promise<ContentBriefResponse> {
+async function generateWithAI(
+  request: GenerateBriefRequest
+): Promise<ContentBrief> {
   const coachInputText = request.coachInput
     ? `\nCoach-provided input:
-    - Key Topics: ${request.coachInput.key_topics}
-    - Examples: ${request.coachInput.examples}
-    - Visual Requirements: ${request.coachInput.visual_requirements}
-    - Difficulty Notes: ${request.coachInput.difficulty_notes}
-    - References: ${request.coachInput.references}`
+    - Key Topics: ${request.coachInput.key_topics || "N/A"}
+    - Examples: ${request.coachInput.examples || "N/A"}
+    - Visual Requirements: ${request.coachInput.visual_requirements || "N/A"}
+    - Difficulty Notes: ${request.coachInput.difficulty_notes || "N/A"}
+    - References: ${request.coachInput.references || "N/A"}`
     : "";
 
   const prompt = `You are an expert instructional designer. Generate a comprehensive content brief for a video lesson.
 
-Video Details:
-- Title: ${request.videoTitle}
-- Module: ${request.moduleTitle}
-- Lesson: ${request.lessonTitle}${coachInputText}
+Course: ${request.courseTitle}
+Module: ${request.moduleTitle}
+Lesson: ${request.lessonTitle}
+Video Title: ${request.videoTitle}${coachInputText}
 
-Create a detailed brief with 5 sections in JSON format:
+Create a detailed brief in JSON format with these fields:
 {
-  "what_to_cover": "Main topics and key points (include subtopics)",
-  "examples": "Specific examples to demonstrate concepts (numbered list)",
+  "talking_points": "Main topics and key points to cover (bullet points or numbered list)",
   "visual_cues": "Visual aids and design elements needed (bullet points)",
   "key_takeaways": "Learning outcomes and key takeaways (bullet points)",
-  "script_outline": "Time-coded script outline with sections"
+  "script_outline": "Time-coded script outline with sections",
+  "estimated_duration": "Estimated video length",
+  "status": "generated"
 }
 
 The brief should be:
@@ -110,7 +119,7 @@ The brief should be:
       return generateFallbackBrief(request);
     }
 
-    const brief = JSON.parse(jsonMatch[0]) as ContentBriefResponse;
+    const brief = JSON.parse(jsonMatch[0]) as ContentBrief;
     return brief;
   } catch (error) {
     console.error("Error calling Claude API:", error);
@@ -126,11 +135,11 @@ export async function POST(request: NextRequest) {
       ? await generateWithAI(body)
       : generateFallbackBrief(body);
 
-    return NextResponse.json({ brief });
+    return NextResponse.json({ success: true, brief });
   } catch (error) {
     console.error("Error in /api/ai/generate-brief:", error);
     return NextResponse.json(
-      { error: "Failed to generate brief" },
+      { success: false, error: "Failed to generate brief" },
       { status: 500 }
     );
   }

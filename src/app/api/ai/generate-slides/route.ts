@@ -1,113 +1,108 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PPTSlide } from "@/types";
 
 interface ContentBrief {
-  what_to_cover: string;
-  examples: string;
+  talking_points: string;
   visual_cues: string;
   key_takeaways: string;
   script_outline: string;
+  estimated_duration: string;
+  status: string;
 }
 
 interface GenerateSlidesRequest {
   videoId: string;
   videoTitle: string;
   brief: ContentBrief;
-  slideCount?: number;
-  isHandson?: boolean;
+  courseTitle: string;
 }
 
-function generateFallbackSlides(request: GenerateSlidesRequest): PPTSlide[] {
-  const slideCount = request.slideCount || 6;
-  const slides: PPTSlide[] = [];
-  const layouts: Array<PPTSlide["layout_type"]> = [
-    "title",
-    "content",
-    "two_column",
-    "diagram",
-    "content",
-    "summary",
+interface SlideData {
+  title: string;
+  content: string;
+  speaker_notes: string;
+  layout_type: "title" | "content" | "two_column" | "diagram" | "summary" | "code";
+  order: number;
+}
+
+function generateFallbackSlides(request: GenerateSlidesRequest): SlideData[] {
+  const slides: SlideData[] = [
+    {
+      title: request.videoTitle,
+      content: "Learning Objectives & Overview",
+      speaker_notes: `Welcome to ${request.videoTitle}. In this video, we'll cover the key concepts and practical applications.`,
+      layout_type: "title",
+      order: 1,
+    },
+    {
+      title: "Core Concepts",
+      content: "Key definitions and foundational principles",
+      speaker_notes: "Let's start by understanding the fundamental concepts...",
+      layout_type: "content",
+      order: 2,
+    },
+    {
+      title: "Key Principles",
+      content: "Essential theories and frameworks",
+      speaker_notes: "These principles form the foundation for practical application...",
+      layout_type: "content",
+      order: 3,
+    },
+    {
+      title: "Real-World Examples",
+      content: "Practical applications and case studies",
+      speaker_notes: "Here are some concrete examples showing how these concepts work in practice...",
+      layout_type: "two_column",
+      order: 4,
+    },
+    {
+      title: "Best Practices",
+      content: "Common mistakes and how to avoid them",
+      speaker_notes: "Remember these best practices to ensure success...",
+      layout_type: "content",
+      order: 5,
+    },
+    {
+      title: "Summary & Next Steps",
+      content: "Key takeaways and what comes next",
+      speaker_notes: "Let's recap what we've learned and discuss next steps...",
+      layout_type: "summary",
+      order: 6,
+    },
   ];
-
-  for (let i = 0; i < slideCount; i++) {
-    const layout = layouts[i % layouts.length];
-    const slideNumber = i + 1;
-
-    let title = "";
-    let content = "";
-
-    switch (i) {
-      case 0:
-        title = request.videoTitle;
-        content = "Learning Objectives & Overview";
-        break;
-      case 1:
-        title = "Core Concepts";
-        content = "Key definitions and foundational principles";
-        break;
-      case slideCount - 1:
-        title = "Summary & Next Steps";
-        content = "Key takeaways and what comes next";
-        break;
-      default:
-        title = `Topic ${i}`;
-        content = "Key points and examples";
-    }
-
-    slides.push({
-      id: `slide-${request.videoId}-${slideNumber}`,
-      video_id: request.videoId,
-      lesson_id: "",
-      course_id: "",
-      slide_number: slideNumber,
-      title,
-      content,
-      notes: `Speaker notes for ${title}`,
-      layout_type: layout,
-      has_animation: i > 0 && i < slideCount - 1,
-      is_uploaded: false,
-      status: "generated",
-    });
-  }
 
   return slides;
 }
 
-async function generateWithAI(request: GenerateSlidesRequest): Promise<PPTSlide[]> {
-  const slideCount = request.slideCount || 6;
+async function generateWithAI(
+  request: GenerateSlidesRequest
+): Promise<SlideData[]> {
+  const prompt = `You are an expert presentation designer. Generate 6 PowerPoint slides for a video lesson.
 
-  const prompt = `You are an expert presentation designer. Generate ${slideCount} PowerPoint slides for a video lesson.
-
+Course: ${request.courseTitle}
 Video Title: ${request.videoTitle}
 Content Brief:
 ${JSON.stringify(request.brief, null, 2)}
 
-Is Hands-on: ${request.isHandson || false}
-
-Create ${slideCount} slides as a JSON array with this structure for each slide:
+Create 6 slides as a JSON array with this structure for each slide:
 {
-  "slide_number": number,
   "title": string (concise title, 5-10 words max),
   "content": string (main content, 20-50 words),
-  "notes": string (speaker notes),
+  "speaker_notes": string (detailed speaker notes for delivery),
   "layout_type": "title" | "content" | "two_column" | "diagram" | "summary" | "code",
-  "has_animation": boolean,
-  "status": "generated"
+  "order": number
 }
 
 Guidelines:
 - Slide 1: Title slide with video title and key topic
 - Slides 2-4: Main content, one concept per slide
-- Slide 5: Examples and application
+- Slide 5: Examples and best practices
 - Slide 6: Summary and key takeaways
-${request.isHandson ? "- Include code/implementation examples" : ""}
 - Use 'two_column' for comparisons
 - Use 'diagram' for processes or relationships
 - Make content concise and visually scannable
-- Include speaker notes for delivery guidance
-- Limit animation to 3-4 slides only
+- Include detailed speaker notes for delivery guidance
 
-Return ONLY a JSON array of ${slideCount} slide objects.`;
+Return ONLY a JSON array of 6 slide objects.`;
 
   try {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -139,19 +134,12 @@ Return ONLY a JSON array of ${slideCount} slide objects.`;
 
     const slidesData = JSON.parse(jsonMatch[0]) as Array<any>;
 
-    const slides: PPTSlide[] = slidesData.map((s, idx) => ({
-      id: `slide-${request.videoId}-${idx + 1}`,
-      video_id: request.videoId,
-      lesson_id: "",
-      course_id: "",
-      slide_number: s.slide_number || idx + 1,
+    const slides: SlideData[] = slidesData.map((s, idx) => ({
       title: s.title || `Slide ${idx + 1}`,
       content: s.content || "",
-      notes: s.notes,
-      layout_type: (s.layout_type || "content") as PPTSlide["layout_type"],
-      has_animation: s.has_animation || false,
-      is_uploaded: false,
-      status: s.status || "generated",
+      speaker_notes: s.speaker_notes || "",
+      layout_type: (s.layout_type || "content") as SlideData["layout_type"],
+      order: s.order || idx + 1,
     }));
 
     return slides;
@@ -169,11 +157,11 @@ export async function POST(request: NextRequest) {
       ? await generateWithAI(body)
       : generateFallbackSlides(body);
 
-    return NextResponse.json({ slides });
+    return NextResponse.json({ success: true, slides });
   } catch (error) {
     console.error("Error in /api/ai/generate-slides:", error);
     return NextResponse.json(
-      { error: "Failed to generate slides" },
+      { success: false, error: "Failed to generate slides" },
       { status: 500 }
     );
   }

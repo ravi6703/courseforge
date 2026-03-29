@@ -53,6 +53,7 @@ import {
   addPPTUpload,
 } from "@/lib/store";
 import { Sidebar } from "@/components/Sidebar";
+import { MermaidDiagram } from "@/components/MermaidDiagram";
 import {
   Lock,
   MessageSquare,
@@ -215,7 +216,8 @@ export default function CourseDetailPage() {
     setLoading(false);
   }, [courseId, router]);
 
-  // Helper functions
+  // ─── HELPER FUNCTIONS ───────────────────────────────────────────
+
   const addToast = (message: string, type: "success" | "error" | "info" = "info") => {
     const id = generateId();
     setToasts((prev) => [...prev, { message, type, id }]);
@@ -286,12 +288,12 @@ export default function CourseDetailPage() {
 
     const phaseMap: Record<TabType, number[]> = {
       toc: [1, 2, 3],
-      briefs: [4],
-      ppts: [5, 6],
-      recording: [7],
-      transcript: [8],
-      content: [8],
-      review: [9],
+      briefs: [4, 5],
+      ppts: [5, 6, 7],
+      recording: [7, 8],
+      transcript: [8, 9],
+      content: [9, 10, 11],
+      review: [12, 13],
     };
 
     const requiredPhases = phaseMap[tab];
@@ -329,6 +331,28 @@ export default function CourseDetailPage() {
     );
   };
 
+  const generateMermaidDiagram = (): string => {
+    let diagram = "graph TD\n";
+    let nodeId = 0;
+
+    for (const mod of modules) {
+      const modNodeId = `M${nodeId}`;
+      diagram += `  ${modNodeId}["${mod.title}"]\n`;
+      const modIdx = nodeId;
+      nodeId++;
+
+      for (const lesson of mod.lessons) {
+        const lessonNodeId = `L${nodeId}`;
+        diagram += `  ${modNodeId} --> ${lessonNodeId}["${lesson.title}"]\n`;
+        nodeId++;
+      }
+    }
+
+    return diagram;
+  };
+
+  // ─── RENDER: LOADING STATE ──────────────────────────────────────
+
   if (loading) {
     return (
       <div className="flex h-screen bg-gray-50">
@@ -354,15 +378,27 @@ export default function CourseDetailPage() {
     );
   }
 
+  // ─── MAIN RENDER ────────────────────────────────────────────────
+
   const phaseConfig = PHASE_CONFIG[course.status];
-  const progressPercent = (phaseConfig.phase / 9) * 100;
+  const progressPercent = (phaseConfig.phase / 13) * 100;
+
+  const tabLabels: Record<TabType, string> = {
+    toc: "Table of Contents",
+    briefs: "Content Briefs",
+    ppts: "Presentations",
+    recording: "Recording",
+    transcript: "Transcript",
+    content: "Content",
+    review: "Final Review",
+  };
 
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar />
 
-      <main className="flex-1 overflow-auto">
-        {/* Header */}
+      <main className="flex-1 ml-16 overflow-auto">
+        {/* ─── HEADER ─── */}
         <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
           <div className="p-6">
             <div className="flex justify-between items-start mb-4">
@@ -410,22 +446,12 @@ export default function CourseDetailPage() {
             </div>
 
             {/* Tab navigation */}
-            <div className="flex gap-2 overflow-x-auto">
+            <div className="flex gap-2 overflow-x-auto pb-2">
               {(
                 ["toc", "briefs", "ppts", "recording", "transcript", "content", "review"] as TabType[]
               ).map((tab) => {
                 const unlocked = getTabUnlocked(tab);
                 const isActive = activeTab === tab;
-
-                const tabLabels: Record<TabType, string> = {
-                  toc: "Table of Contents",
-                  briefs: "Content Briefs",
-                  ppts: "Presentations",
-                  recording: "Recording",
-                  transcript: "Transcript",
-                  content: "Content",
-                  review: "Final Review",
-                };
 
                 return (
                   <button
@@ -449,12 +475,28 @@ export default function CourseDetailPage() {
           </div>
         </div>
 
-        {/* Content area */}
+        {/* ─── CONTENT AREA ─── */}
         <div className="p-6">
+          {/* Locked Tab Overlay */}
+          {!getTabUnlocked(activeTab) && (
+            <div className="bg-white rounded-lg p-12 border border-gray-200 text-center">
+              <Lock className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                {tabLabels[activeTab]} - Locked
+              </h2>
+              <p className="text-gray-600 mb-4">
+                This tab will be available when the course reaches the appropriate phase.
+              </p>
+              <p className="text-sm text-gray-500">
+                Current phase: {phaseConfig.label} (Phase {phaseConfig.phase}/13)
+              </p>
+            </div>
+          )}
+
           {/* ─── TOC TAB ─── */}
-          {activeTab === "toc" && (
+          {activeTab === "toc" && getTabUnlocked("toc") && (
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              <div className="lg:col-span-3">
+              <div className="lg:col-span-3 space-y-6">
                 {course.status === "toc_generation" ? (
                   <div className="bg-white rounded-lg p-6 border border-gray-200">
                     <h2 className="text-xl font-bold text-gray-900 mb-6">
@@ -526,141 +568,150 @@ export default function CourseDetailPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {modules.map((module) => (
-                      <div
-                        key={module.id}
-                        className="bg-white rounded-lg border border-gray-200 overflow-hidden"
-                      >
-                        <button
-                          onClick={() => toggleModuleExpand(module.id)}
-                          className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                  <>
+                    {/* Mermaid Diagram */}
+                    <div className="bg-white rounded-lg p-6 border border-gray-200">
+                      <h2 className="text-xl font-bold text-gray-900 mb-4">
+                        Learning Path
+                      </h2>
+                      <MermaidDiagram chart={generateMermaidDiagram()} />
+                    </div>
+
+                    {/* Module/Lesson Tree */}
+                    <div className="space-y-4">
+                      {modules.map((module) => (
+                        <div
+                          key={module.id}
+                          className="bg-white rounded-lg border border-gray-200 overflow-hidden"
                         >
-                          <div className="flex items-center gap-3 flex-1">
-                            {expandedModules[module.id] ? (
-                              <ChevronDown className="w-5 h-5 text-gray-600" />
-                            ) : (
-                              <ChevronRight className="w-5 h-5 text-gray-600" />
-                            )}
-                            <div className="text-left">
-                              <h3 className="font-bold text-gray-900">
-                                {module.title}
-                              </h3>
-                              <p className="text-sm text-gray-600">
-                                {module.lessons.length} lessons
-                              </p>
+                          <button
+                            onClick={() => toggleModuleExpand(module.id)}
+                            className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                          >
+                            <div className="flex items-center gap-3 flex-1">
+                              {expandedModules[module.id] ? (
+                                <ChevronDown className="w-5 h-5 text-gray-600" />
+                              ) : (
+                                <ChevronRight className="w-5 h-5 text-gray-600" />
+                              )}
+                              <div className="text-left">
+                                <h3 className="font-bold text-gray-900">
+                                  {module.title}
+                                </h3>
+                                <p className="text-sm text-gray-600">
+                                  {module.lessons.length} lessons
+                                </p>
+                              </div>
                             </div>
-                          </div>
-                          <div className="flex items-center gap-4">
-                            <span className="text-sm text-gray-600 flex items-center gap-1">
-                              <Clock className="w-4 h-4" />
-                              {module.duration_hours}h
-                            </span>
-                            <span className="text-sm font-semibold text-blue-600 flex items-center gap-1">
-                              <MessageSquare className="w-4 h-4" />
-                              {getCommentsForTarget(module.id, "module").length}
-                            </span>
-                          </div>
-                        </button>
+                            <div className="flex items-center gap-4">
+                              <span className="text-sm text-gray-600 flex items-center gap-1">
+                                <Clock className="w-4 h-4" />
+                                {module.duration_hours}h
+                              </span>
+                              <span className="text-sm font-semibold text-blue-600 flex items-center gap-1">
+                                <MessageSquare className="w-4 h-4" />
+                                {getCommentsForTarget(module.id, "module").length}
+                              </span>
+                            </div>
+                          </button>
 
-                        {expandedModules[module.id] && (
-                          <div className="border-t border-gray-200 divide-y divide-gray-200">
-                            {module.lessons.map((lesson) => (
-                              <div key={lesson.id}>
-                                <button
-                                  onClick={() => toggleLessonExpand(lesson.id)}
-                                  className="w-full px-6 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors bg-gray-50"
-                                >
-                                  <div className="flex items-center gap-3 flex-1">
-                                    {expandedLessons[lesson.id] ? (
-                                      <ChevronDown className="w-4 h-4 text-gray-600" />
-                                    ) : (
-                                      <ChevronRight className="w-4 h-4 text-gray-600" />
-                                    )}
-                                    <div className="text-left">
-                                      <h4 className="font-semibold text-gray-900">
-                                        {lesson.title}
-                                      </h4>
+                          {expandedModules[module.id] && (
+                            <div className="border-t border-gray-200 divide-y divide-gray-200">
+                              {module.lessons.map((lesson) => (
+                                <div key={lesson.id}>
+                                  <button
+                                    onClick={() => toggleLessonExpand(lesson.id)}
+                                    className="w-full px-6 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors bg-gray-50"
+                                  >
+                                    <div className="flex items-center gap-3 flex-1">
+                                      {expandedLessons[lesson.id] ? (
+                                        <ChevronDown className="w-4 h-4 text-gray-600" />
+                                      ) : (
+                                        <ChevronRight className="w-4 h-4 text-gray-600" />
+                                      )}
+                                      <div className="text-left">
+                                        <h4 className="font-semibold text-gray-900">
+                                          {lesson.title}
+                                        </h4>
+                                      </div>
                                     </div>
-                                  </div>
-                                  <span className="text-sm font-semibold text-blue-600 flex items-center gap-1">
-                                    <MessageSquare className="w-4 h-4" />
-                                    {getCommentsForTarget(lesson.id, "lesson").length}
-                                  </span>
-                                </button>
+                                    <span className="text-sm font-semibold text-blue-600 flex items-center gap-1">
+                                      <MessageSquare className="w-4 h-4" />
+                                      {getCommentsForTarget(lesson.id, "lesson").length}
+                                    </span>
+                                  </button>
 
-                                {expandedLessons[lesson.id] && (
-                                  <div className="divide-y divide-gray-200">
-                                    {lesson.videos.map((video) => {
-                                      const videoComments =
-                                        getCommentsForTarget(
+                                  {expandedLessons[lesson.id] && (
+                                    <div className="divide-y divide-gray-200">
+                                      {lesson.videos.map((video) => {
+                                        const videoComments = getCommentsForTarget(
                                           video.id,
                                           "video"
                                         );
 
-                                      return (
-                                        <div
-                                          key={video.id}
-                                          className="px-12 py-4 flex items-center justify-between hover:bg-gray-100 transition-colors"
-                                        >
-                                          <div className="flex items-center gap-3 flex-1">
-                                            <Play className="w-4 h-4 text-blue-600" />
-                                            <div className="text-left">
-                                              <p className="font-medium text-gray-900">
-                                                {video.title}
-                                              </p>
-                                              <p className="text-xs text-gray-600">
-                                                {video.duration_minutes} min
-                                                {video.is_handson && (
-                                                  <span className="ml-2 px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs rounded font-medium">
-                                                    Hands-on
-                                                  </span>
-                                                )}
-                                              </p>
+                                        return (
+                                          <div
+                                            key={video.id}
+                                            className="px-12 py-4 flex items-center justify-between hover:bg-gray-100 transition-colors"
+                                          >
+                                            <div className="flex items-center gap-3 flex-1">
+                                              <Play className="w-4 h-4 text-blue-600" />
+                                              <div className="text-left">
+                                                <p className="font-medium text-gray-900">
+                                                  {video.title}
+                                                </p>
+                                                <p className="text-xs text-gray-600">
+                                                  {video.duration_minutes} min
+                                                  {video.is_handson && (
+                                                    <span className="ml-2 px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs rounded font-medium">
+                                                      Hands-on
+                                                    </span>
+                                                  )}
+                                                </p>
+                                              </div>
                                             </div>
-                                          </div>
-                                          <div className="flex items-center gap-2">
-                                            <span className="text-sm font-semibold text-blue-600 flex items-center gap-1">
-                                              <MessageSquare className="w-4 h-4" />
-                                              {videoComments.length}
-                                            </span>
-                                            <button
-                                              onClick={() => {
-                                                const text =
-                                                  prompt(
+                                            <div className="flex items-center gap-2">
+                                              <span className="text-sm font-semibold text-blue-600 flex items-center gap-1">
+                                                <MessageSquare className="w-4 h-4" />
+                                                {videoComments.length}
+                                              </span>
+                                              <button
+                                                onClick={() => {
+                                                  const text = prompt(
                                                     "Add comment:"
                                                   );
-                                                if (text) {
-                                                  handleAddComment(
-                                                    video.id,
-                                                    "video",
-                                                    text
-                                                  );
-                                                }
-                                              }}
-                                              className="p-1 hover:bg-gray-300 rounded"
-                                            >
-                                              <Plus className="w-4 h-4 text-gray-600" />
-                                            </button>
+                                                  if (text) {
+                                                    handleAddComment(
+                                                      video.id,
+                                                      "video",
+                                                      text
+                                                    );
+                                                  }
+                                                }}
+                                                className="p-1 hover:bg-gray-300 rounded"
+                                              >
+                                                <Plus className="w-4 h-4 text-gray-600" />
+                                              </button>
+                                            </div>
                                           </div>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </>
                 )}
 
                 {course.status !== "toc_generation" &&
                   currentUser.role === "pm" &&
                   comments.filter((c) => !c.resolved && c.course_id === courseId).length > 0 && (
-                    <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+                    <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-6">
                       <button
                         onClick={handleApproveAndAdvance}
                         className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-colors"
@@ -738,7 +789,7 @@ export default function CourseDetailPage() {
           )}
 
           {/* ─── BRIEFS TAB ─── */}
-          {activeTab === "briefs" && (
+          {activeTab === "briefs" && getTabUnlocked("briefs") && (
             <div className="space-y-6">
               <div className="bg-white rounded-lg p-6 border border-gray-200">
                 <h2 className="text-xl font-bold text-gray-900 mb-4">
@@ -892,7 +943,7 @@ export default function CourseDetailPage() {
           )}
 
           {/* ─── PPT TAB ─── */}
-          {activeTab === "ppts" && (
+          {activeTab === "ppts" && getTabUnlocked("ppts") && (
             <div className="space-y-6">
               <div className="bg-white rounded-lg border border-gray-200">
                 <div className="border-b border-gray-200 flex">
@@ -1174,7 +1225,7 @@ export default function CourseDetailPage() {
           )}
 
           {/* ─── RECORDING TAB ─── */}
-          {activeTab === "recording" && (
+          {activeTab === "recording" && getTabUnlocked("recording") && (
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <button
@@ -1314,7 +1365,7 @@ export default function CourseDetailPage() {
           )}
 
           {/* ─── TRANSCRIPT TAB ─── */}
-          {activeTab === "transcript" && (
+          {activeTab === "transcript" && getTabUnlocked("transcript") && (
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
               <div className="lg:col-span-1">
                 <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
@@ -1416,7 +1467,7 @@ export default function CourseDetailPage() {
           )}
 
           {/* ─── CONTENT TAB ─── */}
-          {activeTab === "content" && (
+          {activeTab === "content" && getTabUnlocked("content") && (
             <div className="space-y-6">
               <div className="bg-white rounded-lg p-6 border border-gray-200">
                 <h2 className="text-xl font-bold text-gray-900 mb-4">
@@ -1522,7 +1573,7 @@ export default function CourseDetailPage() {
           )}
 
           {/* ─── REVIEW TAB ─── */}
-          {activeTab === "review" && (
+          {activeTab === "review" && getTabUnlocked("review") && (
             <div className="space-y-6">
               {/* Completion Stats */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

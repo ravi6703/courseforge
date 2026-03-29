@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CourseForge - Interactive Wireframes</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f5; color: #1a1a2e; }
+
+  /* Top Nav */
+  .wireframe-nav { background: #1e3a5f; color: #fff; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+  .wireframe-nav h1 { font-size: 16px; font-weight: 600; }
+  .screen-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+  .screen-tab { padding: 6px 14px; border-radius: 6px; background: rgba(255,255,255,0.1); color: #ccc; border: none; cursor: pointer; font-size: 12px; font-weight: 500; transition: all 0.2s; }
+  .screen-tab:hover { background: rgba(255,255,255,0.2); color: #fff; }
+  .screen-tab.active { background: #fff; color: #1e3a5f; font-weight: 600; }
+
+  /* Wireframe Container */
+  .wireframe-container { max-width: 1200px; margin: 24px auto; padding: 0 24px; }
+  .screen-panel { display: none; }
+  .screen-panel.active { display: block; }
+
+  /* Screen Frame */
+  .screen-frame { background: #fff; border-radius: 12px; border: 2px solid #ddd; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+  .screen-title-bar { background: #f8f9fa; border-bottom: 1px solid #e0e0e0; padding: 10px 16px; display: flex; align-items: center; gap: 8px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot.red { background: #ff5f57; }
+  .dot.yellow { background: #febc2e; }
+  .dot.green { background: #28c840; }
+  .url-bar { flex: 1; background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 4px 12px; font-size: 12px; color: #666; margin-left: 8px; }
+
+  /* Layout */
+  .app-layout { display: flex; min-height: 600px; }
+  .sidebar { width: 220px; background: #fff; border-right: 1px solid #e8e8e8; padding: 20px 0; flex-shrink: 0; }
+  .sidebar-brand { padding: 0 16px 20px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #eee; margin-bottom: 12px; }
+  .sidebar-brand .icon { width: 28px; height: 28px; background: #2563eb; border-radius: 6px; display: flex; align-items: center; justify-center; color: #fff; font-size: 14px; font-weight: 700; }
+  .sidebar-brand span { font-weight: 700; font-size: 14px; color: #1a1a2e; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 8px 16px; margin: 2px 8px; border-radius: 6px; font-size: 13px; color: #555; cursor: pointer; transition: all 0.15s; }
+  .nav-item:hover { background: #f0f4ff; color: #2563eb; }
+  .nav-item.active { background: #eff6ff; color: #2563eb; font-weight: 600; }
+  .nav-item .icon { width: 18px; text-align: center; font-size: 14px; }
+  .nav-divider { height: 1px; background: #eee; margin: 12px 16px; }
+  .nav-user { padding: 12px 16px; margin-top: auto; border-top: 1px solid #eee; font-size: 12px; color: #888; }
+
+  .main-content { flex: 1; padding: 24px 28px; background: #fafbfc; overflow-y: auto; }
+
+  /* Wireframe Components */
+  .wf-placeholder { background: #f0f4ff; border: 2px dashed #b8ceff; border-radius: 8px; padding: 20px; text-align: center; color: #5a7fbb; font-size: 13px; margin: 8px 0; }
+  .wf-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 16px; margin: 8px 0; }
+  .wf-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+  .wf-stat { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 16px; }
+  .wf-stat .value { font-size: 28px; font-weight: 700; color: #1e3a5f; }
+  .wf-stat .label { font-size: 12px; color: #888; margin-top: 4px; }
+  .wf-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.15s; }
+  .wf-btn-primary { background: #2563eb; color: #fff; }
+  .wf-btn-green { background: #16a34a; color: #fff; }
+  .wf-btn-purple { background: #7c3aed; color: #fff; }
+  .wf-btn-outline { background: #fff; color: #555; border: 1px solid #ddd; }
+  .wf-btn-disabled { background: #e5e7eb; color: #9ca3af; cursor: not-allowed; }
+  .wf-tabs { display: flex; gap: 4px; margin-bottom: 20px; }
+  .wf-tab { padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid #e0e0e0; background: #fff; color: #555; }
+  .wf-tab.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+  .wf-tab.disabled { background: #f3f4f6; color: #ccc; cursor: not-allowed; }
+  .wf-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .wf-badge-blue { background: #dbeafe; color: #1d4ed8; }
+  .wf-badge-green { background: #dcfce7; color: #15803d; }
+  .wf-badge-yellow { background: #fef3c7; color: #92400e; }
+  .wf-badge-purple { background: #f3e8ff; color: #6b21a8; }
+  .wf-badge-gray { background: #f3f4f6; color: #6b7280; }
+  .wf-progress { height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden; margin: 8px 0; }
+  .wf-progress-bar { height: 100%; background: #2563eb; border-radius: 3px; }
+  .wf-input { width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; background: #fff; }
+  .wf-select { padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; background: #fff; }
+  .wf-textarea { width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; resize: none; height: 80px; }
+  .wf-label { font-size: 12px; font-weight: 600; color: #555; margin-bottom: 4px; display: block; }
+  .wf-section-title { font-size: 20px; font-weight: 700; color: #1a1a2e; margin-bottom: 4px; }
+  .wf-section-desc { font-size: 13px; color: #888; margin-bottom: 16px; }
+  .wf-comment-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px; margin: 8px 0; font-size: 13px; }
+  .wf-comment-box .author { font-weight: 600; color: #1d4ed8; font-size: 12px; }
+  .wf-tree-item { padding: 10px 16px; border: 1px solid #e0e0e0; border-radius: 6px; margin: 6px 0; display: flex; align-items: center; justify-content: space-between; background: #fff; }
+  .wf-tree-child { margin-left: 24px; }
+  .wf-tree-grandchild { margin-left: 48px; }
+  .wf-annotation { background: #fef3c7; border: 1px solid #f59e0b; border-radius: 6px; padding: 8px 12px; font-size: 12px; color: #92400e; margin: 8px 0; }
+  .wf-annotation::before { content: "📝 "; }
+  .wf-flow-arrow { text-align: center; color: #9ca3af; font-size: 20px; margin: 8px 0; }
+
+  /* Steps */
+  .wf-steps { display: flex; align-items: center; gap: 0; margin-bottom: 24px; }
+  .wf-step { display: flex; align-items: center; gap: 0; flex: 1; }
+  .wf-step-circle { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; flex-shrink: 0; }
+  .wf-step-circle.done { background: #16a34a; color: #fff; }
+  .wf-step-circle.current { background: #2563eb; color: #fff; }
+  .wf-step-circle.future { background: #e5e7eb; color: #9ca3af; }
+  .wf-step-line { flex: 1; height: 3px; margin: 0 4px; }
+  .wf-step-line.done { background: #16a34a; }
+  .wf-step-line.future { background: #e5e7eb; }
+  .wf-step-labels { display: flex; justify-content: space-between; font-size: 11px; color: #888; margin-top: -4px; margin-bottom: 20px; }
+
+  /* Grid */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+  /* Platform cards */
+  .platform-card { border: 2px solid #e0e0e0; border-radius: 8px; padding: 16px; cursor: pointer; transition: all 0.15s; }
+  .platform-card.selected { border-color: #2563eb; background: #eff6ff; }
+  .platform-card h4 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .platform-card p { font-size: 12px; color: #888; }
+
+  /* Module tree */
+  .module-block { border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; margin: 8px 0; }
+  .module-header { padding: 12px 16px; background: #fff; display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+  .module-header:hover { background: #f8f9fa; }
+  .module-body { background: #f8f9fa; padding: 12px 16px; border-top: 1px solid #eee; }
+  .lesson-row { background: #fff; border: 1px solid #eee; border-radius: 6px; padding: 10px 14px; margin: 6px 0; }
+  .video-row { display: flex; align-items: center; gap: 8px; padding: 6px 14px; margin: 4px 0 4px 16px; font-size: 13px; color: #555; }
+  .video-row .play-icon { color: #9ca3af; }
+
+  /* Brief card */
+  .brief-card { border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; margin: 8px 0; }
+  .brief-header { padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; }
+  .brief-body { background: #f8f9fa; padding: 16px; border-top: 1px solid #eee; }
+
+  /* Slide preview */
+  .slide-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; aspect-ratio: 16/10; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+  .slide-card .slide-title { font-size: 13px; font-weight: 600; color: #1e3a5f; margin-bottom: 8px; }
+  .slide-card .slide-content { font-size: 11px; color: #888; text-align: center; }
+
+  /* Recording row */
+  .recording-row { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid #e0e0e0; border-radius: 8px; margin: 6px 0; background: #fff; }
+  .waveform { flex: 1; height: 24px; background: linear-gradient(90deg, #dbeafe 0%, #93c5fd 25%, #60a5fa 50%, #93c5fd 75%, #dbeafe 100%); border-radius: 4px; }
+
+  /* Checklist */
+  .check-item { display: flex; align-items: center; gap: 8px; padding: 8px 0; font-size: 13px; }
+  .check-box { width: 18px; height: 18px; border-radius: 4px; border: 2px solid #ddd; display: flex; align-items: center; justify-content: center; font-size: 11px; }
+  .check-box.checked { background: #16a34a; border-color: #16a34a; color: #fff; }
+</style>
+</head>
+<body>
+  <nav class="wireframe-nav">
+    <h1>CourseForge Wireframes — Interactive Prototype</h1>
+    <div class="screen-tabs">
+      <button class="screen-tab active" onclick="showScreen('login')">1. Login</button>
+      <button class="screen-tab" onclick="showScreen('dashboard')">2. Dashboard</button>
+      <button class="screen-tab" onclick="showScreen('create')">3. Create Course</button>
+      <button class="screen-tab" onclick="showScreen('course-toc')">4. TOC Review</button>
+      <button class="screen-tab" onclick="showScreen('course-briefs')">5. Briefs</button>
+      <button class="screen-tab" onclick="showScreen('course-ppts')">6. PPTs</button>
+      <button class="screen-tab" onclick="showScreen('course-recording')">7. Recording</button>
+      <button class="screen-tab" onclick="showScreen('course-transcript')">8. Transcript</button>
+      <button class="screen-tab" onclick="showScreen('course-content')">9. Content</button>
+      <button class="screen-tab" onclick="showScreen('course-review')">10. Review</button>
+    </div>
+  </nav>
+
+  <div class="wireframe-container">
+
+    <!-- ==================== SCREEN 1: LOGIN ==================== -->
+    <div class="screen-panel active" id="screen-login">
+      <div class="wf-annotation">Screen 1: Login — Entry point. User selects their role, then enters the platform. No password needed for demo mode.</div>
+      <div class="screen-frame">
+        <div class="screen-title-bar">
+          <div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div>
+          <div class="url-bar">courseforge.vercel.app/</div>
+        </div>
+        <div style="min-height:600px; display:flex; align-items:center; justify-content:center; background: linear-gradient(135deg, #eff6ff 0%, #fff 50%, #f5f3ff 100%);">
+          <div style="width: 380px;">
+            <div style="text-align:center; margin-bottom: 24px;">
+              <div style="display:inline-flex; align-items:center; gap:8px; margin-bottom:8px;">
+                <div style="width:36px; height:36px; background:#2563eb; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700;">⚡</div>
+                <span style="font-size:22px; font-weight:700; color:#1a1a2e;">CourseForge</span>
+              </div>
+              <p style="font-size:13px; color:#888;">AI-Powered Course Creation Platform</p>
+            </div>
+            <div class="wf-card" style="padding:28px;">
+              <h3 style="font-size:16px; font-weight:600; margin-bottom:4px;">Welcome back</h3>
+              <p style="font-size:13px; color:#888; margin-bottom:20px;">Select your role to continue</p>
+
+              <div class="platform-card selected" style="margin-bottom:8px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <div style="width:36px; height:36px; background:#dbeafe; border-radius:8px; display:flex; align-items:center; justify-content:center;">📋</div>
+                  <div>
+                    <h4 style="font-size:14px;">Project Manager</h4>
+                    <p style="font-size:12px; color:#888;">Create courses, manage TOC, assign coaches</p>
+                  </div>
+                </div>
+              </div>
+              <div class="platform-card" style="margin-bottom:20px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <div style="width:36px; height:36px; background:#dcfce7; border-radius:8px; display:flex; align-items:center; justify-content:center;">🎥</div>
+                  <div>
+                    <h4 style="font-size:14px;">Coach / SME</h4>
+                    <p style="font-size:12px; color:#888;">Review TOC, record videos, provide expertise</p>
+                  </div>
+                </div>
+              </div>
+
+              <button class="wf-btn wf-btn-primary" style="width:100%; justify-content:center; padding:10px;" onclick="showScreen('dashboard')">Continue as Project Manager</button>
+            </div>
+            <p style="text-align:center; font-size:11px; color:#bbb; margin-top:16px;">Board Infinity · CourseForge v2.0</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== SCREEN 2: DASHBOARD ==================== -->
+    <div class="screen-panel" id="screen-dashboard">
+      <div class="wf-annotation">Screen 2: Dashboard — Overview of all courses. Stats at top, course cards with status, progress, and quick actions. "Create Course" is prominently placed.</div>
+      <div class="screen-frame">
+        <div class="screen-title-bar">
+          <div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div>
+          <div class="url-bar">courseforge.vercel.app/dashboard</div>
+        </div>
+        <div class="app-layout">
+          <div class="sidebar">
+            <div class="sidebar-brand"><div class="icon">⚡</div><span>CourseForge</span></div>
+            <div class="nav-item active"><span class="icon">📊</span> Dashboard</div>
+            <div class="nav-item" onclick="showScreen('create')"><span class="icon">➕</span> Create Course</div>
+            <div class="nav-divider"></div>
+            <div class="nav-item"><span class="icon">📑</span> TOC Builder</div>
+            <div class="nav-item"><span class="icon">🎬</span> Video Studio</div>
+            <div class="nav-item"><span class="icon">📝</span> Content Studio</div>
+            <div class="nav-item"><span class="icon">✅</span> Review Queue</div>
+            <div class="nav-divider"></div>
+            <div class="nav-user">Ravi (PM) · <a href="#" style="color:#2563eb;">Logout</a></div>
+          </div>
+          <div class="main-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+              <div>
+                <div class="wf-section-title">Dashboard</div>
+                <div class="wf-section-desc">Course production overview</div>
+              </div>
+              <button class="wf-btn wf-btn-primary" onclick="showScreen('create')">+ Create Course</button>
+            </div>
+
+            <div class="wf-stats">
+              <div class="wf-stat"><div class="value">5</div><div class="label">Total Courses</div></div>
+              <div class="wf-stat"><div class="value" style="color:#2563eb;">3</div><div class="label">In Progress</div></div>
+              <div class="wf-stat"><div class="value" style="color:#d97706;">1</div><div class="label">In Review</div></div>
+              <div class="wf-stat"><div class="value" style="color:#16a34a;">1</div><div class="label">Published</div></div>
+            </div>
+
+            <!-- Course Cards -->
+            <div class="wf-card" style="cursor:pointer;" onclick="showScreen('course-toc')">
+              <div style="display:flex; justify-content:space-between; align-items:start;">
+                <div>
+                  <h3 style="font-size:15px; font-weight:600;">Applied Generative AI for Business</h3>
+                  <p style="font-size:12px; color:#888; margin-top:4px;">4 modules · 12 lessons · 36 videos</p>
+                </div>
+                <div style="display:flex; gap:6px;">
+                  <span class="wf-badge wf-badge-yellow">TOC Review</span>
+                  <span class="wf-badge wf-badge-blue">Coursera</span>
+                </div>
+              </div>
+              <div class="wf-progress" style="margin-top:12px;"><div class="wf-progress-bar" style="width:25%;"></div></div>
+              <div style="display:flex; justify-content:space-between; font-size:11px; color:#888; margin-top:4px;">
+                <span>Phase 3 of 9</span><span>25% complete</span>
+              </div>
+            </div>
+
+            <div class="wf-card">
+              <div style="display:flex; justify-content:space-between; align-items:start;">
+                <div>
+                  <h3 style="font-size:15px; font-weight:600;">Cloud FinOps Masterclass</h3>
+                  <p style="font-size:12px; color:#888; margin-top:4px;">6 modules · 18 lessons · 42 videos</p>
+                </div>
+                <div style="display:flex; gap:6px;">
+                  <span class="wf-badge wf-badge-purple">Recording</span>
+                  <span class="wf-badge wf-badge-blue">Udemy</span>
+                </div>
+              </div>
+              <div class="wf-progress" style="margin-top:12px;"><div class="wf-progress-bar" style="width:62%;"></div></div>
+              <div style="display:flex; justify-content:space-between; font-size:11px; color:#888; margin-top:4px;">
+                <span>Phase 6 of 9</span><span>62% complete</span>
+              </div>
+            </div>
+
+            <div class="wf-card">
+              <div style="display:flex; justify-content:space-between; align-items:start;">
+                <div>
+                  <h3 style="font-size:15px; font-weight:600;">Data Science with Python</h3>
+                  <p style="font-size:12px; color:#888; margin-top:4px;">5 modules · 15 lessons · 30 videos</p>
+                </div>
+                <div style="display:flex; gap:6px;">
+                  <span class="wf-badge wf-badge-green">Published</span>
+                  <span class="wf-badge wf-badge-blue">InfyLearn</span>
+                </div>
+              </div>
+              <div class="wf-progress" style="margin-top:12px;"><div class="wf-progress-bar" style="width:100%; background:#16a34a;"></div></div>
+              <div style="display:flex; justify-content:space-between; font-size:11px; color:#888; margin-top:4px;">
+                <span>Phase 9 of 9</span><span>100% complete</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== SCREEN 3: CREATE COURSE ==================== -->
+    <div class="screen-panel" id="screen-create">
+      <div class="wf-annotation">Screen 3: Create Course — 4-step wizard. On final step, AI generates TOC. After "Create Course" click → navigates to /course/[id] (Course Detail page), NOT dashboard.</div>
+      <div class="screen-frame">
+        <div class="screen-title-bar">
+          <div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div>
+          <div class="url-bar">courseforge.vercel.app/create</div>
+        </div>
+        <div class="app-layout">
+          <div class="sidebar">
+            <div class="sidebar-brand"><div class="icon">⚡</div><span>CourseForge</span></div>
+            <div class="nav-item"><span class="icon">📊</span> Dashboard</div>
+            <div class="nav-item active"><span class="icon">➕</span> Create Course</div>
+            <div class="nav-divider"></div>
+            <div class="nav-item"><span class="icon">📑</span> TOC Builder</div>
+            <div class="nav-item"><span class="icon">🎬</span> Video Studio</div>
+            <div class="nav-item"><span class="icon">📝</span> Content Studio</div>
+            <div class="nav-item"><span class="icon">✅</span> Review Queue</div>
+          </div>
+          <div class="main-content" style="max-width: 700px;">
+            <div class="wf-section-title">Create a New Course</div>
+            <div class="wf-section-desc">Follow the steps below to set up your course</div>
+
+            <!-- Step indicator -->
+            <div class="wf-steps">
+              <div class="wf-step"><div class="wf-step-circle done">✓</div><div class="wf-step-line done"></div></div>
+              <div class="wf-step"><div class="wf-step-circle done">✓</div><div class="wf-step-line done"></div></div>
+              <div class="wf-step"><div class="wf-step-circle done">✓</div><div class="wf-step-line done"></div></div>
+              <div class="wf-step"><div class="wf-step-circle current">4</div></div>
+            </div>
+            <div class="wf-step-labels"><span>Platform</span><span>Details</span><span>Content</span><span>Generate TOC</span></div>
+
+            <h3 style="font-size:16px; font-weight:600; margin-bottom:4px;">Generate Table of Contents</h3>
+            <p style="font-size:13px; color:#888; margin-bottom:16px;">AI will create a Bloom's Taxonomy-aligned course structure</p>
+
+            <div class="wf-card" style="background:#f8fafb;">
+              <p style="font-size:12px; color:#555;"><strong>Title:</strong> AI in Finance</p>
+              <p style="font-size:12px; color:#555; margin-top:4px;"><strong>Platform:</strong> Coursera · <strong>Audience:</strong> Beginner · 6 weeks</p>
+              <p style="font-size:12px; color:#555; margin-top:4px;"><strong>Content:</strong> Reading, Quiz, Discussion, Case Study</p>
+            </div>
+
+            <!-- Generated TOC Preview -->
+            <div class="wf-card" style="margin-top:12px;">
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+                <span style="color:#16a34a; font-weight:700;">✓</span>
+                <span style="font-weight:600; font-size:14px;">TOC Generated — 4 modules, 12 lessons, 36 content items</span>
+              </div>
+              <div class="module-block">
+                <div class="module-header"><span style="font-weight:600; font-size:13px;">Module 1 - Introduction to AI in Finance</span><span style="font-size:12px; color:#888;">3 lessons</span></div>
+              </div>
+              <div class="module-block">
+                <div class="module-header"><span style="font-weight:600; font-size:13px;">Module 2 - Machine Learning for Trading</span><span style="font-size:12px; color:#888;">3 lessons</span></div>
+              </div>
+              <div class="module-block">
+                <div class="module-header"><span style="font-weight:600; font-size:13px;">Module 3 - NLP for Financial Analysis</span><span style="font-size:12px; color:#888;">3 lessons</span></div>
+              </div>
+              <div class="module-block">
+                <div class="module-header"><span style="font-weight:600; font-size:13px;">Module 4 - AI Risk & Compliance</span><span style="font-size:12px; color:#888;">3 lessons</span></div>
+              </div>
+              <button class="wf-btn wf-btn-outline" style="width:100%; justify-content:center; margin-top:12px;">🔄 Regenerate</button>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; margin-top:24px; padding-top:16px; border-top:1px solid #eee;">
+              <button class="wf-btn wf-btn-outline">Back</button>
+              <div style="display:flex; gap:8px;">
+                <button class="wf-btn wf-btn-outline">Cancel</button>
+                <button class="wf-btn wf-btn-green" onclick="showScreen('course-toc')">Create Course →</button>
+              </div>
+            </div>
+            <div class="wf-annotation">After clicking "Create Course": user navigates to /course/[id] at the TOC tab. The course is created and ready for review.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== SCREEN 4: COURSE DETAIL — TOC ==================== -->
+    <div class="screen-panel" id="screen-course-toc">
+      <div class="wf-annotation">Screen 4: Course Detail — TOC Tab. This is the central production workspace. All 7 tabs unlock progressively. TOC shows expandable module tree, coach comments, AI improvement button, and phase advance button.</div>
+      <div class="screen-frame">
+        <div class="screen-title-bar">
+          <div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div>
+          <div class="url-bar">courseforge.vercel.app/course/abc123</div>
+        </div>
+        <div class="app-layout">
+          <div class="sidebar">
+            <div class="sidebar-brand"><div class="icon">⚡</div><span>CourseForge</span></div>
+            <div class="nav-item"><span class="icon">📊</span> Dashboard</div>
+            <div class="nav-item"><span class="icon">➕</span> Create Course</div>
+            <div class="nav-divider"></div>
+            <div class="nav-item"><span class="icon">📑</span> TOC Builder</div>
+            <div class="nav-item"><span class="icon">🎬</span> Video Studio</div>
+            <div class="nav-item"><span class="icon">📝</span> Content Studio</div>
+            <div class="nav-item"><span class="icon">✅</span> Review Queue</div>
+          </div>
+          <div class="main-content">
+            <!-- Course Header -->
+            <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:16px;">
+              <div>
+                <div class="wf-section-title">Applied Generative AI for Business</div>
+                <div class="wf-section-desc">Comprehensive course on AI applications in modern business operations</div>
+              </div>
+              <span class="wf-badge wf-badge-yellow" style="font-size:13px; padding:6px 14px;">TOC Review</span>
+            </div>
+            <div class="wf-progress"><div class="wf-progress-bar" style="width:25%;"></div></div>
+            <div style="font-size:11px; color:#888; margin-bottom:20px;">Phase 3 of 9 — TOC Review</div>
+
+            <!-- Tabs -->
+            <div class="wf-tabs">
+              <div class="wf-tab active">TOC</div>
+              <div class="wf-tab disabled">Content Briefs</div>
+              <div class="wf-tab disabled">PPTs</div>
+              <div class="wf-tab disabled">Recording</div>
+              <div class="wf-tab disabled">Transcript</div>
+              <div class="wf-tab disabled">Content</div>
+              <div class="wf-tab disabled">Review</div>
+            </div>
+
+            <!-- TOC Content -->
+            <div class="wf-card" style="padding:24px;">
+              <h3 style="font-size:18px; font-weight:700; margin-bottom:16px;">Table of Contents</h3>
+
+              <!-- Module 1 expanded -->
+              <div class="module-block">
+                <div class="module-header">
+                  <div>
+                    <span style="font-weight:700; font-size:14px;">Module 1 - Foundations of Generative AI</span>
+                    <div style="font-size:12px; color:#888; margin-top:2px;">3 lessons · 45 min · 4 learning objectives</div>
+                  </div>
+                  <div style="display:flex; gap:6px; align-items:center;">
+                    <button class="wf-btn wf-btn-outline" style="font-size:11px; padding:4px 8px;">💬 Comment</button>
+                    <span>▼</span>
+                  </div>
+                </div>
+                <div class="module-body">
+                  <div style="font-size:11px; color:#555; margin-bottom:8px;">
+                    <span class="wf-badge wf-badge-yellow" style="font-size:10px;">Remember</span>
+                    <span class="wf-badge wf-badge-blue" style="font-size:10px;">Understand</span>
+                    <span class="wf-badge wf-badge-green" style="font-size:10px;">Apply</span>
+                    <span class="wf-badge wf-badge-purple" style="font-size:10px;">Analyze</span>
+                  </div>
+                  <div class="lesson-row">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                      <span style="font-weight:600; font-size:13px;">Lesson 1.1 - What is Generative AI?</span>
+                      <button style="font-size:11px; color:#2563eb; background:none; border:none; cursor:pointer;">Comment</button>
+                    </div>
+                    <div style="display:flex; gap:6px; margin-top:6px;">
+                      <span class="wf-badge wf-badge-blue" style="font-size:10px;">reading</span>
+                      <span class="wf-badge wf-badge-blue" style="font-size:10px;">video</span>
+                      <span class="wf-badge wf-badge-blue" style="font-size:10px;">quiz</span>
+                    </div>
+                    <div class="video-row"><span class="play-icon">▶</span> Introduction to Generative AI <span style="color:#bbb; font-size:11px;">(12 min)</span></div>
+                    <div class="video-row"><span class="play-icon">▶</span> History and Evolution of AI <span style="color:#bbb; font-size:11px;">(10 min)</span></div>
+                  </div>
+                  <div class="lesson-row">
+                    <span style="font-weight:600; font-size:13px;">Lesson 1.2 - LLMs & Transformers</span>
+                    <div class="video-row"><span class="play-icon">▶</span> How Transformers Work <span style="color:#bbb; font-size:11px;">(15 min)</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Module 2 collapsed -->
+              <div class="module-block">
+                <div class="module-header">
+                  <div>
+                    <span style="font-weight:700; font-size:14px;">Module 2 - AI for Business Operations</span>
+                    <div style="font-size:12px; color:#888; margin-top:2px;">3 lessons · 50 min</div>
+                  </div>
+                  <span>▶</span>
+                </div>
+              </div>
+              <div class="module-block">
+                <div class="module-header">
+                  <div>
+                    <span style="font-weight:700; font-size:14px;">Module 3 - Prompt Engineering</span>
+                    <div style="font-size:12px; color:#888; margin-top:2px;">3 lessons · 40 min</div>
+                  </div>
+                  <span>▶</span>
+                </div>
+              </div>
+              <div class="module-block">
+                <div class="module-header">
+                  <div>
+                    <span style="font-weight:700; font-size:14px;">Module 4 - AI Ethics & Governance</span>
+                    <div style="font-size:12px; color:#888; margin-top:2px;">3 lessons · 45 min</div>
+                  </div>
+                  <span>▶</span>
+                </div>
+              </div>
+
+              <!-- Comments Section -->
+              <div style="border-top:1px solid #eee; margin-top:20px; padding-top:20px;">
+                <h4 style="font-size:14px; font-weight:700; margin-bottom:12px;">Comments & Feedback</h4>
+                <div class="wf-comment-box">
+                  <div class="author">Coach on Module 1</div>
+                  <p style="margin-top:4px;">Please add more practical examples for LLM applications. The current content is too theoretical.</p>
+                  <div style="display:flex; justify-content:space-between; margin-top:8px;">
+                    <span style="font-size:11px; color:#888;">Mar 28, 2026</span>
+                    <button class="wf-btn wf-btn-outline" style="font-size:11px; padding:2px 8px;">Resolve</button>
+                  </div>
+                </div>
+                <div class="wf-comment-box">
+                  <div class="author">Coach on Lesson 1.2</div>
+                  <p style="margin-top:4px;">Transformer architecture explanation should come before LLM discussion. Reorder lessons.</p>
+                  <div style="display:flex; justify-content:space-between; margin-top:8px;">
+                    <span style="font-size:11px; color:#888;">Mar 28, 2026</span>
+                    <button class="wf-btn wf-btn-outline" style="font-size:11px; padding:2px 8px;">Resolve</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- AI Improvement Button -->
+              <button class="wf-btn wf-btn-purple" style="width:100%; justify-content:center; margin-top:16px; padding:12px;">
+                ⚡ Send for AI Improvement (2 comments)
+              </button>
+              <p style="font-size:11px; color:#888; text-align:center; margin-top:6px;">AI will address all unresolved coach comments and update the TOC</p>
+
+              <!-- Approve Button -->
+              <button class="wf-btn wf-btn-green" style="width:100%; justify-content:center; margin-top:12px; padding:12px;" onclick="showScreen('course-briefs')">
+                ✓ Approve & Advance to Content Briefs
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== SCREEN 5: CONTENT BRIEFS ==================== -->
+    <div class="screen-panel" id="screen-course-briefs">
+      <div class="wf-annotation">Screen 5: Content Briefs Tab — Generate or edit briefs per video. Each brief has talking points, examples, visual cues. Bulk generate available.</div>
+      <div class="screen-frame">
+        <div class="screen-title-bar">
+          <div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div>
+          <div class="url-bar">courseforge.vercel.app/course/abc123 (Content Briefs tab)</div>
+        </div>
+        <div class="app-layout">
+          <div class="sidebar">
+            <div class="sidebar-brand"><div class="icon">⚡</div><span>CourseForge</span></div>
+            <div class="nav-item"><span class="icon">📊</span> Dashboard</div>
+            <div class="nav-item"><span class="icon">➕</span> Create Course</div>
+          </div>
+          <div class="main-content">
+            <div class="wf-section-title">Applied Generative AI for Business</div>
+            <div class="wf-progress" style="margin-bottom:20px;"><div class="wf-progress-bar" style="width:38%;"></div></div>
+
+            <div class="wf-tabs">
+              <div class="wf-tab" onclick="showScreen('course-toc')">TOC</div>
+              <div class="wf-tab active">Content Briefs</div>
+              <div class="wf-tab disabled">PPTs</div>
+              <div class="wf-tab disabled">Recording</div>
+              <div class="wf-tab disabled">Transcript</div>
+              <div class="wf-tab disabled">Content</div>
+              <div class="wf-tab disabled">Review</div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+              <h3 style="font-size:18px; font-weight:700;">Content Briefs</h3>
+              <button class="wf-btn wf-btn-primary">Generate All Briefs</button>
+            </div>
+
+            <!-- Brief Card with content -->
+            <div class="brief-card">
+              <div class="brief-header">
+                <div>
+                  <span style="font-weight:600; font-size:14px;">Introduction to Generative AI</span>
+                  <div style="font-size:12px; color:#888;">Module 1 / Lesson 1.1 · 12 min</div>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span class="wf-badge wf-badge-green">Ready</span>
+                  <span>▼</span>
+                </div>
+              </div>
+              <div class="brief-body">
+                <div style="margin-bottom:12px;">
+                  <label class="wf-label">What to Cover</label>
+                  <p style="font-size:13px;">Define generative AI, distinguish from traditional ML, explain key use cases in business (content generation, code assistance, data analysis), demo real examples.</p>
+                </div>
+                <div style="margin-bottom:12px;">
+                  <label class="wf-label">Examples & Visual Cues</label>
+                  <p style="font-size:13px;">Show ChatGPT interface, compare AI-generated vs human text, display market size chart ($xx billion by 2030).</p>
+                </div>
+                <div>
+                  <label class="wf-label">Key Takeaways</label>
+                  <p style="font-size:13px;">1. GenAI creates new content, not just classifies. 2. Transformer architecture is the breakthrough. 3. Business adoption is accelerating across all sectors.</p>
+                </div>
+                <div style="display:flex; gap:8px; margin-top:12px;">
+                  <button class="wf-btn wf-btn-outline" style="font-size:12px;">✏️ Edit</button>
+                  <button class="wf-btn wf-btn-outline" style="font-size:12px;">🔄 Regenerate</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Brief pending -->
+            <div class="brief-card">
+              <div class="brief-header">
+                <div>
+                  <span style="font-weight:600; font-size:14px;">History and Evolution of AI</span>
+                  <div style="font-size:12px; color:#888;">Module 1 / Lesson 1.1 · 10 min</div>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span class="wf-badge wf-badge-gray">Pending</span>
+                  <button class="wf-btn wf-btn-primary" style="font-size:12px; padding:4px 12px;">Generate Brief</button>
+                </div>
+              </div>
+            </div>
+
+            <button class="wf-btn wf-btn-green" style="width:100%; justify-content:center; margin-top:20px; padding:12px;" onclick="showScreen('course-ppts')">✓ Approve & Advance to PPT Generation</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== SCREEN 6: PPTs ==================== -->
+    <div class="screen-panel" id="screen-course-ppts">
+      <div class="wf-annotation">Screen 6: PPT/Slides Tab — AI generates 5-8 slides per video. Shows slide preview cards with title, content, and speaker notes.</div>
+      <div class="screen-frame">
+        <div class="screen-title-bar">
+          <div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div>
+          <div class="url-bar">courseforge.vercel.app/course/abc123 (PPTs tab)</div>
+        </div>
+        <div class="app-layout">
+          <div class="sidebar">
+            <div class="sidebar-brand"><div class="icon">⚡</div><span>CourseForge</span></div>
+            <div class="nav-item"><span class="icon">📊</span> Dashboard</div>
+          </div>
+          <div class="main-content">
+            <div class="wf-section-title">Applied Generative AI for Business</div>
+            <div class="wf-tabs">
+              <div class="wf-tab">TOC</div>
+              <div class="wf-tab">Briefs</div>
+              <div class="wf-tab active">PPTs</div>
+              <div class="wf-tab disabled">Recording</div>
+              <div class="wf-tab disabled">Transcript</div>
+              <div class="wf-tab disabled">Content</div>
+              <div class="wf-tab disabled">Review</div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; margin-bottom:16px;">
+              <h3 style="font-size:18px; font-weight:700;">Slides — Introduction to Generative AI</h3>
+              <button class="wf-btn wf-btn-primary">Generate All Slides</button>
+            </div>
+
+            <div class="grid-3">
+              <div class="slide-card"><div class="slide-title">Slide 1: Title Slide</div><div class="slide-content">Introduction to Generative AI<br>Module 1 · Lesson 1.1</div></div>
+              <div class="slide-card"><div class="slide-title">Slide 2: What is GenAI?</div><div class="slide-content">• Definition & scope<br>• vs Traditional ML<br>• Key capabilities</div></div>
+              <div class="slide-card"><div class="slide-title">Slide 3: Key Applications</div><div class="slide-content">• Content creation<br>• Code assistance<br>• Data analysis</div></div>
+              <div class="slide-card"><div class="slide-title">Slide 4: Market Overview</div><div class="slide-content">[Chart placeholder]<br>$XXB market by 2030</div></div>
+              <div class="slide-card"><div class="slide-title">Slide 5: Case Studies</div><div class="slide-content">• Company A: 40% faster<br>• Company B: cost savings<br>• Company C: new products</div></div>
+              <div class="slide-card"><div class="slide-title">Slide 6: Summary</div><div class="slide-content">Key takeaways<br>& next steps</div></div>
+            </div>
+
+            <button class="wf-btn wf-btn-green" style="width:100%; justify-content:center; margin-top:20px; padding:12px;" onclick="showScreen('course-recording')">✓ Approve & Advance to Recording</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== SCREEN 7: RECORDING ==================== -->
+    <div class="screen-panel" id="screen-course-recording">
+      <div class="wf-annotation">Screen 7: Recording Tab — AI voice generation or manual video upload per video. Shows recording status, waveform preview, and duration.</div>
+      <div class="screen-frame">
+        <div class="screen-title-bar">
+          <div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div>
+          <div class="url-bar">courseforge.vercel.app/course/abc123 (Recording tab)</div>
+        </div>
+        <div class="app-layout">
+          <div class="sidebar">
+            <div class="sidebar-brand"><div class="icon">⚡</div><span>CourseForge</span></div>
+            <div class="nav-item"><span class="icon">📊</span> Dashboard</div>
+          </div>
+          <div class="main-content">
+            <div class="wf-section-title">Applied Generative AI for Business</div>
+            <div class="wf-tabs">
+              <div class="wf-tab">TOC</div><div class="wf-tab">Briefs</div><div class="wf-tab">PPTs</div>
+              <div class="wf-tab active">Recording</div>
+              <div class="wf-tab disabled">Transcript</div><div class="wf-tab disabled">Content</div><div class="wf-tab disabled">Review</div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; margin-bottom:16px;">
+              <h3 style="font-size:18px; font-weight:700;">Recording</h3>
+              <div style="display:flex; gap:8px;">
+                <button class="wf-btn wf-btn-primary">🤖 Generate All AI Voice</button>
+                <button class="wf-btn wf-btn-outline">📤 Upload Videos</button>
+              </div>
+            </div>
+
+            <div class="recording-row">
+              <div style="min-width:200px;"><span style="font-weight:600; font-size:13px;">Introduction to Generative AI</span><br><span style="font-size:11px; color:#888;">Module 1 · 12 min</span></div>
+              <div class="waveform"></div>
+              <span class="wf-badge wf-badge-green">Recorded</span>
+              <span style="font-size:12px; color:#888;">12:04</span>
+            </div>
+            <div class="recording-row">
+              <div style="min-width:200px;"><span style="font-weight:600; font-size:13px;">History and Evolution of AI</span><br><span style="font-size:11px; color:#888;">Module 1 · 10 min</span></div>
+              <div class="waveform"></div>
+              <span class="wf-badge wf-badge-green">Recorded</span>
+              <span style="font-size:12px; color:#888;">9:52</span>
+            </div>
+            <div class="recording-row">
+              <div style="min-width:200px;"><span style="font-weight:600; font-size:13px;">How Transformers Work</span><br><span style="font-size:11px; color:#888;">Module 1 · 15 min</span></div>
+              <div style="flex:1;"></div>
+              <span class="wf-badge wf-badge-gray">Pending</span>
+              <button class="wf-btn wf-btn-primary" style="font-size:12px; padding:4px 12px;">Generate</button>
+            </div>
+
+            <!-- Upload area -->
+            <div class="wf-placeholder" style="margin-top:16px; padding:32px;">
+              <div style="font-size:24px; margin-bottom:8px;">📤</div>
+              <p style="font-weight:600;">Drag & drop video files here</p>
+              <p style="font-size:12px; color:#888; margin-top:4px;">or click to select files · MP4, WebM, MOV supported</p>
+            </div>
+
+            <button class="wf-btn wf-btn-green" style="width:100%; justify-content:center; margin-top:20px; padding:12px;" onclick="showScreen('course-transcript')">✓ Advance to Transcription</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== SCREEN 8: TRANSCRIPT ==================== -->
+    <div class="screen-panel" id="screen-course-transcript">
+      <div class="wf-annotation">Screen 8: Transcript Tab — Auto-transcribe recordings. Editable text, word count, confidence score. Coach can correct before content generation.</div>
+      <div class="screen-frame">
+        <div class="screen-title-bar">
+          <div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div>
+          <div class="url-bar">courseforge.vercel.app/course/abc123 (Transcript tab)</div>
+        </div>
+        <div class="app-layout">
+          <div class="sidebar">
+            <div class="sidebar-brand"><div class="icon">⚡</div><span>CourseForge</span></div>
+            <div class="nav-item"><span class="icon">📊</span> Dashboard</div>
+          </div>
+          <div class="main-content">
+            <div class="wf-section-title">Applied Generative AI for Business</div>
+            <div class="wf-tabs">
+              <div class="wf-tab">TOC</div><div class="wf-tab">Briefs</div><div class="wf-tab">PPTs</div><div class="wf-tab">Recording</div>
+              <div class="wf-tab active">Transcript</div>
+              <div class="wf-tab disabled">Content</div><div class="wf-tab disabled">Review</div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; margin-bottom:16px;">
+              <h3 style="font-size:18px; font-weight:700;">Transcripts</h3>
+              <button class="wf-btn wf-btn-primary">Transcribe All Recordings</button>
+            </div>
+
+            <div class="wf-card">
+              <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+                <div><span style="font-weight:600;">Introduction to Generative AI</span><br><span style="font-size:12px; color:#888;">Module 1 · Lesson 1.1</span></div>
+                <div style="display:flex; gap:12px; align-items:center;">
+                  <span style="font-size:12px; color:#888;">1,847 words</span>
+                  <span style="font-size:12px; color:#888;">Confidence: 95%</span>
+                  <span class="wf-badge wf-badge-green">Ready</span>
+                </div>
+              </div>
+              <div style="background:#f8f9fa; border:1px solid #eee; border-radius:6px; padding:12px; font-size:13px; color:#444; line-height:1.6; max-height:150px; overflow-y:auto;">
+                Welcome to the first lesson in our course on Generative AI for Business. Today, we're going to explore what generative AI actually is, how it differs from traditional machine learning approaches, and why it matters so much for modern business operations. Generative AI refers to artificial intelligence systems that can create new content — text, images, code, music, and more — rather than just classifying or predicting based on existing data...
+              </div>
+              <div style="display:flex; gap:8px; margin-top:8px;">
+                <button class="wf-btn wf-btn-outline" style="font-size:12px;">✏️ Edit Transcript</button>
+                <button class="wf-btn wf-btn-outline" style="font-size:12px;">🔄 Re-transcribe</button>
+              </div>
+            </div>
+
+            <button class="wf-btn wf-btn-green" style="width:100%; justify-content:center; margin-top:20px; padding:12px;" onclick="showScreen('course-content')">✓ Advance to Content Generation</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== SCREEN 9: CONTENT GENERATION ==================== -->
+    <div class="screen-panel" id="screen-course-content">
+      <div class="wf-annotation">Screen 9: Content Tab — Generate readings, quizzes, case studies from transcripts. Select content type per lesson, generate individually or in bulk.</div>
+      <div class="screen-frame">
+        <div class="screen-title-bar">
+          <div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div>
+          <div class="url-bar">courseforge.vercel.app/course/abc123 (Content tab)</div>
+        </div>
+        <div class="app-layout">
+          <div class="sidebar">
+            <div class="sidebar-brand"><div class="icon">⚡</div><span>CourseForge</span></div>
+            <div class="nav-item"><span class="icon">📊</span> Dashboard</div>
+          </div>
+          <div class="main-content">
+            <div class="wf-section-title">Applied Generative AI for Business</div>
+            <div class="wf-tabs">
+              <div class="wf-tab">TOC</div><div class="wf-tab">Briefs</div><div class="wf-tab">PPTs</div><div class="wf-tab">Recording</div><div class="wf-tab">Transcript</div>
+              <div class="wf-tab active">Content</div>
+              <div class="wf-tab disabled">Review</div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; margin-bottom:16px;">
+              <h3 style="font-size:18px; font-weight:700;">Content Generation</h3>
+              <button class="wf-btn wf-btn-primary">Generate All Content</button>
+            </div>
+
+            <div class="wf-card">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <div><span style="font-weight:600;">Lesson 1.1 — What is Generative AI?</span></div>
+                <div style="display:flex; gap:8px; align-items:center;">
+                  <select class="wf-select" style="font-size:12px;">
+                    <option>Reading</option>
+                    <option>Practice Quiz</option>
+                    <option>Graded Quiz</option>
+                    <option>Case Study</option>
+                    <option>Discussion</option>
+                  </select>
+                  <button class="wf-btn wf-btn-primary" style="font-size:12px;">Generate</button>
+                </div>
+              </div>
+              <!-- Generated items -->
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <div style="background:#dbeafe; border:1px solid #93c5fd; border-radius:6px; padding:8px 12px; font-size:12px;">📖 Reading — AI Generated <span class="wf-badge wf-badge-green" style="font-size:10px;">Ready</span></div>
+                <div style="background:#fef3c7; border:1px solid #fcd34d; border-radius:6px; padding:8px 12px; font-size:12px;">✏️ Practice Quiz — AI Generated <span class="wf-badge wf-badge-green" style="font-size:10px;">Ready</span></div>
+              </div>
+            </div>
+
+            <div class="wf-card">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div><span style="font-weight:600;">Lesson 1.2 — LLMs & Transformers</span></div>
+                <div style="display:flex; gap:8px; align-items:center;">
+                  <select class="wf-select" style="font-size:12px;"><option>Reading</option></select>
+                  <button class="wf-btn wf-btn-primary" style="font-size:12px;">Generate</button>
+                </div>
+              </div>
+              <p style="font-size:12px; color:#888; margin-top:8px;">No content generated yet</p>
+            </div>
+
+            <button class="wf-btn wf-btn-green" style="width:100%; justify-content:center; margin-top:20px; padding:12px;" onclick="showScreen('course-review')">✓ Advance to Review & Publish</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== SCREEN 10: REVIEW & PUBLISH ==================== -->
+    <div class="screen-panel" id="screen-course-review">
+      <div class="wf-annotation">Screen 10: Review Tab — Final quality review. Dynamic checklist, completion stats, and publish button. Only appears in final_review phase.</div>
+      <div class="screen-frame">
+        <div class="screen-title-bar">
+          <div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div>
+          <div class="url-bar">courseforge.vercel.app/course/abc123 (Review tab)</div>
+        </div>
+        <div class="app-layout">
+          <div class="sidebar">
+            <div class="sidebar-brand"><div class="icon">⚡</div><span>CourseForge</span></div>
+            <div class="nav-item"><span class="icon">📊</span> Dashboard</div>
+          </div>
+          <div class="main-content">
+            <div class="wf-section-title">Applied Generative AI for Business</div>
+            <div class="wf-progress" style="margin-bottom:20px;"><div class="wf-progress-bar" style="width:92%;"></div></div>
+            <div class="wf-tabs">
+              <div class="wf-tab">TOC</div><div class="wf-tab">Briefs</div><div class="wf-tab">PPTs</div><div class="wf-tab">Recording</div><div class="wf-tab">Transcript</div><div class="wf-tab">Content</div>
+              <div class="wf-tab active">Review</div>
+            </div>
+
+            <h3 style="font-size:18px; font-weight:700; margin-bottom:16px;">Final Review & Publish</h3>
+
+            <div class="wf-stats">
+              <div class="wf-stat"><div class="value">36</div><div class="label">Total Videos</div></div>
+              <div class="wf-stat"><div class="value" style="color:#16a34a;">36</div><div class="label">Recorded</div></div>
+              <div class="wf-stat"><div class="value" style="color:#2563eb;">36</div><div class="label">Transcribed</div></div>
+              <div class="wf-stat"><div class="value" style="color:#7c3aed;">24</div><div class="label">Content Items</div></div>
+            </div>
+
+            <div class="wf-card">
+              <h4 style="font-size:14px; font-weight:700; margin-bottom:12px;">Quality Checklist</h4>
+              <div class="check-item"><div class="check-box checked">✓</div> TOC approved by PM and Coach</div>
+              <div class="check-item"><div class="check-box checked">✓</div> All content briefs reviewed</div>
+              <div class="check-item"><div class="check-box checked">✓</div> Slides generated for all videos</div>
+              <div class="check-item"><div class="check-box checked">✓</div> All videos recorded</div>
+              <div class="check-item"><div class="check-box checked">✓</div> All transcripts reviewed</div>
+              <div class="check-item"><div class="check-box checked">✓</div> Reading materials generated</div>
+              <div class="check-item"><div class="check-box">✗</div> All quizzes reviewed and approved</div>
+              <div class="check-item"><div class="check-box">✗</div> No unresolved comments</div>
+            </div>
+
+            <button class="wf-btn wf-btn-green" style="width:100%; justify-content:center; margin-top:20px; padding:14px; font-size:15px;">
+              🚀 Publish Course
+            </button>
+            <p style="font-size:12px; color:#888; text-align:center; margin-top:8px;">2 checklist items remaining. Publishing is available once all items are complete.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    function showScreen(id) {
+      document.querySelectorAll('.screen-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.screen-tab').forEach(t => t.classList.remove('active'));
+      document.getElementById('screen-' + id).classList.add('active');
+      event.target.classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CourseForge v3 - Interactive Wireframes</title>
+<style>
+  :root {
+    --navy: #1E3A5F;
+    --blue: #2E5D8A;
+    --light-blue: #E8F0FE;
+    --accent: #3B7BBF;
+    --green: #16A34A;
+    --yellow: #D4A017;
+    --yellow-bg: #FFF3CD;
+    --orange: #EA580C;
+    --red: #DC2626;
+    --purple: #7C3AED;
+    --gray-50: #F9FAFB;
+    --gray-100: #F3F4F6;
+    --gray-200: #E5E7EB;
+    --gray-300: #D1D5DB;
+    --gray-400: #9CA3AF;
+    --gray-500: #6B7280;
+    --gray-600: #4B5563;
+    --gray-700: #374151;
+    --gray-800: #1F2937;
+    --gray-900: #111827;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--gray-100); color: var(--gray-800); }
+
+  /* NAV */
+  .screen-nav { position: sticky; top: 0; z-index: 100; background: var(--navy); padding: 12px 24px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .screen-nav h1 { color: white; font-size: 16px; margin-right: 16px; white-space: nowrap; }
+  .screen-nav button { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; transition: all 0.2s; white-space: nowrap; }
+  .screen-nav button:hover, .screen-nav button.active { background: white; color: var(--navy); }
+
+  /* SCREEN CONTAINER */
+  .screen { display: none; padding: 24px; max-width: 1200px; margin: 0 auto; }
+  .screen.active { display: block; }
+  .screen-title { font-size: 22px; font-weight: 700; color: var(--navy); margin-bottom: 6px; }
+  .screen-subtitle { font-size: 14px; color: var(--gray-500); margin-bottom: 20px; }
+
+  /* WIREFRAME FRAME */
+  .wireframe { background: white; border: 2px solid var(--gray-300); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+  .wf-header { background: var(--navy); color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; }
+  .wf-header h3 { font-size: 15px; }
+  .wf-body { display: flex; min-height: 520px; }
+  .wf-sidebar { width: 220px; background: var(--gray-50); border-right: 1px solid var(--gray-200); padding: 16px 0; flex-shrink: 0; }
+  .wf-sidebar .nav-item { padding: 10px 20px; font-size: 13px; color: var(--gray-600); cursor: pointer; display: flex; align-items: center; gap: 8px; }
+  .wf-sidebar .nav-item:hover { background: var(--gray-100); }
+  .wf-sidebar .nav-item.active { background: var(--light-blue); color: var(--navy); font-weight: 600; border-right: 3px solid var(--accent); }
+  .wf-sidebar .nav-item.disabled { color: var(--gray-300); cursor: default; }
+  .wf-sidebar .nav-section { padding: 8px 20px 4px; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--gray-400); margin-top: 8px; }
+  .wf-content { flex: 1; padding: 24px; overflow-y: auto; }
+
+  /* COMPONENTS */
+  .card { background: white; border: 1px solid var(--gray-200); border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+  .card-header { font-size: 14px; font-weight: 600; color: var(--gray-700); margin-bottom: 8px; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+  .badge-green { background: #DCFCE7; color: #166534; }
+  .badge-blue { background: #DBEAFE; color: #1E40AF; }
+  .badge-yellow { background: #FEF3C7; color: #92400E; }
+  .badge-red { background: #FEE2E2; color: #991B1B; }
+  .badge-purple { background: #F3E8FF; color: #6B21A8; }
+  .badge-gray { background: var(--gray-100); color: var(--gray-600); }
+  .btn { display: inline-block; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-green { background: var(--green); color: white; }
+  .btn-purple { background: var(--purple); color: white; }
+  .btn-outline { background: white; color: var(--gray-600); border: 1px solid var(--gray-300); }
+  .btn-orange { background: var(--orange); color: white; }
+  .input-mock { background: var(--gray-50); border: 1px solid var(--gray-300); border-radius: 6px; padding: 8px 12px; font-size: 13px; color: var(--gray-400); margin-bottom: 8px; width: 100%; }
+  .progress-bar { height: 8px; background: var(--gray-200); border-radius: 4px; overflow: hidden; margin: 8px 0; }
+  .progress-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+  .callout { background: var(--yellow-bg); border-left: 4px solid var(--yellow); padding: 12px 16px; border-radius: 0 8px 8px 0; margin-bottom: 16px; font-size: 13px; }
+  .callout-title { font-weight: 700; color: #92400E; margin-bottom: 4px; }
+  .tabs { display: flex; gap: 0; border-bottom: 2px solid var(--gray-200); margin-bottom: 20px; }
+  .tab { padding: 10px 18px; font-size: 13px; font-weight: 500; color: var(--gray-500); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+  .tab.active { color: var(--navy); border-bottom-color: var(--accent); font-weight: 600; }
+  .tab.locked { color: var(--gray-300); cursor: not-allowed; position: relative; }
+  .tab.locked::after { content: "🔒"; font-size: 10px; margin-left: 4px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; }
+  .stat-card { background: white; border: 1px solid var(--gray-200); border-radius: 8px; padding: 16px; text-align: center; }
+  .stat-value { font-size: 28px; font-weight: 700; color: var(--navy); }
+  .stat-label { font-size: 12px; color: var(--gray-500); margin-top: 4px; }
+  .annotation { background: #EFF6FF; border: 1px dashed #93C5FD; border-radius: 6px; padding: 10px 14px; margin-top: 12px; font-size: 12px; color: #1E40AF; line-height: 1.5; }
+  .annotation strong { color: #1E3A8A; }
+  .table-mock { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .table-mock th { background: var(--navy); color: white; padding: 8px 12px; text-align: left; font-weight: 600; }
+  .table-mock td { padding: 8px 12px; border-bottom: 1px solid var(--gray-200); }
+  .table-mock tr:nth-child(even) { background: var(--gray-50); }
+  .slider-mock { width: 100%; height: 8px; background: linear-gradient(90deg, var(--accent) 60%, var(--green) 60%); border-radius: 4px; margin: 8px 0; position: relative; }
+  .slider-thumb { width: 16px; height: 16px; background: white; border: 2px solid var(--accent); border-radius: 50%; position: absolute; top: -4px; left: 58%; }
+  .toggle { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; }
+  .toggle-track { width: 36px; height: 20px; border-radius: 10px; position: relative; }
+  .toggle-track.on { background: var(--green); }
+  .toggle-track.off { background: var(--gray-300); }
+  .toggle-knob { width: 16px; height: 16px; background: white; border-radius: 50%; position: absolute; top: 2px; }
+  .toggle-track.on .toggle-knob { right: 2px; }
+  .toggle-track.off .toggle-knob { left: 2px; }
+  .tree-item { padding: 6px 0 6px 0; font-size: 13px; }
+  .tree-module { font-weight: 600; color: var(--navy); padding: 8px 12px; background: var(--light-blue); border-radius: 6px; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; }
+  .tree-lesson { padding-left: 24px; color: var(--gray-700); display: flex; justify-content: space-between; align-items: center; padding: 6px 12px 6px 24px; }
+  .tree-lesson:hover { background: var(--gray-50); border-radius: 4px; }
+  .tree-video { padding-left: 48px; color: var(--gray-500); font-size: 12px; padding: 4px 12px 4px 48px; }
+  .comment-badge { background: var(--accent); color: white; font-size: 10px; padding: 1px 6px; border-radius: 8px; cursor: pointer; }
+  .ai-flag { background: var(--yellow); color: white; font-size: 10px; padding: 1px 6px; border-radius: 8px; }
+  .research-feed { border-left: 3px solid var(--accent); padding-left: 16px; }
+  .research-step { padding: 8px 0; font-size: 13px; display: flex; align-items: flex-start; gap: 8px; }
+  .research-step .icon { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; flex-shrink: 0; }
+  .research-step .done { background: #DCFCE7; color: #166534; }
+  .research-step .loading { background: #DBEAFE; color: #1E40AF; animation: pulse 1.5s infinite; }
+  .research-step .pending { background: var(--gray-100); color: var(--gray-400); }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+  .empty-state { text-align: center; padding: 40px; color: var(--gray-400); }
+  .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-state .title { font-size: 16px; font-weight: 600; color: var(--gray-600); margin-bottom: 8px; }
+  .empty-state .desc { font-size: 13px; line-height: 1.6; max-width: 400px; margin: 0 auto 16px; }
+</style>
+</head>
+<body>
+
+<div class="screen-nav">
+  <h1>CourseForge v3 Wireframes</h1>
+  <button class="active" onclick="showScreen('login')">Login</button>
+  <button onclick="showScreen('dashboard')">Dashboard</button>
+  <button onclick="showScreen('create')">Create Course</button>
+  <button onclick="showScreen('toc-research')">TOC Research</button>
+  <button onclick="showScreen('toc-review')">TOC Review</button>
+  <button onclick="showScreen('briefs')">Briefs</button>
+  <button onclick="showScreen('ppts')">PPTs</button>
+  <button onclick="showScreen('ppt-upload')">PPT Upload</button>
+  <button onclick="showScreen('recording')">Recording</button>
+  <button onclick="showScreen('transcript')">Transcript</button>
+  <button onclick="showScreen('content')">Content</button>
+  <button onclick="showScreen('review')">Review & Publish</button>
+</div>
+
+<!-- ==================== LOGIN ==================== -->
+<div class="screen active" id="screen-login">
+  <p class="screen-title">Screen 1: Login</p>
+  <p class="screen-subtitle">Route: / &bull; All users</p>
+  <div class="wireframe" style="max-width:480px; margin: 0 auto;">
+    <div class="wf-header"><h3>CourseForge</h3><span style="font-size:12px">Board Infinity</span></div>
+    <div style="padding: 40px;">
+      <h2 style="text-align:center; color: var(--navy); margin-bottom: 8px;">Welcome to CourseForge</h2>
+      <p style="text-align:center; font-size:13px; color:var(--gray-500); margin-bottom:24px;">AI-Powered Course Production Platform</p>
+      <div class="input-mock">Email address</div>
+      <div class="input-mock">Password</div>
+      <div style="margin: 16px 0;"><button class="btn btn-primary" style="width:100%; padding:12px;">Sign In</button></div>
+      <p style="text-align:center; font-size:12px; color:var(--gray-400); margin-bottom:12px;">or sign in as demo user</p>
+      <div class="grid-2">
+        <button class="btn btn-outline" style="width:100%;">Demo PM</button>
+        <button class="btn btn-outline" style="width:100%;">Demo Coach</button>
+      </div>
+    </div>
+  </div>
+  <div class="annotation" style="max-width:480px; margin:12px auto 0;">
+    <strong>Design Note:</strong> Demo login for testing. Production will use Supabase Auth with role-based access. PM and Coach have different dashboard views after login.
+  </div>
+</div>
+
+<!-- ==================== DASHBOARD ==================== -->
+<div class="screen" id="screen-dashboard">
+  <p class="screen-title">Screen 2: Dashboard</p>
+  <p class="screen-subtitle">Route: /dashboard &bull; PM view shown (Coach sees subset)</p>
+  <div class="wireframe">
+    <div class="wf-header"><h3>CourseForge</h3><span style="font-size:12px">Logged in as: PM (Ravi)</span></div>
+    <div class="wf-body">
+      <div class="wf-sidebar">
+        <div class="nav-item active">📊 Dashboard</div>
+        <div class="nav-item">➕ Create Course</div>
+        <div class="nav-section">Courses</div>
+        <div class="nav-item">📚 All Courses</div>
+        <div class="nav-item">📋 TOC Builder</div>
+        <div class="nav-item">🎬 Video Studio</div>
+        <div class="nav-item">📝 Content Studio</div>
+        <div class="nav-item">✅ Review Queue</div>
+        <div class="nav-section">Activity</div>
+        <div class="nav-item">🔔 Notifications <span class="badge badge-red" style="margin-left:auto">3</span></div>
+        <div class="nav-item">📜 Activity Log</div>
+      </div>
+      <div class="wf-content">
+        <h2 style="font-size:18px; color:var(--navy); margin-bottom:16px;">Dashboard</h2>
+        <div class="grid-4" style="margin-bottom:20px;">
+          <div class="stat-card"><div class="stat-value">12</div><div class="stat-label">Total Courses</div></div>
+          <div class="stat-card"><div class="stat-value">5</div><div class="stat-label">In Production</div></div>
+          <div class="stat-card"><div class="stat-value">3</div><div class="stat-label">Pending Review</div></div>
+          <div class="stat-card"><div class="stat-value">4</div><div class="stat-label">Published</div></div>
+        </div>
+
+        <div class="callout">
+          <div class="callout-title">🔔 Action Items</div>
+          <div style="font-size:12px; line-height:1.8;">
+            • Coach Priya requested your input on <strong>"ML Foundations"</strong> TOC (2h ago)<br>
+            • <strong>"Cloud Architecture"</strong> briefs ready for review (5h ago)<br>
+            • <strong>"React Advanced"</strong> recording uploaded — review needed
+          </div>
+        </div>
+
+        <div class="card-header" style="margin-bottom:8px;">Active Courses</div>
+        <table class="table-mock">
+          <tr><th>Course</th><th>Phase</th><th>Coach</th><th>Progress</th><th>Action</th></tr>
+          <tr><td><strong>ML Foundations</strong></td><td><span class="badge badge-yellow">TOC Review</span></td><td>Coach Priya</td><td><div class="progress-bar"><div class="progress-fill" style="width:25%; background:var(--yellow)"></div></div></td><td><button class="btn btn-primary" style="font-size:11px; padding:4px 10px;">Review</button></td></tr>
+          <tr><td><strong>Cloud Architecture</strong></td><td><span class="badge badge-blue">Content Briefs</span></td><td>Coach Amit</td><td><div class="progress-bar"><div class="progress-fill" style="width:45%; background:var(--accent)"></div></div></td><td><button class="btn btn-primary" style="font-size:11px; padding:4px 10px;">Open</button></td></tr>
+          <tr><td><strong>React Advanced</strong></td><td><span class="badge badge-purple">Recording</span></td><td>Coach Priya</td><td><div class="progress-bar"><div class="progress-fill" style="width:70%; background:var(--purple)"></div></div></td><td><button class="btn btn-primary" style="font-size:11px; padding:4px 10px;">Open</button></td></tr>
+          <tr><td><strong>Data Engineering</strong></td><td><span class="badge badge-green">Published</span></td><td>Coach Rohit</td><td><div class="progress-bar"><div class="progress-fill" style="width:100%; background:var(--green)"></div></div></td><td><button class="btn btn-outline" style="font-size:11px; padding:4px 10px;">View</button></td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="annotation">
+    <strong>PM Oversight:</strong> Dashboard shows action items (coach requests, pending reviews), real-time course status, and direct links to intervene. The Activity Log in sidebar shows every action by every coach across all courses. Notifications alert PM when coach needs input or completes a task.
+  </div>
+</div>
+
+<!-- ==================== CREATE COURSE ==================== -->
+<div class="screen" id="screen-create">
+  <p class="screen-title">Screen 3: Create Course (Enhanced Wizard)</p>
+  <p class="screen-subtitle">Route: /create &bull; PM only</p>
+  <div class="wireframe">
+    <div class="wf-header"><h3>Create New Course</h3><span style="font-size:12px">Step 3 of 4: Content Configuration</span></div>
+    <div style="padding:24px;">
+      <div style="display:flex; gap:4px; margin-bottom:24px;">
+        <div style="flex:1; height:4px; background:var(--green); border-radius:2px;"></div>
+        <div style="flex:1; height:4px; background:var(--green); border-radius:2px;"></div>
+        <div style="flex:1; height:4px; background:var(--accent); border-radius:2px;"></div>
+        <div style="flex:1; height:4px; background:var(--gray-200); border-radius:2px;"></div>
+      </div>
+
+      <div class="grid-2">
+        <div>
+          <div class="card">
+            <div class="card-header">Content Types</div>
+            <div style="font-size:13px; display:flex; flex-wrap:wrap; gap:8px; margin-top:8px;">
+              <label style="display:flex; align-items:center; gap:4px;"><input type="checkbox" checked> Readings</label>
+              <label style="display:flex; align-items:center; gap:4px;"><input type="checkbox" checked> Practice Quizzes</label>
+              <label style="display:flex; align-items:center; gap:4px;"><input type="checkbox" checked> Graded Quizzes</label>
+              <label style="display:flex; align-items:center; gap:4px;"><input type="checkbox" checked> Discussions</label>
+              <label style="display:flex; align-items:center; gap:4px;"><input type="checkbox"> Case Studies</label>
+              <label style="display:flex; align-items:center; gap:4px;"><input type="checkbox"> AI Dialogues</label>
+              <label style="display:flex; align-items:center; gap:4px;"><input type="checkbox"> Peer Reviews</label>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">Time Distribution (Total: 40 hours)</div>
+            <p style="font-size:12px; color:var(--gray-500); margin-bottom:12px;">Drag sliders to distribute hours across modules</p>
+            <div style="font-size:13px;">
+              <div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Module 1: Introduction</span><span style="font-weight:600;">6h</span></div>
+              <div class="progress-bar" style="height:12px;"><div class="progress-fill" style="width:15%; background:var(--accent); border-radius:4px;"></div></div>
+              <div style="display:flex; justify-content:space-between; margin-bottom:4px; margin-top:8px;"><span>Module 2: Core Concepts</span><span style="font-weight:600;">10h</span></div>
+              <div class="progress-bar" style="height:12px;"><div class="progress-fill" style="width:25%; background:var(--accent); border-radius:4px;"></div></div>
+              <div style="display:flex; justify-content:space-between; margin-bottom:4px; margin-top:8px;"><span>Module 3: Advanced Topics</span><span style="font-weight:600;">12h</span></div>
+              <div class="progress-bar" style="height:12px;"><div class="progress-fill" style="width:30%; background:var(--accent); border-radius:4px;"></div></div>
+              <div style="display:flex; justify-content:space-between; margin-bottom:4px; margin-top:8px;"><span>Module 4: Projects & Capstone</span><span style="font-weight:600;">12h</span></div>
+              <div class="progress-bar" style="height:12px;"><div class="progress-fill" style="width:30%; background:var(--green); border-radius:4px;"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="card">
+            <div class="card-header">Theory vs Hands-on Ratio</div>
+            <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--gray-500); margin-bottom:4px;">
+              <span>Theory: 60%</span><span>Hands-on: 40%</span>
+            </div>
+            <div class="slider-mock"><div class="slider-thumb"></div></div>
+            <p style="font-size:11px; color:var(--gray-400); margin-top:4px;">Hands-on portions generate labs, coding exercises, and practical tasks instead of lecture slides.</p>
+          </div>
+
+          <div class="card">
+            <div class="card-header">Learning Approach</div>
+            <div style="display:flex; flex-direction:column; gap:12px; margin-top:8px;">
+              <div class="toggle">
+                <div class="toggle-track on"><div class="toggle-knob"></div></div>
+                <span><strong>Project-Based Learning</strong></span>
+              </div>
+              <p style="font-size:12px; color:var(--gray-500); padding-left:44px; margin-top:-8px;">AI will suggest project milestones woven into the TOC</p>
+
+              <div class="toggle">
+                <div class="toggle-track on"><div class="toggle-knob"></div></div>
+                <span><strong>Capstone Project</strong></span>
+              </div>
+              <p style="font-size:12px; color:var(--gray-500); padding-left:44px; margin-top:-8px;">Adds dedicated capstone module with rubric & peer review</p>
+            </div>
+          </div>
+
+          <div class="card" style="background:var(--light-blue); border-color:var(--accent);">
+            <div class="card-header" style="color:var(--navy);">Project Suggestions (AI)</div>
+            <p style="font-size:12px; color:var(--gray-600); margin-bottom:8px;">Based on "ML Foundations" for beginners:</p>
+            <div style="font-size:12px; line-height:1.8;">
+              <strong>1. Milestone Project:</strong> Build a regression model predicting house prices<br>
+              <strong>2. Milestone Project:</strong> Image classifier using CNN<br>
+              <strong>3. Capstone:</strong> End-to-end ML pipeline from data collection to deployment<br>
+            </div>
+            <div style="margin-top:8px; display:flex; gap:8px;">
+              <button class="btn btn-primary" style="font-size:11px;">Accept Suggestions</button>
+              <button class="btn btn-outline" style="font-size:11px;">Edit Projects</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex; justify-content:space-between; margin-top:20px;">
+        <button class="btn btn-outline">← Back</button>
+        <button class="btn btn-primary">Next: Review & Generate →</button>
+      </div>
+    </div>
+  </div>
+  <div class="annotation">
+    <strong>Key Changes:</strong> Removed confusing video length input. Added interactive time distribution slider per module. Theory/Hands-on ratio slider directly influences TOC structure. Project-based learning and capstone are toggles — when ON, AI suggests project details that PM can accept or edit. Reference course URL from Step 1 is used to analyze competitor structure.
+  </div>
+</div>
+
+<!-- ==================== TOC RESEARCH ==================== -->
+<div class="screen" id="screen-toc-research">
+  <p class="screen-title">Screen 4: TOC Generation with Live Research Feed</p>
+  <p class="screen-subtitle">Route: /course/[id] &bull; TOC Tab (Phase 2) &bull; PM watches research in real-time</p>
+  <div class="wireframe">
+    <div class="wf-header"><h3>ML Foundations</h3><span class="badge badge-blue" style="font-size:11px;">Phase 2: AI Generating TOC</span></div>
+    <div class="wf-body">
+      <div class="wf-sidebar">
+        <div class="nav-item active">📋 TOC</div>
+        <div class="nav-item disabled">📄 Briefs 🔒</div>
+        <div class="nav-item disabled">🖥️ PPTs 🔒</div>
+        <div class="nav-item disabled">🎬 Recording 🔒</div>
+        <div class="nav-item disabled">📝 Transcript 🔒</div>
+        <div class="nav-item disabled">📚 Content 🔒</div>
+        <div class="nav-item disabled">✅ Review 🔒</div>
+      </div>
+      <div class="wf-content">
+        <div class="callout">
+          <div class="callout-title">🔬 AI is researching and generating your TOC</div>
+          <div style="font-size:12px;">This takes 30-60 seconds. Watch the research progress below to see what the AI is discovering.</div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">Research Progress</div>
+          <div class="research-feed" style="margin-top:12px;">
+            <div class="research-step"><div class="icon done">✓</div><div><strong>Competitor Analysis</strong><br><span style="font-size:12px; color:var(--gray-500);">Found 8 courses: Coursera "ML by Stanford" (4.9★), Udemy "ML A-Z" (4.5★), edX "ML Fundamentals" (4.7★)...</span></div></div>
+            <div class="research-step"><div class="icon done">✓</div><div><strong>Curriculum Gap Analysis</strong><br><span style="font-size:12px; color:var(--gray-500);">Identified gaps: Most courses lack MLOps coverage, few include hands-on deployment, no RAG/LLM content</span></div></div>
+            <div class="research-step"><div class="icon done">✓</div><div><strong>Job Market Alignment</strong><br><span style="font-size:12px; color:var(--gray-500);">Scanned 250+ ML Engineer postings. Top skills: Python, TensorFlow, MLOps, Feature Engineering, Cloud ML</span></div></div>
+            <div class="research-step"><div class="icon done">✓</div><div><strong>Industry Trend Check</strong><br><span style="font-size:12px; color:var(--gray-500);">Trending: LLM fine-tuning, RAG pipelines, responsible AI, MLOps maturity, edge ML deployment</span></div></div>
+            <div class="research-step"><div class="icon loading">⟳</div><div><strong>Bloom's Taxonomy Mapping</strong><br><span style="font-size:12px; color:var(--gray-500);">Structuring objectives from Remember → Create across 4 modules...</span></div></div>
+            <div class="research-step"><div class="icon pending">○</div><div><strong>Time Distribution</strong><br><span style="font-size:12px; color:var(--gray-400);">Allocating 40 hours across modules per slider config...</span></div></div>
+            <div class="research-step"><div class="icon pending">○</div><div><strong>Project Integration</strong><br><span style="font-size:12px; color:var(--gray-400);">Weaving project milestones into TOC structure...</span></div></div>
+          </div>
+        </div>
+
+        <div class="progress-bar" style="height:12px; margin-top:16px;">
+          <div class="progress-fill" style="width:65%; background: linear-gradient(90deg, var(--green), var(--accent));"></div>
+        </div>
+        <p style="text-align:center; font-size:12px; color:var(--gray-500); margin-top:4px;">Step 5 of 7 — Estimated 15 seconds remaining</p>
+      </div>
+    </div>
+  </div>
+  <div class="annotation">
+    <strong>Research Transparency:</strong> The live feed keeps PM engaged during the 30-60 second generation time. Each step shows what the AI found — competitor courses with ratings, skill gaps, job market data, trends. This builds confidence in the TOC quality. After completion, a full source citations report is displayed.
+  </div>
+</div>
+
+<!-- ==================== TOC REVIEW ==================== -->
+<div class="screen" id="screen-toc-review">
+  <p class="screen-title">Screen 5: TOC Review with Source Citations</p>
+  <p class="screen-subtitle">Route: /course/[id] &bull; TOC Tab (Phase 3) &bull; Coach reviews, PM observes & approves</p>
+  <div class="wireframe">
+    <div class="wf-header"><h3>ML Foundations</h3><span class="badge badge-yellow" style="font-size:11px;">Phase 3: TOC Review</span></div>
+    <div class="wf-body">
+      <div class="wf-sidebar">
+        <div class="nav-item active">📋 TOC</div>
+        <div class="nav-item disabled">📄 Briefs 🔒</div>
+        <div class="nav-item disabled">🖥️ PPTs 🔒</div>
+        <div class="nav-item disabled">🎬 Recording 🔒</div>
+        <div class="nav-item disabled">📝 Transcript 🔒</div>
+        <div class="nav-item disabled">📚 Content 🔒</div>
+        <div class="nav-item disabled">✅ Review 🔒</div>
+      </div>
+      <div class="wf-content">
+        <div class="grid-2" style="grid-template-columns: 2fr 1fr;">
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+              <h3 style="font-size:16px; color:var(--navy);">Table of Contents</h3>
+              <div style="display:flex; gap:8px;">
+                <button class="btn btn-purple" style="font-size:11px;">⚡ Send for AI Improvement (2)</button>
+                <button class="btn btn-green" style="font-size:11px;">✓ Approve & Advance</button>
+              </div>
+            </div>
+
+            <div class="tree-module">
+              <span>Module 1 - Introduction to ML (6h)</span>
+              <span style="display:flex; gap:4px;"><span class="comment-badge">2</span> <span class="ai-flag">1 AI</span></span>
+            </div>
+            <div class="tree-lesson"><span>Lesson 1.1 - What is Machine Learning?</span><span class="comment-badge">💬</span></div>
+            <div class="tree-video">📹 Video: Types of ML (Theory, 12 min)</div>
+            <div class="tree-video">📹 Video: Real-world ML Applications (Theory, 10 min)</div>
+            <div class="tree-video">📖 Reading: ML Landscape Overview</div>
+            <div class="tree-lesson"><span>Lesson 1.2 - Python for ML Setup</span><span class="ai-flag" title="AI Flag: Consider adding Jupyter notebook setup">⚠️</span></div>
+            <div class="tree-video">📹 Video: Environment Setup (Hands-on, 15 min)</div>
+            <div class="tree-video">📹 Video: NumPy & Pandas Crash Course (Hands-on, 20 min)</div>
+            <div class="tree-video">🧪 Practice Quiz: Python Basics</div>
+
+            <div class="tree-module" style="margin-top:8px;">
+              <span>Module 2 - Core ML Algorithms (10h)</span>
+              <span><span class="badge badge-green" style="font-size:10px;">No issues</span></span>
+            </div>
+            <div class="tree-lesson"><span>Lesson 2.1 - Linear Regression</span></div>
+            <div class="tree-lesson"><span>Lesson 2.2 - Classification Models</span></div>
+            <div class="tree-lesson"><span>Lesson 2.3 - 🏗️ Project Milestone: House Price Predictor</span></div>
+
+            <div class="tree-module" style="margin-top:8px;">
+              <span>Module 3 - Advanced Topics & MLOps (12h)</span>
+              <span><span class="comment-badge">1</span></span>
+            </div>
+
+            <div class="tree-module" style="margin-top:8px;">
+              <span>Module 4 - Capstone Project (12h)</span>
+              <span><span class="badge badge-purple" style="font-size:10px;">Capstone</span></span>
+            </div>
+          </div>
+
+          <div>
+            <div class="card" style="background:var(--light-blue); border-color:var(--accent);">
+              <div class="card-header" style="color:var(--navy);">📊 Competitive Analysis</div>
+              <p style="font-size:12px; margin-bottom:8px;"><strong>Best Existing Course:</strong><br>Coursera "ML by Stanford" (4.9★, 11 weeks)</p>
+              <p style="font-size:12px; margin-bottom:8px;"><strong>Why This TOC Is Better:</strong></p>
+              <ul style="font-size:11px; padding-left:16px; line-height:1.6;">
+                <li>Includes MLOps & deployment (missing in Stanford)</li>
+                <li>Adds RAG/LLM content (2024-25 trend)</li>
+                <li>Hands-on projects throughout (not just theory)</li>
+                <li>Job-role aligned to current ML Engineer postings</li>
+              </ul>
+            </div>
+
+            <div class="card">
+              <div class="card-header">📚 Sources Referenced</div>
+              <div style="font-size:11px; line-height:1.8;">
+                • Coursera: ML by Andrew Ng (4.9★)<br>
+                • Udemy: ML A-Z (4.5★, 44h)<br>
+                • edX: ML Fundamentals (4.7★)<br>
+                • LinkedIn: 250+ ML Engineer postings<br>
+                • Papers: "MLOps Maturity Model" (Google)<br>
+                • Blog: "State of ML 2025" (Hugging Face)
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">💬 Comments</div>
+              <div style="font-size:12px; margin-top:8px;">
+                <div style="padding:8px; background:var(--gray-50); border-radius:6px; margin-bottom:6px;">
+                  <strong style="color:var(--accent);">Coach Priya:</strong> "Add more on feature engineering in Module 2"
+                  <div style="margin-top:4px;"><button style="font-size:10px; padding:2px 8px; background:var(--light-blue); border:1px solid var(--accent); border-radius:4px; color:var(--accent); cursor:pointer;">Ask PM 💬</button></div>
+                </div>
+                <div style="padding:8px; background:var(--yellow-bg); border-radius:6px; margin-bottom:6px;">
+                  <strong style="color:var(--yellow);">AI Flag:</strong> "Lesson 1.2 missing Jupyter notebook setup — recommend adding"
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="annotation">
+    <strong>Key Features:</strong> Coach comments (blue badges) and AI-flagged issues (yellow badges) shown side by side. "Ask PM" button lets coach request PM input. Source citations panel shows all references. Competitive analysis shows why this TOC is better than existing courses. PM has "Send for AI Improvement" (processes all comments) and "Approve & Advance" buttons. Coach must validate before PM approves.
+  </div>
+</div>
+
+<!-- ==================== BRIEFS ==================== -->
+<div class="screen" id="screen-briefs">
+  <p class="screen-title">Screen 6: Content Briefs with Coach Input Dashboard</p>
+  <p class="screen-subtitle">Route: /course/[id] &bull; Briefs Tab (Phase 4)</p>
+  <div class="wireframe">
+    <div class="wf-header"><h3>ML Foundations</h3><span class="badge badge-blue" style="font-size:11px;">Phase 4: Content Briefs</span></div>
+    <div class="wf-body">
+      <div class="wf-sidebar">
+        <div class="nav-item">📋 TOC</div>
+        <div class="nav-item active">📄 Briefs</div>
+        <div class="nav-item disabled">🖥️ PPTs 🔒</div>
+        <div class="nav-item disabled">🎬 Recording 🔒</div>
+        <div class="nav-item disabled">📝 Transcript 🔒</div>
+        <div class="nav-item disabled">📚 Content 🔒</div>
+        <div class="nav-item disabled">✅ Review 🔒</div>
+      </div>
+      <div class="wf-content">
+        <h3 style="font-size:16px; color:var(--navy); margin-bottom:4px;">Brief Tracker Dashboard</h3>
+        <p style="font-size:12px; color:var(--gray-500); margin-bottom:16px;">Coach fills inputs → AI generates briefs → Coach reviews → PM monitors</p>
+
+        <table class="table-mock" style="margin-bottom:20px;">
+          <tr><th>Video</th><th>Coach Input</th><th>Brief Status</th><th>Coach Review</th><th>PM Notes</th></tr>
+          <tr>
+            <td>1.1 - Types of ML</td>
+            <td><span class="badge badge-green">Completed</span></td>
+            <td><span class="badge badge-green">Generated</span></td>
+            <td><span class="badge badge-green">Approved</span></td>
+            <td style="font-size:11px; color:var(--gray-500);">Looks good</td>
+          </tr>
+          <tr>
+            <td>1.1 - Real-world ML Apps</td>
+            <td><span class="badge badge-green">Completed</span></td>
+            <td><span class="badge badge-blue">Generating...</span></td>
+            <td><span class="badge badge-gray">Pending</span></td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>1.2 - Environment Setup</td>
+            <td><span class="badge badge-yellow">In Progress</span></td>
+            <td><span class="badge badge-gray">Waiting</span></td>
+            <td><span class="badge badge-gray">Pending</span></td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>1.2 - NumPy & Pandas</td>
+            <td><span class="badge badge-red">Not Started</span></td>
+            <td><span class="badge badge-gray">Waiting</span></td>
+            <td><span class="badge badge-gray">Pending</span></td>
+            <td>—</td>
+          </tr>
+        </table>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">Coach Input Form: "Environment Setup"</div>
+            <div class="input-mock" style="min-height:60px;">Key Topics: Python 3.11 installation, virtual environments, Jupyter Lab setup, VS Code extensions for ML...</div>
+            <div class="input-mock">Real-World Examples: Show popular ML project structures from GitHub</div>
+            <div class="input-mock">Visual Requirements: Screen recording of terminal + Jupyter</div>
+            <div class="input-mock">Difficulty Notes: Go slow on conda vs pip — common confusion point</div>
+            <div class="input-mock">Reference Materials: https://docs.python.org/3/</div>
+            <div class="input-mock">Special Instructions: Mention both Mac and Windows setup</div>
+            <button class="btn btn-primary" style="margin-top:8px; font-size:12px;">Submit & Generate Brief</button>
+          </div>
+          <div class="card" style="background:var(--light-blue);">
+            <div class="card-header" style="color:var(--navy);">Generated Brief: "Types of ML"</div>
+            <p style="font-size:12px; margin-bottom:8px;"><strong>Talking Points:</strong></p>
+            <div style="font-size:11px; line-height:1.8;">
+              1. Supervised vs Unsupervised vs Reinforcement<br>
+              2. Classification vs Regression distinction<br>
+              3. Real industry examples for each type<br>
+              4. When to use which approach (decision framework)
+            </div>
+            <p style="font-size:12px; margin-top:8px; margin-bottom:4px;"><strong>Visual Cues:</strong></p>
+            <div style="font-size:11px;">Comparison table slide, Venn diagram, industry use-case matrix</div>
+            <div style="margin-top:12px; display:flex; gap:8px;">
+              <button class="btn btn-green" style="font-size:11px;">✓ Approve</button>
+              <button class="btn btn-outline" style="font-size:11px;">Edit</button>
+              <button class="btn btn-purple" style="font-size:11px;">⚡ Regenerate</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="annotation">
+    <strong>Design:</strong> Top table is the PM's tracker dashboard — shows status of every video at a glance. Below, left panel is the Coach Input Form with structured fields. Right panel shows generated brief for review. Coach inputs drive AI generation. PM monitors the dashboard and can add notes for coach guidance.
+  </div>
+</div>
+
+<!-- ==================== PPTs ==================== -->
+<div class="screen" id="screen-ppts">
+  <p class="screen-title">Screen 7: PPT Generation & Editing with Tracker</p>
+  <p class="screen-subtitle">Route: /course/[id] &bull; PPTs Tab (Phase 5)</p>
+  <div class="wireframe">
+    <div class="wf-header"><h3>ML Foundations</h3><span class="badge badge-purple" style="font-size:11px;">Phase 5: PPT Generation</span></div>
+    <div class="wf-body">
+      <div class="wf-sidebar">
+        <div class="nav-item">📋 TOC</div>
+        <div class="nav-item">📄 Briefs</div>
+        <div class="nav-item active">🖥️ PPTs</div>
+        <div class="nav-item disabled">🎬 Recording 🔒</div>
+        <div class="nav-item disabled">📝 Transcript 🔒</div>
+        <div class="nav-item disabled">📚 Content 🔒</div>
+        <div class="nav-item disabled">✅ Review 🔒</div>
+      </div>
+      <div class="wf-content">
+        <h3 style="font-size:16px; color:var(--navy); margin-bottom:4px;">PPT Tracker Dashboard</h3>
+        <p style="font-size:12px; color:var(--gray-500); margin-bottom:16px;">Coach controls slide count and edits. AI generates and suggests improvements.</p>
+
+        <table class="table-mock" style="margin-bottom:20px;">
+          <tr><th>Video</th><th>Slides</th><th>Generation</th><th>Coach Edit</th><th>Images</th><th>PM Review</th></tr>
+          <tr>
+            <td>Types of ML</td>
+            <td><input type="number" value="7" style="width:40px; text-align:center; border:1px solid var(--gray-300); border-radius:4px; padding:2px;"> <span style="font-size:10px; color:var(--gray-400);">coach set</span></td>
+            <td><span class="badge badge-green">Done</span></td>
+            <td><span class="badge badge-green">Finalized</span></td>
+            <td><span class="badge badge-green">3/3</span></td>
+            <td><span class="badge badge-green">Approved</span></td>
+          </tr>
+          <tr>
+            <td>Real-world ML Apps</td>
+            <td><span style="font-size:12px;">6 (auto)</span></td>
+            <td><span class="badge badge-green">Done</span></td>
+            <td><span class="badge badge-yellow">Editing</span></td>
+            <td><span class="badge badge-yellow">1/2</span></td>
+            <td><span class="badge badge-gray">Pending</span></td>
+          </tr>
+          <tr>
+            <td>Environment Setup</td>
+            <td><span style="font-size:12px;">3 (hands-on)</span></td>
+            <td><span class="badge badge-blue">Generating</span></td>
+            <td><span class="badge badge-gray">—</span></td>
+            <td><span class="badge badge-gray">—</span></td>
+            <td><span class="badge badge-gray">—</span></td>
+          </tr>
+        </table>
+
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <div class="card-header" style="margin-bottom:0;">Editing: "Types of ML" - Slide 3 of 7</div>
+            <div style="display:flex; gap:6px;">
+              <button class="btn btn-purple" style="font-size:11px;">⚡ AI Improve</button>
+              <button class="btn btn-orange" style="font-size:11px;">🖼️ Request Image</button>
+              <button class="btn btn-outline" style="font-size:11px;">🎞️ Add Animation</button>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div style="background:var(--gray-50); border:1px solid var(--gray-200); border-radius:8px; padding:20px; min-height:200px;">
+              <div style="font-size:16px; font-weight:700; color:var(--navy); margin-bottom:12px;">Supervised Learning</div>
+              <div style="font-size:12px; line-height:2;">
+                • Labeled training data with input-output pairs<br>
+                • Two main types: Classification & Regression<br>
+                • Common algorithms: Linear Regression, SVM, Decision Trees<br>
+                • Industry applications: spam detection, price prediction
+              </div>
+              <div style="margin-top:12px; padding:8px; background:var(--light-blue); border-radius:4px; font-size:11px; text-align:center; color:var(--accent);">[Diagram: Supervised Learning Flow — Requested from Coach]</div>
+            </div>
+            <div>
+              <div class="card-header">Speaker Notes</div>
+              <div class="input-mock" style="min-height:100px; font-size:12px;">Start by asking the audience if they can think of examples of supervised learning in their daily lives. Mention Netflix recommendations as an example. Then walk through the flow diagram showing how labeled data is used to train a model. Emphasize that the quality of labels determines model quality. End with a comparison: "It's like a student learning with an answer key."</div>
+              <div class="card-header" style="margin-top:8px;">Layout</div>
+              <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <button class="btn btn-outline" style="font-size:10px; padding:4px 8px;">Title</button>
+                <button class="btn btn-primary" style="font-size:10px; padding:4px 8px;">Content</button>
+                <button class="btn btn-outline" style="font-size:10px; padding:4px 8px;">Two-Column</button>
+                <button class="btn btn-outline" style="font-size:10px; padding:4px 8px;">Diagram</button>
+                <button class="btn btn-outline" style="font-size:10px; padding:4px 8px;">Summary</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="annotation">
+    <strong>Coach Ultimate Decision:</strong> Slide count is editable by coach (overrides auto-calculation). Hands-on videos get fewer slides automatically. Inline editor lets coach edit content, request images/graphs, add animations, or use AI improvement. PPT Tracker gives PM full visibility. Image requests flow to coach or AI image generation.
+  </div>
+</div>
+
+<!-- ==================== PPT UPLOAD ==================== -->
+<div class="screen" id="screen-ppt-upload">
+  <p class="screen-title">Screen 8: External PPT Upload & AI Edit</p>
+  <p class="screen-subtitle">Route: /course/[id] &bull; PPTs Tab (Phase 6)</p>
+  <div class="wireframe">
+    <div class="wf-header"><h3>ML Foundations</h3><span class="badge badge-purple" style="font-size:11px;">Phase 5-6: PPT Upload</span></div>
+    <div class="wf-body">
+      <div class="wf-sidebar">
+        <div class="nav-item">📋 TOC</div>
+        <div class="nav-item">📄 Briefs</div>
+        <div class="nav-item active">🖥️ PPTs</div>
+        <div class="nav-item disabled">🎬 Recording 🔒</div>
+        <div class="nav-item disabled">📝 Transcript 🔒</div>
+        <div class="nav-item disabled">📚 Content 🔒</div>
+        <div class="nav-item disabled">✅ Review 🔒</div>
+      </div>
+      <div class="wf-content">
+        <div class="tabs">
+          <div class="tab">AI Generated</div>
+          <div class="tab active">Upload External</div>
+        </div>
+
+        <div class="grid-2">
+          <div>
+            <div class="card" style="border: 2px dashed var(--accent); text-align:center; padding:40px;">
+              <div style="font-size:32px; margin-bottom:8px;">📁</div>
+              <div style="font-size:14px; font-weight:600; color:var(--navy); margin-bottom:4px;">Upload PPT File</div>
+              <div style="font-size:12px; color:var(--gray-500); margin-bottom:12px;">Drag & drop or click to browse. Supports .pptx, .pdf</div>
+              <button class="btn btn-primary" style="font-size:12px;">Choose File</button>
+            </div>
+
+            <div class="card">
+              <div class="card-header">Uploaded PPTs</div>
+              <div style="font-size:12px; margin-top:8px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:8px; background:var(--gray-50); border-radius:6px; margin-bottom:4px;">
+                  <span>📊 module2_regression.pptx (15 slides)</span>
+                  <div style="display:flex; gap:4px;">
+                    <button class="btn btn-primary" style="font-size:10px; padding:3px 8px;">Edit</button>
+                    <button class="btn btn-purple" style="font-size:10px; padding:3px 8px;">⚡ AI Edit</button>
+                  </div>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:8px; background:var(--gray-50); border-radius:6px;">
+                  <span>📊 capstone_overview.pptx (8 slides)</span>
+                  <div style="display:flex; gap:4px;">
+                    <button class="btn btn-primary" style="font-size:10px; padding:3px 8px;">Edit</button>
+                    <button class="btn btn-purple" style="font-size:10px; padding:3px 8px;">⚡ AI Edit</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="card" style="background:var(--light-blue);">
+              <div class="card-header" style="color:var(--navy);">AI Edit Options</div>
+              <p style="font-size:12px; color:var(--gray-600); margin-bottom:12px;">Select what AI should do with uploaded PPT:</p>
+              <label style="display:flex; align-items:center; gap:8px; font-size:12px; margin-bottom:8px;"><input type="checkbox" checked> Reformat to match course template</label>
+              <label style="display:flex; align-items:center; gap:8px; font-size:12px; margin-bottom:8px;"><input type="checkbox" checked> Improve content and wording</label>
+              <label style="display:flex; align-items:center; gap:8px; font-size:12px; margin-bottom:8px;"><input type="checkbox" checked> Add speaker notes</label>
+              <label style="display:flex; align-items:center; gap:8px; font-size:12px; margin-bottom:8px;"><input type="checkbox"> Restructure slide order</label>
+              <label style="display:flex; align-items:center; gap:8px; font-size:12px; margin-bottom:8px;"><input type="checkbox"> Add animations</label>
+              <button class="btn btn-purple" style="width:100%; margin-top:8px;">⚡ Apply AI Edits</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="annotation">
+    <strong>External Upload:</strong> Coach can upload PPTs created outside the platform. AI can reformat, improve content, add notes, and restructure them. Two sub-tabs: "AI Generated" shows slides from Phase 5, "Upload External" lets coach bring in existing materials. PM reviews all uploaded PPTs.
+  </div>
+</div>
+
+<!-- ==================== RECORDING ==================== -->
+<div class="screen" id="screen-recording">
+  <p class="screen-title">Screen 9: Recording with Zoom Integration</p>
+  <p class="screen-subtitle">Route: /course/[id] &bull; Recording Tab (Phase 7)</p>
+  <div class="wireframe">
+    <div class="wf-header"><h3>ML Foundations</h3><span class="badge badge-purple" style="font-size:11px;">Phase 7: Recording</span></div>
+    <div class="wf-body">
+      <div class="wf-sidebar">
+        <div class="nav-item">📋 TOC</div>
+        <div class="nav-item">📄 Briefs</div>
+        <div class="nav-item">🖥️ PPTs</div>
+        <div class="nav-item active">🎬 Recording</div>
+        <div class="nav-item disabled">📝 Transcript 🔒</div>
+        <div class="nav-item disabled">📚 Content 🔒</div>
+        <div class="nav-item disabled">✅ Review 🔒</div>
+      </div>
+      <div class="wf-content">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <h3 style="font-size:16px; color:var(--navy);">Recording Dashboard</h3>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-primary" style="font-size:12px;">🔗 Connect Zoom</button>
+            <button class="btn btn-outline" style="font-size:12px;">📁 Upload Video</button>
+          </div>
+        </div>
+
+        <div class="callout">
+          <div class="callout-title">Zoom Integration Active</div>
+          <div style="font-size:12px;">Connected as: priya@boardinfinity.com. Cloud recordings auto-sync to CourseForge.</div>
+        </div>
+
+        <table class="table-mock" style="margin-bottom:20px;">
+          <tr><th>Video</th><th>Source</th><th>Status</th><th>Duration</th><th>Quality</th><th>Action</th></tr>
+          <tr>
+            <td>Types of ML</td>
+            <td><span class="badge badge-blue">Zoom</span></td>
+            <td><span class="badge badge-green">Recorded</span></td>
+            <td>12:34</td>
+            <td><span class="badge badge-green">HD 1080p</span></td>
+            <td><button class="btn btn-outline" style="font-size:10px; padding:3px 8px;">Preview</button></td>
+          </tr>
+          <tr>
+            <td>Real-world ML Apps</td>
+            <td><span class="badge badge-purple">Upload</span></td>
+            <td><span class="badge badge-green">Uploaded</span></td>
+            <td>10:22</td>
+            <td><span class="badge badge-green">HD 1080p</span></td>
+            <td><button class="btn btn-outline" style="font-size:10px; padding:3px 8px;">Preview</button></td>
+          </tr>
+          <tr>
+            <td>Environment Setup</td>
+            <td><span class="badge badge-blue">Zoom</span></td>
+            <td><span class="badge badge-yellow">Scheduled</span></td>
+            <td>—</td>
+            <td>—</td>
+            <td><button class="btn btn-primary" style="font-size:10px; padding:3px 8px;">Join Zoom</button></td>
+          </tr>
+          <tr>
+            <td>NumPy & Pandas</td>
+            <td>—</td>
+            <td><span class="badge badge-red">Not Started</span></td>
+            <td>—</td>
+            <td>—</td>
+            <td><button class="btn btn-outline" style="font-size:10px; padding:3px 8px;">Schedule</button></td>
+          </tr>
+        </table>
+
+        <div class="grid-3">
+          <div class="stat-card"><div class="stat-value" style="font-size:24px;">2/8</div><div class="stat-label">Recorded</div></div>
+          <div class="stat-card"><div class="stat-value" style="font-size:24px;">22:56</div><div class="stat-label">Total Duration</div></div>
+          <div class="stat-card"><div class="stat-value" style="font-size:24px;">1</div><div class="stat-label">Scheduled</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="annotation">
+    <strong>Zoom Integration:</strong> Coach connects Zoom account via OAuth. Cloud recordings auto-sync. Scheduled sessions show "Join Zoom" button. Direct upload also supported for pre-recorded content. PM monitors the recording dashboard — sees all files in one place. All recordings are stored in CourseForge for seamless transcript creation.
+  </div>
+</div>
+
+<!-- ==================== TRANSCRIPT ==================== -->
+<div class="screen" id="screen-transcript">
+  <p class="screen-title">Screen 10: Transcription</p>
+  <p class="screen-subtitle">Route: /course/[id] &bull; Transcript Tab (Phase 8a)</p>
+  <div class="wireframe">
+    <div class="wf-header"><h3>ML Foundations</h3><span class="badge badge-blue" style="font-size:11px;">Phase 8: Transcription</span></div>
+    <div class="wf-body">
+      <div class="wf-sidebar">
+        <div class="nav-item">📋 TOC</div>
+        <div class="nav-item">📄 Briefs</div>
+        <div class="nav-item">🖥️ PPTs</div>
+        <div class="nav-item">🎬 Recording</div>
+        <div class="nav-item active">📝 Transcript</div>
+        <div class="nav-item disabled">📚 Content 🔒</div>
+        <div class="nav-item disabled">✅ Review 🔒</div>
+      </div>
+      <div class="wf-content">
+        <h3 style="font-size:16px; color:var(--navy); margin-bottom:16px;">Transcripts</h3>
+        <div class="grid-2" style="grid-template-columns: 1fr 2fr;">
+          <div>
+            <div class="card-header">Videos</div>
+            <div style="margin-top:8px;">
+              <div style="padding:8px; background:var(--light-blue); border-radius:6px; margin-bottom:4px; font-size:12px; cursor:pointer;"><strong>Types of ML</strong> <span class="badge badge-green" style="font-size:9px;">Ready</span></div>
+              <div style="padding:8px; background:var(--gray-50); border-radius:6px; margin-bottom:4px; font-size:12px; cursor:pointer;">Real-world ML Apps <span class="badge badge-blue" style="font-size:9px;">Transcribing</span></div>
+              <div style="padding:8px; background:var(--gray-50); border-radius:6px; margin-bottom:4px; font-size:12px; color:var(--gray-400);">Environment Setup <span class="badge badge-gray" style="font-size:9px;">No recording</span></div>
+            </div>
+          </div>
+          <div>
+            <div class="card">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <div class="card-header" style="margin-bottom:0;">Transcript: "Types of ML"</div>
+                <div style="display:flex; gap:8px; font-size:11px;">
+                  <span class="badge badge-green">Confidence: 97%</span>
+                  <span class="badge badge-blue">English</span>
+                  <span class="badge badge-gray">2,340 words</span>
+                </div>
+              </div>
+              <div class="input-mock" style="min-height:200px; font-size:12px; line-height:1.8; color:var(--gray-700);">
+                Welcome to our first lecture on Machine Learning. Today, we're going to explore the fundamental types of machine learning and understand when to use each approach.<br><br>
+                Machine learning can broadly be categorized into three types: supervised learning, unsupervised learning, and reinforcement learning. Let me walk you through each one with real-world examples.<br><br>
+                Supervised learning is like having a teacher who provides the right answers. We give the algorithm labeled training data — that is, input data paired with the correct output...<br><br>
+                <span style="color:var(--accent);">[Click to edit any part of this transcript]</span>
+              </div>
+              <div style="display:flex; gap:8px; margin-top:8px;">
+                <button class="btn btn-green" style="font-size:11px;">✓ Approve Transcript</button>
+                <button class="btn btn-purple" style="font-size:11px;">⚡ AI Polish</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="annotation">
+    <strong>Flow:</strong> Auto-transcription via Whisper from recordings stored in CourseForge. Coach reviews and edits inline. PM monitors transcript quality. Once approved, transcripts feed into content generation (readings, quizzes, etc.).
+  </div>
+</div>
+
+<!-- ==================== CONTENT ==================== -->
+<div class="screen" id="screen-content">
+  <p class="screen-title">Screen 11: Content Generation</p>
+  <p class="screen-subtitle">Route: /course/[id] &bull; Content Tab (Phase 8b)</p>
+  <div class="wireframe">
+    <div class="wf-header"><h3>ML Foundations</h3><span class="badge badge-blue" style="font-size:11px;">Phase 8: Content Generation</span></div>
+    <div class="wf-body">
+      <div class="wf-sidebar">
+        <div class="nav-item">📋 TOC</div>
+        <div class="nav-item">📄 Briefs</div>
+        <div class="nav-item">🖥️ PPTs</div>
+        <div class="nav-item">🎬 Recording</div>
+        <div class="nav-item">📝 Transcript</div>
+        <div class="nav-item active">📚 Content</div>
+        <div class="nav-item disabled">✅ Review 🔒</div>
+      </div>
+      <div class="wf-content">
+        <h3 style="font-size:16px; color:var(--navy); margin-bottom:16px;">Content Generation</h3>
+        <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+          <button class="btn btn-primary" style="font-size:12px;">Generate All Content</button>
+          <button class="btn btn-outline" style="font-size:12px;">📖 Readings</button>
+          <button class="btn btn-outline" style="font-size:12px;">🧪 Practice Quiz</button>
+          <button class="btn btn-outline" style="font-size:12px;">📝 Graded Quiz</button>
+          <button class="btn btn-outline" style="font-size:12px;">📋 Case Study</button>
+          <button class="btn btn-outline" style="font-size:12px;">💬 Discussion</button>
+        </div>
+
+        <div class="card">
+          <div class="card-header">Lesson 1.1 - What is Machine Learning?</div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
+            <div style="background:var(--gray-50); border:1px solid var(--gray-200); border-radius:8px; padding:12px; width:180px;">
+              <div style="font-size:24px; text-align:center;">📖</div>
+              <div style="font-size:12px; font-weight:600; text-align:center; margin:4px 0;">Reading</div>
+              <div style="text-align:center;"><span class="badge badge-green">Generated</span></div>
+              <div style="text-align:center; margin-top:6px;"><button class="btn btn-outline" style="font-size:10px; padding:3px 8px;">View / Edit</button></div>
+            </div>
+            <div style="background:var(--gray-50); border:1px solid var(--gray-200); border-radius:8px; padding:12px; width:180px;">
+              <div style="font-size:24px; text-align:center;">🧪</div>
+              <div style="font-size:12px; font-weight:600; text-align:center; margin:4px 0;">Practice Quiz</div>
+              <div style="text-align:center;"><span class="badge badge-green">Generated</span></div>
+              <div style="text-align:center; margin-top:6px;"><button class="btn btn-outline" style="font-size:10px; padding:3px 8px;">View / Edit</button></div>
+            </div>
+            <div style="background:var(--gray-50); border:1px solid var(--gray-200); border-radius:8px; padding:12px; width:180px;">
+              <div style="font-size:24px; text-align:center;">📝</div>
+              <div style="font-size:12px; font-weight:600; text-align:center; margin:4px 0;">Graded Quiz</div>
+              <div style="text-align:center;"><span class="badge badge-blue">Generating...</span></div>
+            </div>
+            <div style="background:var(--gray-50); border:1px solid var(--gray-200); border-radius:8px; padding:12px; width:180px;">
+              <div style="font-size:24px; text-align:center;">💬</div>
+              <div style="font-size:12px; font-weight:600; text-align:center; margin:4px 0;">Discussion</div>
+              <div style="text-align:center;"><span class="badge badge-gray">Pending</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="annotation">
+    <strong>Flow:</strong> AI generates content from approved transcripts. Each content type is shown as a card with status. Coach and PM can view, edit, regenerate any content item. "Generate All" triggers bulk generation for the entire course.
+  </div>
+</div>
+
+<!-- ==================== REVIEW & PUBLISH ==================== -->
+<div class="screen" id="screen-review">
+  <p class="screen-title">Screen 12: Review & Publish</p>
+  <p class="screen-subtitle">Route: /course/[id] &bull; Review Tab (Phase 9)</p>
+  <div class="wireframe">
+    <div class="wf-header"><h3>ML Foundations</h3><span class="badge badge-green" style="font-size:11px;">Phase 9: Final Review</span></div>
+    <div class="wf-body">
+      <div class="wf-sidebar">
+        <div class="nav-item">📋 TOC</div>
+        <div class="nav-item">📄 Briefs</div>
+        <div class="nav-item">🖥️ PPTs</div>
+        <div class="nav-item">🎬 Recording</div>
+        <div class="nav-item">📝 Transcript</div>
+        <div class="nav-item">📚 Content</div>
+        <div class="nav-item active">✅ Review</div>
+      </div>
+      <div class="wf-content">
+        <h3 style="font-size:16px; color:var(--navy); margin-bottom:16px;">Final Review & Publish</h3>
+
+        <div class="grid-4" style="margin-bottom:20px;">
+          <div class="stat-card"><div class="stat-value" style="font-size:24px; color:var(--green);">8/8</div><div class="stat-label">Videos Recorded</div></div>
+          <div class="stat-card"><div class="stat-value" style="font-size:24px; color:var(--green);">8/8</div><div class="stat-label">Transcripts Ready</div></div>
+          <div class="stat-card"><div class="stat-value" style="font-size:24px; color:var(--green);">32/32</div><div class="stat-label">Content Items</div></div>
+          <div class="stat-card"><div class="stat-value" style="font-size:24px; color:var(--green);">52</div><div class="stat-label">Total Slides</div></div>
+        </div>
+
+        <div class="grid-2">
+          <div>
+            <div class="card">
+              <div class="card-header">Quality Checklist</div>
+              <div style="font-size:12px; line-height:2.2; margin-top:8px;">
+                <label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" checked> All videos recorded and reviewed</label>
+                <label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" checked> All transcripts verified and edited</label>
+                <label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" checked> All content items generated and approved</label>
+                <label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" checked> All PPTs finalized with visuals</label>
+                <label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" checked> Competitive analysis report attached</label>
+                <label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" checked> Bloom's Taxonomy alignment verified</label>
+                <label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" checked> Industry alignment verified</label>
+                <label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" checked> Project deliverables complete</label>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="card" style="background:var(--light-blue);">
+              <div class="card-header" style="color:var(--navy);">Approval Status</div>
+              <div style="font-size:12px; margin-top:8px; line-height:2;">
+                <div style="display:flex; justify-content:space-between;"><span>Coach Sign-off:</span><span class="badge badge-green">Approved by Priya</span></div>
+                <div style="display:flex; justify-content:space-between;"><span>PM Review:</span><span class="badge badge-green">Approved by Ravi</span></div>
+                <div style="display:flex; justify-content:space-between;"><span>Authority Approval:</span><span class="badge badge-yellow">Pending — Submitted to Dr. Sharma</span></div>
+              </div>
+            </div>
+
+            <div style="margin-top:16px;">
+              <button class="btn btn-green" style="width:100%; padding:14px; font-size:16px;">🚀 Publish to Coursera</button>
+              <p style="font-size:11px; color:var(--gray-400); text-align:center; margin-top:8px;">Requires authority approval before publishing</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="annotation">
+    <strong>Final Flow:</strong> Coach gives sign-off → PM reviews and approves → Submitted to concerned authority (department head) → Upon authority approval, PM publishes. Quality checklist ensures nothing is missed. Completion stats show course readiness at a glance.
+  </div>
+</div>
+
+<script>
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.screen-nav button').forEach(b => b.classList.remove('active'));
+    document.getElementById('screen-' + id).classList.add('active');
+    event.target.classList.add('active');
+  }
+</script>
+</body>
+</html>

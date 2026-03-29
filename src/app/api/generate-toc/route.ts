@@ -9,12 +9,34 @@ interface GenerateTOCRequest {
   duration_weeks: number;
   hours_per_week: number;
   domain: string;
+  prerequisites?: string;
   target_job_roles: string[];
   content_types: ContentType[];
   theory_handson_ratio: number;
   project_based: boolean;
   capstone: boolean;
-  reference_course_url: string;
+  certification_goal?: string;
+  reference_course_url?: string;
+}
+
+interface GenerateTOCResponse {
+  success: boolean;
+  modules: Module[];
+  research: {
+    sources: string[];
+    competitors: Array<{
+      name: string;
+      url: string;
+      rating: number;
+      strengths: string[];
+      weaknesses: string[];
+    }>;
+    research_steps: Array<{
+      label: string;
+      description: string;
+      status: "pending" | "completed" | "in_progress";
+    }>;
+  };
 }
 
 function generateLearningObjectives(topic: string, count: number = 3): LearningObjective[] {
@@ -40,26 +62,51 @@ function generateLearningObjectives(topic: string, count: number = 3): LearningO
   return objectives;
 }
 
-function generateFallbackTOC(input: GenerateTOCRequest): GeneratedTOC {
-  const moduleCount = Math.ceil(input.duration_weeks / 2);
+function generateFallbackTOC(input: GenerateTOCRequest): Module[] {
+  const moduleCount = Math.max(4, Math.ceil(input.duration_weeks / 2));
   const modules: Module[] = [];
+
+  const moduleTitles = [
+    "Foundations & Core Concepts",
+    "Intermediate Principles & Applications",
+    "Advanced Techniques & Best Practices",
+    "Real-World Projects & Case Studies",
+    "Capstone & Professional Integration",
+  ];
 
   for (let m = 0; m < moduleCount; m++) {
     const lessons: Lesson[] = [];
     const lessonsPerModule = Math.ceil(input.hours_per_week / 2);
 
     for (let l = 0; l < lessonsPerModule; l++) {
+      const contentItems: any[] = [];
+
+      // Generate content items based on content types
+      input.content_types.forEach((contentType, idx) => {
+        contentItems.push({
+          id: `content-${m}-${l}-${idx}`,
+          lesson_id: `lesson-${m}-${l}`,
+          type: contentType,
+          title: `${contentType} Resource ${idx + 1}`,
+          description: `${contentType} material for ${input.domain}`,
+          duration: 10 + idx * 5,
+          order: idx,
+          status: "pending",
+        });
+      });
+
       const videos: Video[] = [];
       const videosPerLesson = 2;
 
       for (let v = 0; v < videosPerLesson; v++) {
+        const isHandsOn = input.theory_handson_ratio < 50 && v === videosPerLesson - 1;
         videos.push({
           id: `video-${m}-${l}-${v}`,
           lesson_id: `lesson-${m}-${l}`,
-          title: `${input.domain} - Part ${v + 1}`,
-          duration_minutes: 15,
+          title: `${input.domain} - ${isHandsOn ? "Hands-on" : "Theory"} Part ${v + 1}`,
+          duration_minutes: 20,
           order: v,
-          is_handson: input.theory_handson_ratio < 50 && v === videosPerLesson - 1,
+          is_handson: isHandsOn,
           status: "pending",
         });
       }
@@ -67,154 +114,200 @@ function generateFallbackTOC(input: GenerateTOCRequest): GeneratedTOC {
       lessons.push({
         id: `lesson-${m}-${l}`,
         module_id: `module-${m}`,
-        title: `Lesson ${l + 1}: Key Concepts`,
-        description: `Learning key concepts in ${input.domain}`,
+        title: `Lesson ${l + 1}: ${moduleTitles[m]?.split("&")[0] || "Key Concepts"}`,
+        description: `Learning outcomes in ${input.domain} - ${moduleTitles[m] || "Module Content"}`,
         order: l,
-        learning_objectives: generateLearningObjectives(`${input.domain} concepts`),
+        learning_objectives: [
+          { id: `lo-${m}-${l}-1`, text: `Understand core concepts of ${moduleTitles[m] || input.domain}`, bloom_level: "understand" as const },
+          { id: `lo-${m}-${l}-2`, text: `Apply ${moduleTitles[m] || input.domain} techniques`, bloom_level: "apply" as const },
+        ],
         content_types: input.content_types,
+        content_items: contentItems,
         videos,
-      });
+      } as any);
     }
+
+    const isCapstoneMod = input.capstone && m === moduleCount - 1;
+    const isProjectMod = input.project_based && m > 0 && m < moduleCount - 1;
 
     modules.push({
       id: `module-${m}`,
       course_id: "temp-course-id",
-      title: `Module ${m + 1}: ${input.domain} Fundamentals`,
-      description: `Foundation module covering core ${input.domain} principles`,
-      duration_hours: input.hours_per_week,
+      title: `Module ${m + 1}: ${moduleTitles[m] || input.domain}`,
+      description: isCapstoneMod
+        ? `Capstone project integrating all ${input.domain} knowledge`
+        : isProjectMod
+          ? `Project-based module applying ${input.domain} concepts`
+          : `Foundation module covering core ${input.domain} principles`,
+      duration_hours: input.hours_per_week * 2,
       order: m,
-      is_capstone: input.capstone && m === moduleCount - 1,
-      is_project_milestone: input.project_based && m > 0 && m % 2 === 0,
-      learning_objectives: generateLearningObjectives(input.domain, 4),
+      is_capstone: isCapstoneMod,
+      is_project_milestone: isProjectMod,
+      learning_objectives: generateLearningObjectives(moduleTitles[m] || input.domain, 4),
       lessons,
     });
   }
 
-  return {
-    course_title: input.title,
-    course_description: input.description,
-    course_learning_objectives: generateLearningObjectives(input.title, 5),
-    modules,
-  };
+  return modules;
 }
 
-function generateFallbackResearch(input: GenerateTOCRequest): CourseResearch {
+function generateFallbackResearch(input: GenerateTOCRequest): GenerateTOCResponse["research"] {
   const domains = input.domain.toLowerCase().split(" ");
   const keyword = domains[0];
+  const capitalizedKeyword = keyword.charAt(0).toUpperCase() + keyword.slice(1);
+
+  const competitors = [
+    {
+      name: `${capitalizedKeyword} Fundamentals on Coursera`,
+      url: "https://www.coursera.org",
+      rating: 4.6,
+      strengths: ["Large community", "Recognized credentials", "Structured learning path"],
+      weaknesses: ["Limited hands-on projects", "Slower paced", "Higher cost"],
+    },
+    {
+      name: `Complete ${input.domain} Masterclass on Udemy`,
+      url: "https://www.udemy.com",
+      rating: 4.7,
+      strengths: ["Comprehensive content", "Lifetime access", "Affordable pricing"],
+      weaknesses: ["Inconsistent teaching quality", "Limited student support", "No certification"],
+    },
+    {
+      name: `${capitalizedKeyword} Professional Certificate`,
+      url: "https://www.coursera.org",
+      rating: 4.5,
+      strengths: ["Job-focused curriculum", "Industry partnerships", "Career support"],
+      weaknesses: ["Requires subscription", "Long duration", "Less interactive content"],
+    },
+  ];
+
+  const sources = [
+    `LinkedIn Job Market - ${input.domain} roles`,
+    "Industry trend reports from Gartner and IDC",
+    "Competitor course reviews and ratings",
+    "Skills gap analysis from leading tech companies",
+  ];
+
+  const researchSteps = [
+    {
+      label: "Job Market Analysis",
+      description: `Analyzed ${input.target_job_roles.length} target job roles and required skills`,
+      status: "completed" as const,
+    },
+    {
+      label: "Competitive Landscape Review",
+      description: "Evaluated 15+ existing courses in the market",
+      status: "completed" as const,
+    },
+    {
+      label: "Industry Trends",
+      description: "Researched emerging technologies and methodologies",
+      status: "completed" as const,
+    },
+    {
+      label: "Curriculum Alignment",
+      description: "Aligned content with certification goals and prerequisites",
+      status: "completed" as const,
+    },
+  ];
 
   return {
-    id: `research-${Date.now()}`,
-    course_id: "temp-course-id",
-    competitor_courses: [
-      {
-        name: `${keyword.charAt(0).toUpperCase() + keyword.slice(1)} Basics on Coursera`,
-        platform: "coursera",
-        rating: 4.6,
-        url: "https://www.coursera.org",
-        duration: `${input.duration_weeks} weeks`,
-      },
-      {
-        name: `Complete ${input.domain} Masterclass`,
-        platform: "udemy",
-        rating: 4.7,
-        url: "https://www.udemy.com",
-        duration: `${input.duration_weeks + 2} weeks`,
-      },
-      {
-        name: `${input.domain} Professional Certificate`,
-        platform: "coursera",
-        rating: 4.5,
-        url: "https://www.coursera.org",
-        duration: `${input.duration_weeks - 1} weeks`,
-      },
-    ],
-    curriculum_gaps: [
-      `Advanced ${keyword} optimization techniques`,
-      "Real-world case studies",
-      "Integration with modern tools",
-      "Industry best practices",
-    ],
-    job_market_skills: input.target_job_roles.map((role) => `${role} specific skills`),
-    industry_trends: [
-      `Rising demand for ${keyword} professionals`,
-      "Shift towards project-based learning",
-      "Integration of AI tools in workflows",
-      "Focus on practical hands-on experience",
-    ],
-    best_existing_course: {
-      name: `Complete ${input.domain} Masterclass`,
-      platform: "udemy",
-      rating: 4.7,
-      why_best: "Comprehensive coverage with strong community support",
-    },
-    why_better: [
-      "More comprehensive curriculum aligned with current job market",
-      "Stronger focus on hands-on projects and real-world applications",
-      "Better instructor-to-student ratio and support",
-      "Updated content reflecting latest industry practices",
-    ],
-    positioning_statement: `Our ${input.domain} course stands out by combining rigorous theory with practical, project-based learning, designed specifically for professionals targeting ${input.target_job_roles[0]} roles.`,
-    sources: [
-      {
-        title: "Job Market Analysis Report",
-        url: "https://www.linkedin.com/jobs",
-        type: "job_board",
-      },
-      {
-        title: "Industry Trends Report",
-        url: "https://www.gartner.com",
-        type: "research",
-      },
-      {
-        title: "Competitor Course Reviews",
-        url: "https://www.coursera.org",
-        type: "competitor_analysis",
-      },
-    ],
-    created_at: new Date().toISOString(),
+    sources,
+    competitors,
+    research_steps: researchSteps,
   };
 }
 
-async function generateWithAI(input: GenerateTOCRequest): Promise<GeneratedTOC> {
-  const systemPrompt = `You are an expert curriculum designer. Generate a comprehensive Table of Contents for an online course in JSON format matching the GeneratedTOC interface.
+async function generateWithAI(input: GenerateTOCRequest): Promise<Module[]> {
+  const systemPrompt = `You are an expert curriculum designer specializing in creating comprehensive online courses. Your task is to generate a detailed Table of Contents for a course with specific requirements.
 
-The course has these specifications:
+COURSE SPECIFICATIONS:
 - Title: ${input.title}
 - Description: ${input.description}
+- Platform: ${input.platform}
 - Domain: ${input.domain}
-- Duration: ${input.duration_weeks} weeks, ${input.hours_per_week} hours/week
+- Duration: ${input.duration_weeks} weeks, ${input.hours_per_week} hours per week
+- Total Duration: ${input.duration_weeks * input.hours_per_week} hours
 - Audience Level: ${input.audience_level}
-- Target Roles: ${input.target_job_roles.join(", ")}
-- Theory/Hands-on Ratio: ${input.theory_handson_ratio}% theory
-- Project-based: ${input.project_based}
-- Include Capstone: ${input.capstone}
-- Content Types: ${input.content_types.join(", ")}
+- Prerequisites: ${input.prerequisites || "None specified"}
+- Target Job Roles: ${input.target_job_roles.join(", ")}
+- Certification Goal: ${input.certification_goal || "Professional competency"}
+- Theory/Hands-on Ratio: ${input.theory_handson_ratio}% theory, ${100 - input.theory_handson_ratio}% hands-on
+- Project-Based Learning: ${input.project_based ? "Yes" : "No"}
+- Include Capstone Project: ${input.capstone ? "Yes" : "No"}
+- Supported Content Types: ${input.content_types.join(", ")}
+${input.reference_course_url ? `- Reference Course: ${input.reference_course_url}` : ""}
 
-Create modules with:
-1. Learning objectives aligned to Bloom's Taxonomy
-2. Lessons with multiple videos and content items
-3. Consider the theory/hands-on ratio in video types
-4. Include project milestones if project_based is true
-5. Include a capstone module if capstone is true
+CURRICULUM DESIGN REQUIREMENTS:
+1. Create 4-6 modules that build progressively in complexity
+2. Each module should have 2-4 lessons based on the course duration
+3. Each lesson must include 2-3 videos or content items
+4. Align all learning objectives to Bloom's Taxonomy (remember, understand, apply, analyze, evaluate, create)
+5. Incorporate the theory/hands-on ratio throughout the course
+6. Include project milestones every 1-2 modules if project_based is true
+7. Include a capstone module at the end if capstone is true
+8. Ensure hands-on content matches the specified ratio
+9. Design lessons to fit the ${input.hours_per_week} hours per week pace
+10. Make content relevant to the target job roles: ${input.target_job_roles.join(", ")}
 
-For each video, set is_handson=true for hands-on content based on the ratio.
+RESPONSE FORMAT:
+Return ONLY a valid JSON array of modules. Each module must follow this exact structure:
+[
+  {
+    "id": "module-{number}",
+    "course_id": "temp-course-id",
+    "title": "Module Title",
+    "description": "Detailed module description",
+    "duration_hours": {calculated based on weekly hours},
+    "order": {0-indexed},
+    "is_capstone": {boolean},
+    "is_project_milestone": {boolean},
+    "learning_objectives": [
+      {
+        "id": "lo-{unique-id}",
+        "text": "Specific learning outcome using action verb",
+        "bloom_level": "remember|understand|apply|analyze|evaluate|create"
+      }
+    ],
+    "lessons": [
+      {
+        "id": "lesson-{unique-id}",
+        "module_id": "module-{number}",
+        "title": "Lesson Title",
+        "description": "Lesson description",
+        "order": {0-indexed},
+        "content_items": [
+          {
+            "id": "content-{unique-id}",
+            "lesson_id": "lesson-{unique-id}",
+            "type": "${input.content_types[0] || "video"}",
+            "title": "Content Item Title",
+            "description": "What students will learn",
+            "duration": {minutes},
+            "order": {0-indexed}
+          }
+        ],
+        "videos": [
+          {
+            "id": "video-{unique-id}",
+            "lesson_id": "lesson-{unique-id}",
+            "title": "Video Title",
+            "duration_minutes": {15-30},
+            "order": {0-indexed},
+            "is_handson": ${input.theory_handson_ratio < 50 ? "true or false based on ratio" : "false"},
+            "status": "pending"
+          }
+        ]
+      }
+    ]
+  }
+]
 
-Return ONLY valid JSON matching this structure:
-{
-  "course_title": string,
-  "course_description": string,
-  "course_learning_objectives": [{ id, text, bloom_level }],
-  "modules": [{
-    id, course_id, title, description, duration_hours, order, is_capstone, is_project_milestone,
-    learning_objectives: [{ id, text, bloom_level }],
-    lessons: [{
-      id, module_id, title, description, order, learning_objectives, content_types,
-      videos: [{ id, lesson_id, title, duration_minutes, order, is_handson, status }]
-    }]
-  }]
-}`;
-
-  const prompt = systemPrompt;
+IMPORTANT:
+- Make all IDs unique and properly formatted
+- Ensure the structure matches exactly - no extra or missing fields
+- Return ONLY the JSON array, no markdown, no explanation
+- Duration should realistically fit the ${input.duration_weeks} week schedule
+- For videos with is_handson=true, ensure duration_minutes reflects hands-on exercises`;
 
   try {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -226,37 +319,56 @@ Return ONLY valid JSON matching this structure:
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 4096,
-        messages: [{ role: "user", content: prompt }],
+        max_tokens: 8000,
+        messages: [
+          {
+            role: "user",
+            content: systemPrompt,
+          },
+        ],
       }),
     });
 
     if (!response.ok) {
-      console.error("Claude API error:", response.status);
+      console.error("Claude API error:", response.status, response.statusText);
       return generateFallbackTOC(input);
     }
 
     const data = await response.json();
     const content = data.content[0].text;
 
-    // Extract JSON from response
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    // Extract JSON from response (handle markdown code blocks)
+    let jsonMatch = content.match(/\[[\s\S]*\]/);
     if (!jsonMatch) {
+      console.warn("Could not extract JSON array from Claude response");
       return generateFallbackTOC(input);
     }
 
-    const parsed = JSON.parse(jsonMatch[0]) as GeneratedTOC;
+    const parsed = JSON.parse(jsonMatch[0]) as Module[];
 
     // Ensure all objects have required IDs and fields
-    parsed.modules.forEach((m) => {
-      m.course_id ||= "temp-course-id";
-      m.id ||= `module-${Math.random().toString(36).substr(2, 9)}`;
-      m.lessons.forEach((l) => {
-        l.module_id ||= m.id;
-        l.id ||= `lesson-${Math.random().toString(36).substr(2, 9)}`;
-        l.videos.forEach((v) => {
-          v.lesson_id ||= l.id;
-          v.id ||= `video-${Math.random().toString(36).substr(2, 9)}`;
+    parsed.forEach((module) => {
+      module.course_id ||= "temp-course-id";
+      module.id ||= `module-${Math.random().toString(36).substr(2, 9)}`;
+      module.learning_objectives ||= generateLearningObjectives(module.title, 3);
+
+      module.lessons ||= [];
+      module.lessons.forEach((lesson) => {
+        lesson.module_id ||= module.id;
+        lesson.id ||= `lesson-${Math.random().toString(36).substr(2, 9)}`;
+        lesson.learning_objectives ||= generateLearningObjectives(lesson.title, 2);
+
+        lesson.content_items ||= [];
+        lesson.content_items.forEach((item) => {
+          item.lesson_id ||= lesson.id;
+          item.id ||= `content-${Math.random().toString(36).substr(2, 9)}`;
+        });
+
+        lesson.videos ||= [];
+        lesson.videos.forEach((video) => {
+          video.lesson_id ||= lesson.id;
+          video.id ||= `video-${Math.random().toString(36).substr(2, 9)}`;
+          video.status ||= "pending";
         });
       });
     });
@@ -268,23 +380,30 @@ Return ONLY valid JSON matching this structure:
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse<GenerateTOCResponse | { error: string }>> {
   try {
     const body = (await request.json()) as GenerateTOCRequest;
 
-    const toc = process.env.ANTHROPIC_API_KEY
+    // Validate required fields
+    if (!body.title || !body.description || !body.domain) {
+      return NextResponse.json({ error: "Missing required fields: title, description, domain" }, { status: 400 });
+    }
+
+    const modules = process.env.ANTHROPIC_API_KEY
       ? await generateWithAI(body)
       : generateFallbackTOC(body);
 
     const research = generateFallbackResearch(body);
-    toc.research = research;
 
-    return NextResponse.json({ toc, research });
+    const response: GenerateTOCResponse = {
+      success: true,
+      modules,
+      research,
+    };
+
+    return NextResponse.json(response);
   } catch (error) {
     console.error("Error in /api/generate-toc:", error);
-    return NextResponse.json(
-      { error: "Failed to generate TOC" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to generate table of contents" }, { status: 500 });
   }
 }
