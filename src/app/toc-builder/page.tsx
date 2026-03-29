@@ -170,6 +170,14 @@ export default function TOCBuilderPage() {
 
         {/* Content */}
         <div className="px-8 py-8">
+          {/* Redirect Banner */}
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-blue-900">Full TOC editing is now available in the Course Detail page</p>
+              <p className="text-xs text-blue-700 mt-1">Click on any course below to open its detailed view with all production phases</p>
+            </div>
+          </div>
+
           {editingMessage && (
             <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-blue-800">{editingMessage}</div>
           )}
@@ -193,7 +201,7 @@ export default function TOCBuilderPage() {
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
-                            <h2 className="text-xl font-bold text-gray-900">{course.title}</h2>
+                            <a href={`/course/${course.id}`} className="text-xl font-bold text-blue-700 hover:text-blue-900 hover:underline">{course.title}</a>
                             <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(course.status)}`}>
                               {course.status.replace(/_/g, " ")}
                             </span>

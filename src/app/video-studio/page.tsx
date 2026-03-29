@@ -293,23 +293,39 @@ export default function VideoStudioPage() {
             </p>
           </div>
 
+          {/* Redirect Banner */}
+          <div className="mb-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm font-medium text-blue-900">Recording, transcription, and PPT generation are now integrated in the Course Detail page.</p>
+            <p className="text-xs text-blue-700 mt-1">Select a course below, then click its title to access all production phases in one place.</p>
+          </div>
+
           {/* Course Filter */}
           <div className="mb-8">
             <label className="block text-sm font-medium text-gray-700 mb-3">
               Select Course
             </label>
-            <select
-              value={selectedCourseId}
-              onChange={(e) => handleCourseSelect(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
-            >
-              <option value="">Choose a course...</option>
-              {courses.map((course) => (
-                <option key={course.id} value={course.id}>
-                  {course.title}
-                </option>
-              ))}
-            </select>
+            <div className="flex items-center gap-4">
+              <select
+                value={selectedCourseId}
+                onChange={(e) => handleCourseSelect(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
+              >
+                <option value="">Choose a course...</option>
+                {courses.map((course) => (
+                  <option key={course.id} value={course.id}>
+                    {course.title}
+                  </option>
+                ))}
+              </select>
+              {selectedCourseId && (
+                <a
+                  href={`/course/${selectedCourseId}`}
+                  className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
+                >
+                  Open Full Course View
+                </a>
+              )}
+            </div>
           </div>
 
           {/* Lessons Table */}

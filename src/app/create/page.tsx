@@ -161,7 +161,7 @@ export default function CreateCoursePage() {
           courses: [...state.courses, newCourse],
           modules: { ...state.modules, [courseId]: generatedTOC.map((m) => ({ ...m, course_id: courseId })) },
         });
-        router.push("/dashboard");
+        router.push(`/course/${courseId}`);
       }
     } catch (err) {
       console.error("Save error:", err);

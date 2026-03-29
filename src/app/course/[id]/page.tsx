@@ -824,6 +824,74 @@ export default function CoursePage() {
                     )}
                   </div>
                 )}
+
+                {/* Send for AI Improvement */}
+                {user.role === "pm" && comments.filter((c) => !c.resolved && ["module", "lesson", "video"].includes(c.target_type)).length > 0 && (
+                  <div className="border-t border-gray-200 pt-6">
+                    <button
+                      onClick={async () => {
+                        const unresolvedComments = comments
+                          .filter((c) => !c.resolved && ["module", "lesson", "video"].includes(c.target_type))
+                          .map((c) => ({ id: c.id, text: c.text, target_id: c.target_id, target_type: c.target_type as "module" | "lesson" | "video" }));
+
+                        setToast({ message: "Sending TOC for AI improvement...", type: "success" });
+
+                        try {
+                          const res = await fetch("/api/ai/improve-toc", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              currentTOC: modules,
+                              comments: unresolvedComments,
+                            }),
+                          });
+
+                          const data = await res.json();
+                          if (data.success && data.modules) {
+                            setModules(data.modules);
+                            // Resolve all comments that were sent
+                            for (const c of unresolvedComments) {
+                              resolveComment(c.id);
+                            }
+                            setComments(comments.map((c) =>
+                              unresolvedComments.some((uc) => uc.id === c.id) ? { ...c, resolved: true } : c
+                            ));
+                            setToast({ message: "TOC improved by AI! Comments resolved.", type: "success" });
+                          } else {
+                            setToast({ message: "AI improvement failed. Please try again.", type: "error" });
+                          }
+                        } catch (err) {
+                          console.error("AI improve error:", err);
+                          setToast({ message: "Network error. Please try again.", type: "error" });
+                        }
+                      }}
+                      className="w-full px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium flex items-center justify-center gap-2 transition-colors"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                      Send for AI Improvement ({comments.filter((c) => !c.resolved && ["module", "lesson", "video"].includes(c.target_type)).length} comments)
+                    </button>
+                    <p className="text-xs text-gray-500 mt-2 text-center">AI will address all unresolved coach comments and update the TOC</p>
+                  </div>
+                )}
+
+                {/* Advance Phase Button */}
+                {user.role === "pm" && (course.status === "toc_review" || course.status === "toc_generation") && (
+                  <div className="border-t border-gray-200 pt-6">
+                    <button
+                      onClick={() => {
+                        const nextStatus = course.status === "toc_generation" ? "toc_review" : "toc_approved";
+                        updateCourse(courseId, { status: nextStatus });
+                        setCourse({ ...course, status: nextStatus as any });
+                        setToast({ message: `Phase advanced to ${PHASE_LABELS[nextStatus]}`, type: "success" });
+                      }}
+                      className="w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition-colors"
+                    >
+                      Approve & Advance to {course.status === "toc_generation" ? "TOC Review" : "Content Briefs"}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 

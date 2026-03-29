@@ -224,14 +224,14 @@ export default function ContentStudioPage() {
             <p className="text-gray-600 mt-2">AI-generated content from video transcripts</p>
           </div>
 
-          {/* Important Info Banner */}
+          {/* Redirect Banner */}
           <div className="mb-8 bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
             <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
             </svg>
             <div>
-              <p className="text-sm font-medium text-blue-900">Content items are generated from video transcripts</p>
-              <p className="text-sm text-blue-800 mt-1">Upload videos in Video Studio first, then generate content here.</p>
+              <p className="text-sm font-medium text-blue-900">Content generation is now integrated in the Course Detail page</p>
+              <p className="text-sm text-blue-800 mt-1">Select a course below, then use the &quot;Content&quot; tab in the course view for full AI-powered content generation from transcripts.</p>
             </div>
           </div>
 
@@ -253,18 +253,28 @@ export default function ContentStudioPage() {
               {/* Course Selector */}
               <div className="mb-8">
                 <label className="block text-sm font-medium text-gray-900 mb-2">Select Course</label>
-                <select
-                  value={selectedCourseId || ""}
-                  onChange={(e) => handleCourseChange(e.target.value)}
-                  className="w-full md:w-96 px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">-- Select a course --</option>
-                  {courses.map((course) => (
-                    <option key={course.id} value={course.id}>
-                      {course.title}
-                    </option>
-                  ))}
-                </select>
+                <div className="flex items-center gap-4">
+                  <select
+                    value={selectedCourseId || ""}
+                    onChange={(e) => handleCourseChange(e.target.value)}
+                    className="w-full md:w-96 px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">-- Select a course --</option>
+                    {courses.map((course) => (
+                      <option key={course.id} value={course.id}>
+                        {course.title}
+                      </option>
+                    ))}
+                  </select>
+                  {selectedCourseId && (
+                    <a
+                      href={`/course/${selectedCourseId}`}
+                      className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
+                    >
+                      Open Full Course View
+                    </a>
+                  )}
+                </div>
               </div>
 
               {/* Content Items by Module/Lesson */}
