@@ -91,7 +91,7 @@ export default function VideoStudioPage() {
     // Load courses and modules from localStorage
     const state = loadState();
     setCourses(state.courses);
-    setModules(state.modules);
+    setModules((state.modules as Record<string, Module[]>) || {});
 
     // If Supabase is configured, also try to load from there
     if (isSupabaseConfigured) {
@@ -266,7 +266,7 @@ export default function VideoStudioPage() {
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
-      <Sidebar user={user} onLogout={handleLogout} />
+      <Sidebar />
 
       {/* Main Content */}
       <main className="flex-1 overflow-auto">

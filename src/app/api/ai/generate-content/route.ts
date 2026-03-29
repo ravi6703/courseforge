@@ -1,211 +1,223 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ContentType } from "@/types";
-
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+import { ContentItem, ContentType } from "@/types";
 
 interface GenerateContentRequest {
-  transcript: string;
-  videoTitle: string;
+  lessonId: string;
   lessonTitle: string;
+  transcript: string;
   contentTypes: ContentType[];
 }
 
-interface GeneratedContent {
-  type: ContentType;
-  title: string;
-  content: string;
-  duration?: string;
+function generateFallbackContent(request: GenerateContentRequest): ContentItem[] {
+  const items: ContentItem[] = [];
+  let order = 0;
+
+  // Reading material
+  if (request.contentTypes.includes("reading")) {
+    items.push({
+      id: `content-${request.lessonId}-${order}`,
+      lesson_id: request.lessonId,
+      type: "reading",
+      title: `Reading: ${request.lessonTitle} Fundamentals`,
+      description: "Comprehensive reading material covering key concepts",
+      order: order++,
+      status: "generated",
+      content: `# ${request.lessonTitle} Fundamentals\n\nThis reading covers the essential concepts of ${request.lessonTitle}...`,
+    });
+  }
+
+  // Practice quiz
+  if (request.contentTypes.includes("practice_quiz")) {
+    items.push({
+      id: `content-${request.lessonId}-${order}`,
+      lesson_id: request.lessonId,
+      type: "practice_quiz",
+      title: "Practice Quiz: Check Your Understanding",
+      description: "5-question practice quiz to reinforce learning",
+      order: order++,
+      status: "generated",
+      content: JSON.stringify({
+        questions: [
+          {
+            q: "What is the main concept in this lesson?",
+            options: ["Option A", "Option B", "Option C"],
+            correct: 0,
+          },
+          {
+            q: "How would you apply this concept?",
+            options: ["Scenario A", "Scenario B", "Scenario C"],
+            correct: 1,
+          },
+        ],
+      }),
+    });
+  }
+
+  // Case study
+  if (request.contentTypes.includes("case_study")) {
+    items.push({
+      id: `content-${request.lessonId}-${order}`,
+      lesson_id: request.lessonId,
+      type: "case_study",
+      title: "Case Study: Real-World Application",
+      description: "Real-world scenario demonstrating practical application",
+      order: order++,
+      status: "generated",
+      content: `# Case Study: ${request.lessonTitle} in Practice\n\nBackground: A company faced challenges with ${request.lessonTitle}...\n\nSolution: They implemented...\n\nOutcomes: The results were...`,
+    });
+  }
+
+  // Discussion prompt
+  if (request.contentTypes.includes("discussion")) {
+    items.push({
+      id: `content-${request.lessonId}-${order}`,
+      lesson_id: request.lessonId,
+      type: "discussion",
+      title: "Discussion: Share Your Perspective",
+      description: "Engage with peers on key concepts",
+      order: order++,
+      status: "generated",
+      content: `Consider the following question:\n\nHow would you approach ${request.lessonTitle} in your own work context?\n\nShare your thoughts and respond to at least 2 classmates.`,
+    });
+  }
+
+  // Glossary
+  if (request.contentTypes.includes("glossary")) {
+    items.push({
+      id: `content-${request.lessonId}-${order}`,
+      lesson_id: request.lessonId,
+      type: "glossary",
+      title: "Key Terminology",
+      description: "Essential terms and definitions",
+      order: order++,
+      status: "generated",
+      content: JSON.stringify({
+        terms: [
+          { term: "Core Concept", definition: "The fundamental idea underlying this lesson" },
+          { term: "Application", definition: "How this concept is used in practice" },
+          { term: "Best Practice", definition: "The recommended approach for this topic" },
+        ],
+      }),
+    });
+  }
+
+  // If no specific types requested, provide defaults
+  if (items.length === 0) {
+    items.push({
+      id: `content-${request.lessonId}-0`,
+      lesson_id: request.lessonId,
+      type: "reading",
+      title: `Reading: ${request.lessonTitle}`,
+      description: "Core reading material",
+      order: 0,
+      status: "generated",
+      content: `Lesson content for ${request.lessonTitle}`,
+    });
+  }
+
+  return items;
 }
 
-export async function POST(req: NextRequest) {
-  try {
-    const body: GenerateContentRequest = await req.json();
+async function generateWithAI(request: GenerateContentRequest): Promise<ContentItem[]> {
+  const typesText = request.contentTypes.join(", ");
 
-    if (!ANTHROPIC_API_KEY || ANTHROPIC_API_KEY === "your-anthropic-key") {
-      // Fallback: return basic content
-      return NextResponse.json({
-        success: true,
-        content: generateFallbackContent(body),
-      });
-    }
+  const prompt = `You are an expert instructional designer. Generate supplementary content items based on a video transcript.
 
-    const contentTypesStr = body.contentTypes.join(", ");
+Lesson Title: ${request.lessonTitle}
+Content Types Needed: ${typesText}
 
-    const systemPrompt = `You are CourseForge AI — an expert instructional designer. Your task is to generate high-quality learning content items from video transcripts.
+Video Transcript:
+${request.transcript.substring(0, 2000)}${request.transcript.length > 2000 ? "..." : ""}
 
-Generate content items for the following types: ${contentTypesStr}
-
-For each content type:
-- Reading: Create a structured, text-based summary (5-30 min read)
-- Practice Quiz: Generate 5-8 multiple choice questions with explanations (15-30 min)
-- Graded Quiz: Generate 5-10 rigorous assessment questions (30-60 min)
-- Discussion: Create thought-provoking discussion prompts (10-20 min)
-- Case Study: Develop a real-world scenario based on the content (30-45 min)
-- Glossary: Extract and define key terms (10-15 min)
-- AI Dialogue: Create an interactive dialogue about the concepts (15-25 min)
-
-Return valid JSON only with the following structure:
+Create content items as a JSON array. For each item:
 {
-  "contentItems": [
-    {
-      "type": "reading",
-      "title": "...",
-      "content": "...",
-      "duration": "15 min"
-    }
-  ]
-}`;
+  "type": "${request.contentTypes[0]}" | other content types,
+  "title": string,
+  "description": string (40-60 words),
+  "content": string (the actual content or JSON structure),
+  "order": number
+}
 
-    const userPrompt = `Video: "${body.videoTitle}"
-Lesson: "${body.lessonTitle}"
+Generate these content types if requested:
+- "reading": Formatted text (markdown) with key concepts
+- "practice_quiz": JSON with questions array, each with q, options[], correct index
+- "case_study": Real-world scenario with context, challenge, solution
+- "discussion": Discussion prompt encouraging peer interaction
+- "glossary": JSON with terms array, each with term and definition
+- "graded_quiz": Comprehensive assessment (JSON format like practice_quiz)
+- "plugin": Interactive element (describe in content)
 
-Transcript:
-${body.transcript}
+Requirements:
+- Content must align with and expand on the transcript
+- Use concrete examples from the video
+- Provide 2-3 items matching requested types
+- Keep content focused and practical
+- Make JSON content properly formatted
 
-Please generate ${contentTypesStr} content items from this transcript.`;
+Return ONLY a JSON array of content items.`;
 
+  try {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
+        "x-api-key": process.env.ANTHROPIC_API_KEY!,
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 4096,
-        system: systemPrompt,
-        messages: [
-          { role: "user", content: userPrompt },
-        ],
+        max_tokens: 3000,
+        messages: [{ role: "user", content: prompt }],
       }),
     });
 
     if (!response.ok) {
-      console.error("Anthropic error:", await response.text());
-      return NextResponse.json({
-        success: true,
-        content: generateFallbackContent(body),
-      });
+      console.error("Claude API error:", response.status);
+      return generateFallbackContent(request);
     }
 
     const data = await response.json();
-    const content = data.content?.[0]?.text;
+    const content = data.content[0].text;
 
-    if (!content) {
-      return NextResponse.json({
-        success: true,
-        content: generateFallbackContent(body),
-      });
+    const jsonMatch = content.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) {
+      return generateFallbackContent(request);
     }
 
-    let parsed = JSON.parse(content);
-    if (parsed.contentItems && Array.isArray(parsed.contentItems)) {
-      return NextResponse.json({ success: true, content: parsed.contentItems });
-    }
+    const itemsData = JSON.parse(jsonMatch[0]) as Array<any>;
 
-    return NextResponse.json({
-      success: true,
-      content: generateFallbackContent(body),
-    });
+    const items: ContentItem[] = itemsData.map((item, idx) => ({
+      id: `content-${request.lessonId}-${idx}`,
+      lesson_id: request.lessonId,
+      type: (item.type || "reading") as ContentType | "video",
+      title: item.title || `Content ${idx + 1}`,
+      description: item.description,
+      order: item.order ?? idx,
+      status: item.status || "generated",
+      content: typeof item.content === "string" ? item.content : JSON.stringify(item.content),
+    }));
+
+    return items;
   } catch (error) {
-    console.error("Content generation error:", error);
-    return NextResponse.json({
-      success: true,
-      content: generateFallbackContent(
-        req.body as unknown as GenerateContentRequest
-      ),
-    });
+    console.error("Error calling Claude API:", error);
+    return generateFallbackContent(request);
   }
 }
 
-function generateFallbackContent(
-  params: GenerateContentRequest
-): GeneratedContent[] {
-  const content: GeneratedContent[] = [];
+export async function POST(request: NextRequest) {
+  try {
+    const body = (await request.json()) as GenerateContentRequest;
 
-  if (params.contentTypes.includes("reading")) {
-    content.push({
-      type: "reading",
-      title: `Reading: Key Concepts from ${params.videoTitle}`,
-      content: `This reading summarizes the main concepts covered in "${params.videoTitle}". Key topics include the definition of core concepts, their importance in the context of "${params.lessonTitle}", and practical applications. Students should review this material to reinforce understanding of the video content.`,
-      duration: "20 min",
-    });
+    const items = process.env.ANTHROPIC_API_KEY
+      ? await generateWithAI(body)
+      : generateFallbackContent(body);
+
+    return NextResponse.json({ items });
+  } catch (error) {
+    console.error("Error in /api/ai/generate-content:", error);
+    return NextResponse.json(
+      { error: "Failed to generate content" },
+      { status: 500 }
+    );
   }
-
-  if (params.contentTypes.includes("practice_quiz")) {
-    content.push({
-      type: "practice_quiz",
-      title: `Practice Quiz: ${params.lessonTitle}`,
-      content: JSON.stringify({
-        questions: [
-          {
-            question: "What is the main concept covered in this lesson?",
-            options: ["Option A", "Option B", "Option C", "Option D"],
-            correctAnswer: 0,
-            explanation:
-              "This is the primary concept discussed in the video.",
-          },
-          {
-            question: "How would you apply this concept in practice?",
-            options: ["Approach 1", "Approach 2", "Approach 3", "Approach 4"],
-            correctAnswer: 0,
-            explanation: "This approach is most practical based on the content.",
-          },
-        ],
-      }),
-      duration: "20 min",
-    });
-  }
-
-  if (params.contentTypes.includes("discussion")) {
-    content.push({
-      type: "discussion",
-      title: `Discussion: Real-World Applications`,
-      content: `Consider how the concepts from "${params.videoTitle}" apply to your own experience or industry. What challenges have you encountered that could be addressed using these principles? Share your thoughts and engage with your peers' perspectives.`,
-      duration: "15 min",
-    });
-  }
-
-  if (params.contentTypes.includes("case_study")) {
-    content.push({
-      type: "case_study",
-      title: `Case Study: ${params.lessonTitle} in Practice`,
-      content: `A software development team was facing challenges with ${params.lessonTitle}. They decided to implement the strategies discussed in this lesson. Analyze their approach, identify what went well, and suggest improvements for their implementation. Consider both technical and organizational factors.`,
-      duration: "40 min",
-    });
-  }
-
-  if (params.contentTypes.includes("glossary")) {
-    content.push({
-      type: "glossary",
-      title: `Glossary: Key Terms`,
-      content: JSON.stringify({
-        terms: [
-          {
-            term: "Core Concept",
-            definition:
-              "A fundamental principle introduced in this lesson that forms the basis for further learning.",
-          },
-          {
-            term: "Application",
-            definition:
-              "The practical use of the core concepts in real-world scenarios.",
-          },
-        ],
-      }),
-      duration: "10 min",
-    });
-  }
-
-  if (params.contentTypes.includes("ai_dialogue")) {
-    content.push({
-      type: "ai_dialogue",
-      title: `Interactive Dialogue: Exploring ${params.lessonTitle}`,
-      content: `Engage in an interactive conversation with an AI assistant about the concepts from "${params.videoTitle}". Ask questions about applications, edge cases, and deeper understanding of the material. The AI will provide explanations tailored to your level of understanding.`,
-      duration: "20 min",
-    });
-  }
-
-  return content;
 }

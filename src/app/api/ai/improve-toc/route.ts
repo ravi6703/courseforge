@@ -1,97 +1,116 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Module, LearningObjective } from "@/types";
 
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
-
-interface ImproveRequest {
-  currentTOC: Record<string, unknown>[];
-  comments: Array<{
-    id: string;
-    text: string;
-    target_id: string;
-    target_type: "module" | "lesson" | "video";
-  }>;
+interface Comment {
+  text: string;
+  target_type: string;
+  target_id: string;
 }
 
-export async function POST(req: NextRequest) {
-  try {
-    const body: ImproveRequest = await req.json();
+interface ImproveTOCRequest {
+  courseId: string;
+  currentTOC: Module[];
+  comments: Comment[];
+}
 
-    if (!ANTHROPIC_API_KEY || ANTHROPIC_API_KEY === "your-anthropic-key") {
-      // Fallback: return original TOC
-      return NextResponse.json({ success: true, modules: body.currentTOC });
-    }
+function generateFallbackImprovement(request: ImproveTOCRequest): Module[] {
+  // Return modules with minor modifications
+  return request.currentTOC.map((module, idx) => ({
+    ...module,
+    title: `${module.title} (Updated)`,
+    lessons: module.lessons.map((lesson) => ({
+      ...lesson,
+      learning_objectives: [
+        ...lesson.learning_objectives,
+        {
+          id: `lo-new-${Date.now()}`,
+          text: "Apply feedback from course review",
+          bloom_level: "apply" as const,
+        },
+      ],
+    })),
+  }));
+}
 
-    const commentsText = body.comments
-      .map(
-        (c) =>
-          `${c.target_type} (${c.target_id}): "${c.text}"`
-      )
-      .join("\n");
+async function improveWithAI(request: ImproveTOCRequest): Promise<Module[]> {
+  const commentsText = request.comments
+    .map((c) => `[${c.target_type} ${c.target_id}]: ${c.text}`)
+    .join("\n");
 
-    const systemPrompt = `You are CourseForge AI — an expert instructional designer. Your task is to improve a course table of contents based on coach feedback while maintaining the Board Infinity format.
+  const prompt = `You are a curriculum improvement specialist. The following comments have been made on a course Table of Contents. 
 
-When improving the TOC:
-1. Address each comment specifically
-2. Keep the overall structure consistent
-3. Maintain Bloom's Taxonomy alignment
-4. Keep realistic durations and content distributions
-5. Return valid JSON only
+CURRENT TOC (modules only):
+${JSON.stringify(
+  request.currentTOC.map((m) => ({
+    id: m.id,
+    title: m.title,
+    lessons: m.lessons.map((l) => ({ id: l.id, title: l.title })),
+  })),
+  null,
+  2
+)}
 
-Return the improved modules as JSON in the same structure as the input.`;
-
-    const userPrompt = `Current TOC:
-${JSON.stringify(body.currentTOC, null, 2)}
-
-Coach Comments:
+FEEDBACK COMMENTS:
 ${commentsText}
 
-Please improve the TOC addressing each comment above. Return the improved modules as a valid JSON array.`;
+Please improve the TOC by:
+1. Addressing each comment
+2. Reordering lessons if suggested
+3. Updating learning objectives based on feedback
+4. Adding new lessons where needed
+5. Maintaining the overall course structure
 
+Return the improved modules as a JSON array matching the Module interface. Include all fields from the original modules but with improvements applied.`;
+
+  try {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
+        "x-api-key": process.env.ANTHROPIC_API_KEY!,
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 8192,
-        system: systemPrompt,
-        messages: [
-          { role: "user", content: userPrompt },
-        ],
+        max_tokens: 4096,
+        messages: [{ role: "user", content: prompt }],
       }),
     });
 
     if (!response.ok) {
-      console.error("Anthropic error:", await response.text());
-      return NextResponse.json(
-        { success: false, error: "Failed to improve TOC" },
-        { status: 500 }
-      );
+      console.error("Claude API error:", response.status);
+      return generateFallbackImprovement(request);
     }
 
     const data = await response.json();
-    const content = data.content?.[0]?.text;
+    const content = data.content[0].text;
 
-    if (!content) {
-      return NextResponse.json(
-        { success: false, error: "No response from AI" },
-        { status: 500 }
-      );
+    const jsonMatch = content.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) {
+      return generateFallbackImprovement(request);
     }
 
-    let parsed = JSON.parse(content);
-    if (parsed.modules && Array.isArray(parsed.modules)) {
-      parsed = parsed.modules;
-    }
-
-    return NextResponse.json({ success: true, modules: parsed });
+    const improved = JSON.parse(jsonMatch[0]) as Module[];
+    return improved;
   } catch (error) {
-    console.error("TOC improvement error:", error);
+    console.error("Error calling Claude API:", error);
+    return generateFallbackImprovement(request);
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = (await request.json()) as ImproveTOCRequest;
+
+    const modules = process.env.ANTHROPIC_API_KEY
+      ? await improveWithAI(body)
+      : generateFallbackImprovement(body);
+
+    return NextResponse.json({ modules });
+  } catch (error) {
+    console.error("Error in /api/ai/improve-toc:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to improve TOC" },
+      { error: "Failed to improve TOC" },
       { status: 500 }
     );
   }

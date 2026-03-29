@@ -1,163 +1,136 @@
 import { NextRequest, NextResponse } from "next/server";
-
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+import { CoachInput } from "@/types";
 
 interface GenerateBriefRequest {
+  videoId: string;
   videoTitle: string;
   lessonTitle: string;
-  moduleName: string;
-  duration: number;
-  courseName: string;
+  moduleTitle: string;
+  coachInput?: CoachInput;
 }
 
-interface ContentBrief {
-  talking_points: string[];
-  visual_cues: string[];
-  examples: string[];
-  key_takeaways: string[];
+interface ContentBriefResponse {
+  what_to_cover: string;
+  examples: string;
+  visual_cues: string;
+  key_takeaways: string;
   script_outline: string;
 }
 
-function generateFallbackBrief(req: GenerateBriefRequest): ContentBrief {
+function generateFallbackBrief(request: GenerateBriefRequest): ContentBriefResponse {
+  const topic = `${request.moduleTitle} - ${request.lessonTitle}`;
+  const withCoachInput = request.coachInput ? `\n\nCoach guidance: ${request.coachInput.key_topics}` : "";
+
   return {
-    talking_points: [
-      `Introduction to ${req.videoTitle}`,
-      `Key concepts and framework overview`,
-      `Practical applications and real-world examples`,
-      `Common challenges and how to overcome them`,
-      `Summary and next steps`,
-    ],
-    visual_cues: [
-      `Title slide with ${req.moduleName} branding`,
-      `Concept diagram showing relationships`,
-      `Screenshot or demo of practical application`,
-      `Key statistics or data visualization`,
-      `Call-to-action or wrap-up graphic`,
-    ],
-    examples: [
-      `Real-world case study from ${req.courseName}`,
-      `Step-by-step walkthrough example`,
-      `Before/after comparison`,
-      `Common mistake and correction`,
-    ],
-    key_takeaways: [
-      `Main concept: Core idea of ${req.videoTitle}`,
-      `Practical application in ${req.courseName}`,
-      `How to implement immediately`,
-      `Common pitfalls to avoid`,
-    ],
-    script_outline: `Introduction (0:00-0:30)
-- Hook the viewer with ${req.lessonTitle}
-- Preview what they'll learn
-
-Body (0:30-${req.duration - 1}:00)
-- Explain main concept
-- Provide real-world examples
-- Show practical application
-- Address common questions
-
-Conclusion (${req.duration - 1}:00-${req.duration}:00)
-- Recap key takeaways
-- Call to action for next lesson`,
+    what_to_cover: `Overview of ${request.videoTitle}
+- Core concepts and definitions
+- Key principles and theories
+- Practical applications${withCoachInput}`,
+    examples: `1. Real-world example showing practical implementation
+2. Step-by-step walkthrough of common use case
+3. Edge case handling and best practices
+4. Integration with related concepts`,
+    visual_cues: `- Animated diagrams showing concept flow
+- Code snippets with syntax highlighting
+- Before/after comparison visuals
+- Interactive whiteboard demonstrations
+- Key terms highlighted in bold`,
+    key_takeaways: `By the end of this video, learners will:
+- Understand the core concepts of ${request.lessonTitle}
+- Apply learned principles to practical scenarios
+- Identify common mistakes and how to avoid them
+- Connect this lesson to broader ${request.moduleTitle} concepts`,
+    script_outline: `[0:00-0:30] Introduction & Learning Goals
+[0:30-3:00] Core Concept Explanation
+[3:00-5:00] First Example & Walkthrough
+[5:00-7:00] Second Example & Application
+[7:00-8:00] Common Mistakes & Best Practices
+[8:00-8:30] Summary & Next Steps`,
   };
 }
 
-export async function POST(req: NextRequest) {
-  try {
-    const body: GenerateBriefRequest = await req.json();
+async function generateWithAI(request: GenerateBriefRequest): Promise<ContentBriefResponse> {
+  const coachInputText = request.coachInput
+    ? `\nCoach-provided input:
+    - Key Topics: ${request.coachInput.key_topics}
+    - Examples: ${request.coachInput.examples}
+    - Visual Requirements: ${request.coachInput.visual_requirements}
+    - Difficulty Notes: ${request.coachInput.difficulty_notes}
+    - References: ${request.coachInput.references}`
+    : "";
 
-    if (!ANTHROPIC_API_KEY || ANTHROPIC_API_KEY === "your-anthropic-key") {
-      // Fallback: return realistic brief data
-      return NextResponse.json({
-        success: true,
-        brief: generateFallbackBrief(body),
-      });
-    }
+  const prompt = `You are an expert instructional designer. Generate a comprehensive content brief for a video lesson.
 
-    const systemPrompt = `You are CourseForge AI — an expert instructional designer specializing in video content creation. Your task is to generate comprehensive content briefs for video lessons.
+Video Details:
+- Title: ${request.videoTitle}
+- Module: ${request.moduleTitle}
+- Lesson: ${request.lessonTitle}${coachInputText}
 
-When generating briefs:
-1. Create engaging, specific talking points tailored to the lesson
-2. Suggest visual elements that enhance understanding
-3. Provide concrete, relevant examples
-4. Identify key concepts students must grasp
-5. Outline a clear script structure with timing
-6. Return valid JSON only
-
-The brief should help content creators produce engaging, effective video content aligned with course objectives.`;
-
-    const userPrompt = `Generate a detailed content brief for this video:
-
-Course: ${body.courseName}
-Module: ${body.moduleName}
-Lesson: ${body.lessonTitle}
-Video Title: ${body.videoTitle}
-Duration: ${body.duration} minutes
-
-Create a JSON response with the following structure:
+Create a detailed brief with 5 sections in JSON format:
 {
-  "talking_points": [array of 5-7 main discussion points],
-  "visual_cues": [array of 5-7 visual elements or graphics to include],
-  "examples": [array of 4-5 concrete examples or scenarios],
-  "key_takeaways": [array of 4-5 essential learnings],
-  "script_outline": [detailed outline with timing breakdown and section descriptions]
+  "what_to_cover": "Main topics and key points (include subtopics)",
+  "examples": "Specific examples to demonstrate concepts (numbered list)",
+  "visual_cues": "Visual aids and design elements needed (bullet points)",
+  "key_takeaways": "Learning outcomes and key takeaways (bullet points)",
+  "script_outline": "Time-coded script outline with sections"
 }
 
-Make the brief specific to the lesson content and appropriate for the ${body.duration}-minute duration.`;
+The brief should be:
+- Practical and implementation-focused
+- Aligned with learner outcomes
+- Include 3-4 concrete examples
+- Specify visual requirements clearly
+- Provide a realistic timing breakdown`;
 
+  try {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
+        "x-api-key": process.env.ANTHROPIC_API_KEY!,
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 4096,
-        system: systemPrompt,
-        messages: [
-          { role: "user", content: userPrompt },
-        ],
+        max_tokens: 2048,
+        messages: [{ role: "user", content: prompt }],
       }),
     });
 
     if (!response.ok) {
-      console.error("Anthropic error:", await response.text());
-      return NextResponse.json(
-        { success: false, error: "Failed to generate brief" },
-        { status: 500 }
-      );
+      console.error("Claude API error:", response.status);
+      return generateFallbackBrief(request);
     }
 
     const data = await response.json();
-    const content = data.content?.[0]?.text;
+    const content = data.content[0].text;
 
-    if (!content) {
-      return NextResponse.json(
-        { success: false, error: "No response from AI" },
-        { status: 500 }
-      );
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      return generateFallbackBrief(request);
     }
 
-    let parsed = JSON.parse(content);
-    if (parsed.brief && typeof parsed.brief === "object") {
-      parsed = parsed.brief;
-    }
-
-    const brief: ContentBrief = {
-      talking_points: parsed.talking_points || [],
-      visual_cues: parsed.visual_cues || [],
-      examples: parsed.examples || [],
-      key_takeaways: parsed.key_takeaways || [],
-      script_outline: parsed.script_outline || "",
-    };
-
-    return NextResponse.json({ success: true, brief });
+    const brief = JSON.parse(jsonMatch[0]) as ContentBriefResponse;
+    return brief;
   } catch (error) {
-    console.error("Brief generation error:", error);
+    console.error("Error calling Claude API:", error);
+    return generateFallbackBrief(request);
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = (await request.json()) as GenerateBriefRequest;
+
+    const brief = process.env.ANTHROPIC_API_KEY
+      ? await generateWithAI(body)
+      : generateFallbackBrief(body);
+
+    return NextResponse.json({ brief });
+  } catch (error) {
+    console.error("Error in /api/ai/generate-brief:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to generate brief" },
+      { error: "Failed to generate brief" },
       { status: 500 }
     );
   }

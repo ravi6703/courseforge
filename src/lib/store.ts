@@ -15,10 +15,15 @@ import {
   Platform,
   ContentBrief,
   PPTSlide,
+  PPTUpload,
   Recording,
   Transcript,
   Comment,
   ContentItem,
+  CoachInput,
+  CourseResearch,
+  ActivityLog,
+  Notification,
 } from "@/types";
 
 const STORAGE_KEY = "courseforge_data";
@@ -30,9 +35,14 @@ export interface AppState {
   comments: Comment[];
   contentBriefs: ContentBrief[];
   pptSlides: PPTSlide[];
+  pptUploads: PPTUpload[];
   recordings: Recording[];
   transcripts: Transcript[];
   contentItems: ContentItem[];
+  coachInputs: CoachInput[];
+  courseResearch: Record<string, CourseResearch>; // keyed by course_id
+  activityLog: ActivityLog[];
+  notifications: Notification[];
 }
 
 const defaultState: AppState = {
@@ -42,9 +52,14 @@ const defaultState: AppState = {
   comments: [],
   contentBriefs: [],
   pptSlides: [],
+  pptUploads: [],
   recordings: [],
   transcripts: [],
   contentItems: [],
+  coachInputs: [],
+  courseResearch: {},
+  activityLog: [],
+  notifications: [],
 };
 
 // Demo users
@@ -52,13 +67,13 @@ export const DEMO_USERS: Record<Role, User> = {
   pm: {
     id: "pm-001",
     email: "ravi@boardinfinity.com",
-    name: "Ravi (PM)",
+    name: "Ravi",
     role: "pm",
   },
   coach: {
     id: "coach-001",
     email: "coach@boardinfinity.com",
-    name: "Dr. Priya Sharma (Coach)",
+    name: "Dr. Priya Sharma",
     role: "coach",
   },
 };
@@ -72,9 +87,19 @@ export const SAMPLE_COURSE: Course = {
   status: "toc_review",
   audience_level: "intermediate",
   duration_weeks: 6,
+  hours_per_week: 8,
+  domain: "Generative AI",
+  prerequisites: "",
+  target_job_roles: ["AI Engineer", "ML Engineer"],
+  certification_goal: "",
+  theory_handson_ratio: 60,
+  project_based: true,
+  capstone: true,
+  reference_course_url: "",
   created_by: "pm-001",
   assigned_coach: "coach-001",
   content_types: ["reading", "practice_quiz", "graded_quiz", "discussion", "case_study", "glossary"],
+  module_hours: {},
   created_at: "2026-03-25T10:00:00Z",
   updated_at: "2026-03-28T10:00:00Z",
 };
@@ -85,7 +110,10 @@ export const SAMPLE_MODULES: Module[] = [
     course_id: "course-001",
     title: "Module 1: Foundations of Generative AI",
     description: "Understanding the core concepts, architectures, and capabilities of generative AI systems.",
+    duration_hours: 12,
     order: 1,
+    is_capstone: false,
+    is_project_milestone: false,
     learning_objectives: [
       { id: "lo-1-1", text: "Explain the key differences between discriminative and generative AI models", bloom_level: "understand" },
       { id: "lo-1-2", text: "Identify the major generative AI architectures (Transformers, Diffusion, GANs)", bloom_level: "remember" },
@@ -97,8 +125,8 @@ export const SAMPLE_MODULES: Module[] = [
         learning_objectives: [{ id: "lo-les-1-1", text: "Define generative AI and distinguish it from traditional AI approaches", bloom_level: "understand" }],
         content_types: ["reading", "glossary", "discussion", "practice_quiz"],
         videos: [
-          { id: "v-1-1-1", lesson_id: "les-1-1", title: "The Rise of Generative AI", duration_minutes: 12, order: 1, status: "pending" },
-          { id: "v-1-1-2", lesson_id: "les-1-1", title: "How LLMs Work: A Non-Technical Overview", duration_minutes: 15, order: 2, status: "pending" },
+          { id: "v-1-1-1", lesson_id: "les-1-1", title: "The Rise of Generative AI", duration_minutes: 12, order: 1, is_handson: false, status: "pending" },
+          { id: "v-1-1-2", lesson_id: "les-1-1", title: "How LLMs Work: A Non-Technical Overview", duration_minutes: 15, order: 2, is_handson: false, status: "pending" },
         ]
       },
       {
@@ -106,8 +134,8 @@ export const SAMPLE_MODULES: Module[] = [
         learning_objectives: [{ id: "lo-les-1-2", text: "Compare transformer, diffusion, and GAN architectures at a conceptual level", bloom_level: "analyze" }],
         content_types: ["reading", "plugin", "practice_quiz"],
         videos: [
-          { id: "v-1-2-1", lesson_id: "les-1-2", title: "Transformer Architecture Explained", duration_minutes: 18, order: 1, status: "pending" },
-          { id: "v-1-2-2", lesson_id: "les-1-2", title: "Diffusion Models and Image Generation", duration_minutes: 14, order: 2, status: "pending" },
+          { id: "v-1-2-1", lesson_id: "les-1-2", title: "Transformer Architecture Explained", duration_minutes: 18, order: 1, is_handson: false, status: "pending" },
+          { id: "v-1-2-2", lesson_id: "les-1-2", title: "Diffusion Models and Image Generation", duration_minutes: 14, order: 2, is_handson: false, status: "pending" },
         ]
       },
       {
@@ -115,7 +143,7 @@ export const SAMPLE_MODULES: Module[] = [
         learning_objectives: [{ id: "lo-les-1-3", text: "Assess the current state of enterprise AI adoption and identify key trends", bloom_level: "evaluate" }],
         content_types: ["reading", "plugin", "practice_quiz", "graded_quiz"],
         videos: [
-          { id: "v-1-3-1", lesson_id: "les-1-3", title: "AI Market Landscape 2026", duration_minutes: 16, order: 1, status: "pending" },
+          { id: "v-1-3-1", lesson_id: "les-1-3", title: "AI Market Landscape 2026", duration_minutes: 16, order: 1, is_handson: false, status: "pending" },
         ]
       },
     ],
@@ -125,7 +153,10 @@ export const SAMPLE_MODULES: Module[] = [
     course_id: "course-001",
     title: "Module 2: Prompt Engineering for Professionals",
     description: "Master the art and science of effective prompting to get reliable, high-quality outputs from AI systems.",
+    duration_hours: 14,
     order: 2,
+    is_capstone: false,
+    is_project_milestone: false,
     learning_objectives: [
       { id: "lo-2-1", text: "Design effective prompts using structured frameworks (STAR, Chain-of-Thought)", bloom_level: "create" },
       { id: "lo-2-2", text: "Apply few-shot and zero-shot prompting techniques to business scenarios", bloom_level: "apply" },
@@ -137,8 +168,8 @@ export const SAMPLE_MODULES: Module[] = [
         learning_objectives: [{ id: "lo-les-2-1", text: "Apply the STAR framework to construct business-relevant prompts", bloom_level: "apply" }],
         content_types: ["reading", "discussion", "practice_quiz"],
         videos: [
-          { id: "v-2-1-1", lesson_id: "les-2-1", title: "The STAR Prompting Framework", duration_minutes: 20, order: 1, status: "pending" },
-          { id: "v-2-1-2", lesson_id: "les-2-1", title: "Common Prompting Mistakes", duration_minutes: 12, order: 2, status: "pending" },
+          { id: "v-2-1-1", lesson_id: "les-2-1", title: "The STAR Prompting Framework", duration_minutes: 20, order: 1, is_handson: false, status: "pending" },
+          { id: "v-2-1-2", lesson_id: "les-2-1", title: "Common Prompting Mistakes", duration_minutes: 12, order: 2, is_handson: false, status: "pending" },
         ]
       },
       {
@@ -146,8 +177,8 @@ export const SAMPLE_MODULES: Module[] = [
         learning_objectives: [{ id: "lo-les-2-2", text: "Implement chain-of-thought prompting for multi-step reasoning tasks", bloom_level: "apply" }],
         content_types: ["reading", "plugin", "practice_quiz"],
         videos: [
-          { id: "v-2-2-1", lesson_id: "les-2-2", title: "Chain-of-Thought Prompting", duration_minutes: 18, order: 1, status: "pending" },
-          { id: "v-2-2-2", lesson_id: "les-2-2", title: "Few-Shot vs Zero-Shot: When to Use Each", duration_minutes: 15, order: 2, status: "pending" },
+          { id: "v-2-2-1", lesson_id: "les-2-2", title: "Chain-of-Thought Prompting", duration_minutes: 18, order: 1, is_handson: false, status: "pending" },
+          { id: "v-2-2-2", lesson_id: "les-2-2", title: "Few-Shot vs Zero-Shot: When to Use Each", duration_minutes: 15, order: 2, is_handson: false, status: "pending" },
         ]
       },
       {
@@ -155,7 +186,7 @@ export const SAMPLE_MODULES: Module[] = [
         learning_objectives: [{ id: "lo-les-2-3", text: "Design a reusable prompt library for a business function", bloom_level: "create" }],
         content_types: ["reading", "practice_quiz", "graded_quiz"],
         videos: [
-          { id: "v-2-3-1", lesson_id: "les-2-3", title: "Building Your Prompt Library", duration_minutes: 22, order: 1, status: "pending" },
+          { id: "v-2-3-1", lesson_id: "les-2-3", title: "Building Your Prompt Library", duration_minutes: 22, order: 1, is_handson: false, status: "pending" },
         ]
       },
     ],
@@ -165,7 +196,10 @@ export const SAMPLE_MODULES: Module[] = [
     course_id: "course-001",
     title: "Module 3: AI Workflow Automation",
     description: "Design and implement AI-powered workflows that automate repetitive business processes.",
+    duration_hours: 16,
     order: 3,
+    is_capstone: false,
+    is_project_milestone: false,
     learning_objectives: [
       { id: "lo-3-1", text: "Design AI automation workflows for common business processes", bloom_level: "create" },
       { id: "lo-3-2", text: "Evaluate build vs. buy decisions for AI workflow tools", bloom_level: "evaluate" },
@@ -177,8 +211,8 @@ export const SAMPLE_MODULES: Module[] = [
         learning_objectives: [{ id: "lo-les-3-1", text: "Apply the automation ROI framework to identify high-impact workflow candidates", bloom_level: "apply" }],
         content_types: ["reading", "discussion", "practice_quiz"],
         videos: [
-          { id: "v-3-1-1", lesson_id: "les-3-1", title: "The Automation ROI Framework", duration_minutes: 16, order: 1, status: "pending" },
-          { id: "v-3-1-2", lesson_id: "les-3-1", title: "Case Study: Automating Customer Support", duration_minutes: 20, order: 2, status: "pending" },
+          { id: "v-3-1-1", lesson_id: "les-3-1", title: "The Automation ROI Framework", duration_minutes: 16, order: 1, is_handson: false, status: "pending" },
+          { id: "v-3-1-2", lesson_id: "les-3-1", title: "Case Study: Automating Customer Support", duration_minutes: 20, order: 2, is_handson: false, status: "pending" },
         ]
       },
       {
@@ -186,7 +220,7 @@ export const SAMPLE_MODULES: Module[] = [
         learning_objectives: [{ id: "lo-les-3-2", text: "Build an AI workflow using Zapier/Make with LLM integration", bloom_level: "create" }],
         content_types: ["reading", "plugin", "case_study", "practice_quiz"],
         videos: [
-          { id: "v-3-2-1", lesson_id: "les-3-2", title: "Building Your First AI Workflow", duration_minutes: 25, order: 1, status: "pending" },
+          { id: "v-3-2-1", lesson_id: "les-3-2", title: "Building Your First AI Workflow", duration_minutes: 25, order: 1, is_handson: true, status: "pending" },
         ]
       },
       {
@@ -194,7 +228,7 @@ export const SAMPLE_MODULES: Module[] = [
         learning_objectives: [{ id: "lo-les-3-3", text: "Design a monitoring and governance framework for AI automation", bloom_level: "create" }],
         content_types: ["reading", "practice_quiz", "graded_quiz"],
         videos: [
-          { id: "v-3-3-1", lesson_id: "les-3-3", title: "AI Governance for Automation", duration_minutes: 18, order: 1, status: "pending" },
+          { id: "v-3-3-1", lesson_id: "les-3-3", title: "AI Governance for Automation", duration_minutes: 18, order: 1, is_handson: false, status: "pending" },
         ]
       },
     ],
@@ -204,7 +238,10 @@ export const SAMPLE_MODULES: Module[] = [
     course_id: "course-001",
     title: "Module 4: Responsible AI & Future Trends",
     description: "Navigate ethical considerations, bias mitigation, and prepare for the next wave of AI capabilities.",
+    duration_hours: 10,
     order: 4,
+    is_capstone: false,
+    is_project_milestone: false,
     learning_objectives: [
       { id: "lo-4-1", text: "Evaluate AI outputs for bias, hallucination, and ethical concerns", bloom_level: "evaluate" },
       { id: "lo-4-2", text: "Design a responsible AI policy for an organization", bloom_level: "create" },
@@ -216,8 +253,8 @@ export const SAMPLE_MODULES: Module[] = [
         learning_objectives: [{ id: "lo-les-4-1", text: "Identify common sources of bias in AI systems and propose mitigation strategies", bloom_level: "analyze" }],
         content_types: ["reading", "discussion", "practice_quiz"],
         videos: [
-          { id: "v-4-1-1", lesson_id: "les-4-1", title: "Understanding AI Bias", duration_minutes: 18, order: 1, status: "pending" },
-          { id: "v-4-1-2", lesson_id: "les-4-1", title: "Bias Mitigation Strategies", duration_minutes: 15, order: 2, status: "pending" },
+          { id: "v-4-1-1", lesson_id: "les-4-1", title: "Understanding AI Bias", duration_minutes: 18, order: 1, is_handson: false, status: "pending" },
+          { id: "v-4-1-2", lesson_id: "les-4-1", title: "Bias Mitigation Strategies", duration_minutes: 15, order: 2, is_handson: false, status: "pending" },
         ]
       },
       {
@@ -225,7 +262,7 @@ export const SAMPLE_MODULES: Module[] = [
         learning_objectives: [{ id: "lo-les-4-2", text: "Draft a responsible AI usage policy for a department or organization", bloom_level: "create" }],
         content_types: ["reading", "plugin", "case_study", "practice_quiz"],
         videos: [
-          { id: "v-4-2-1", lesson_id: "les-4-2", title: "Components of an AI Policy", duration_minutes: 20, order: 1, status: "pending" },
+          { id: "v-4-2-1", lesson_id: "les-4-2", title: "Components of an AI Policy", duration_minutes: 20, order: 1, is_handson: false, status: "pending" },
         ]
       },
       {
@@ -233,7 +270,7 @@ export const SAMPLE_MODULES: Module[] = [
         learning_objectives: [{ id: "lo-les-4-3", text: "Predict which AI trends will have the highest impact on your industry within 2 years", bloom_level: "evaluate" }],
         content_types: ["reading", "practice_quiz", "graded_quiz"],
         videos: [
-          { id: "v-4-3-1", lesson_id: "les-4-3", title: "AI Trends Shaping 2027 and Beyond", duration_minutes: 22, order: 1, status: "pending" },
+          { id: "v-4-3-1", lesson_id: "les-4-3", title: "AI Trends Shaping 2027 and Beyond", duration_minutes: 22, order: 1, is_handson: false, status: "pending" },
         ]
       },
     ],
@@ -287,6 +324,11 @@ export function updateCourse(courseId: string, updates: Partial<Course>): void {
 export function getCourseById(courseId: string): Course | undefined {
   const state = loadState();
   return state.courses.find((c) => c.id === courseId);
+}
+
+export function getAllCourses(): Course[] {
+  const state = loadState();
+  return state.courses;
 }
 
 // ─── MODULE OPERATIONS ───────────────────────────────────────────
@@ -343,6 +385,21 @@ export function updateLesson(
       return;
     }
   }
+}
+
+// ─── VIDEO OPERATIONS ────────────────────────────────────────────
+
+export function getVideoById(courseId: string, videoId: string): any {
+  const state = loadState();
+  const modules = state.modules[courseId];
+  if (!modules) return undefined;
+  for (const mod of modules) {
+    for (const lesson of mod.lessons) {
+      const video = lesson.videos.find((v) => v.id === videoId);
+      if (video) return video;
+    }
+  }
+  return undefined;
 }
 
 // ─── COMMENT OPERATIONS ──────────────────────────────────────────
@@ -415,6 +472,28 @@ export function updatePPTSlide(slideId: string, updates: Partial<PPTSlide>): voi
   }
 }
 
+// ─── PPT UPLOAD OPERATIONS ────────────────────────────────────────
+
+export function addPPTUpload(upload: PPTUpload): void {
+  const state = loadState();
+  state.pptUploads.push(upload);
+  saveState(state);
+}
+
+export function getPPTUploadsByVideo(videoId: string): PPTUpload[] {
+  const state = loadState();
+  return state.pptUploads.filter((u) => u.video_id === videoId);
+}
+
+export function updatePPTUpload(uploadId: string, updates: Partial<PPTUpload>): void {
+  const state = loadState();
+  const upload = state.pptUploads.find((u) => u.id === uploadId);
+  if (upload) {
+    Object.assign(upload, updates);
+    saveState(state);
+  }
+}
+
 // ─── RECORDING OPERATIONS ────────────────────────────────────────
 
 export function addRecording(recording: Recording): void {
@@ -477,6 +556,76 @@ export function updateContentItem(itemId: string, updates: Partial<ContentItem>)
   const item = state.contentItems.find((c) => c.id === itemId);
   if (item) {
     Object.assign(item, updates);
+    saveState(state);
+  }
+}
+
+// ─── COACH INPUT OPERATIONS ──────────────────────────────────────
+
+export function addCoachInput(input: CoachInput): void {
+  const state = loadState();
+  state.coachInputs.push(input);
+  saveState(state);
+}
+
+export function getCoachInputByVideo(videoId: string): CoachInput | undefined {
+  const state = loadState();
+  return state.coachInputs.find((c) => c.video_id === videoId);
+}
+
+export function updateCoachInput(inputId: string, updates: Partial<CoachInput>): void {
+  const state = loadState();
+  const input = state.coachInputs.find((c) => c.id === inputId);
+  if (input) {
+    Object.assign(input, updates, { updated_at: new Date().toISOString() });
+    saveState(state);
+  }
+}
+
+// ─── COURSE RESEARCH OPERATIONS ──────────────────────────────────
+
+export function setCourseResearch(courseId: string, research: CourseResearch): void {
+  const state = loadState();
+  state.courseResearch[courseId] = research;
+  saveState(state);
+}
+
+export function getCourseResearch(courseId: string): CourseResearch | undefined {
+  const state = loadState();
+  return state.courseResearch[courseId];
+}
+
+// ─── ACTIVITY LOG OPERATIONS ─────────────────────────────────────
+
+export function addActivityLog(log: ActivityLog): void {
+  const state = loadState();
+  state.activityLog.push(log);
+  saveState(state);
+}
+
+export function getActivityLogByCourse(courseId: string): ActivityLog[] {
+  const state = loadState();
+  return state.activityLog.filter((log) => log.course_id === courseId);
+}
+
+// ─── NOTIFICATION OPERATIONS ────────────────────────────────────
+
+export function addNotification(notification: Notification): void {
+  const state = loadState();
+  state.notifications.push(notification);
+  saveState(state);
+}
+
+export function getNotificationsByUser(userId: string): Notification[] {
+  const state = loadState();
+  return state.notifications.filter((n) => n.user_id === userId);
+}
+
+export function markNotificationRead(notificationId: string): void {
+  const state = loadState();
+  const notification = state.notifications.find((n) => n.id === notificationId);
+  if (notification) {
+    notification.read = true;
     saveState(state);
   }
 }

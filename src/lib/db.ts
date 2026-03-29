@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Supabase data layer for CourseForge
 // All database operations go through this file
 

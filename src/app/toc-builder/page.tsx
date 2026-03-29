@@ -140,7 +140,7 @@ export default function TOCBuilderPage() {
   if (loading) {
     return (
       <div className="flex h-screen bg-gray-50">
-        <Sidebar user={user} onLogout={handleLogout} />
+        <Sidebar />
         <main className="flex-1 flex items-center justify-center">
           <div className="text-gray-600">Loading...</div>
         </main>
@@ -152,7 +152,7 @@ export default function TOCBuilderPage() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar user={user} onLogout={handleLogout} />
+      <Sidebar />
 
       <main className="flex-1 overflow-auto">
         {/* Header */}
@@ -245,7 +245,7 @@ export default function TOCBuilderPage() {
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-center gap-3">
                                         <h3 className="font-bold text-gray-900">{mod.title}</h3>
-                                        {mod.duration && <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">{mod.duration}</span>}
+                                        {mod.duration_hours && <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">{mod.duration_hours}</span>}
                                       </div>
                                       <p className="text-sm text-gray-600 mt-1 line-clamp-2">{mod.description}</p>
                                       {/* Learning Objectives */}

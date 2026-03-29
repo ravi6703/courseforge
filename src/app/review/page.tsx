@@ -69,7 +69,7 @@ export default function ReviewQueuePage() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar user={user} onLogout={handleLogout} />
+      <Sidebar />
 
       <main className="flex-1 md:ml-64 overflow-auto">
         <div className="p-8 max-w-5xl">

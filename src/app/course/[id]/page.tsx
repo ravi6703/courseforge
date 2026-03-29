@@ -1,1677 +1,1687 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { Sidebar } from "@/components/Sidebar";
-import { User, Course, Module, Comment, ContentBrief, PPTSlide, Recording, Transcript, ContentItem } from "@/types";
+import {
+  Course,
+  Module,
+  Comment,
+  CourseStatus,
+  PHASE_CONFIG,
+  NEXT_PHASE,
+  ContentBrief,
+  PPTSlide,
+  Recording,
+  Transcript,
+  ContentItem,
+  Video,
+  CoachInput,
+  CourseResearch,
+  ContentType,
+  Lesson,
+} from "@/types";
 import {
   getCourseById,
   getModulesByCourse,
   getCommentsByCourse,
   addComment,
-  resolveComment,
   updateCourse,
   generateId,
-  addContentBrief,
   getContentBriefsByVideo,
+  addContentBrief,
   updateContentBrief,
-  addPPTSlide,
   getPPTSlidesByVideo,
+  addPPTSlide,
   updatePPTSlide,
-  addRecording,
   getRecordingByVideo,
+  addRecording,
   updateRecording,
-  addTranscript,
   getTranscriptByRecording,
+  addTranscript,
   updateTranscript,
-  addContentItem,
   getContentItemsByLesson,
+  addContentItem,
   updateContentItem,
+  getCoachInputByVideo,
+  addCoachInput,
+  updateCoachInput,
+  getCourseResearch,
+  setCourseResearch,
+  DEMO_USERS,
+  updatePPTUpload,
+  getPPTUploadsByVideo,
+  addPPTUpload,
 } from "@/lib/store";
-import Link from "next/link";
+import { Sidebar } from "@/components/Sidebar";
+import {
+  Lock,
+  MessageSquare,
+  ChevronDown,
+  ChevronRight,
+  Clock,
+  Zap,
+  Check,
+  AlertCircle,
+  Plus,
+  FileText,
+  CheckCircle2,
+  Circle,
+  BookOpen,
+  Send,
+  Edit2,
+  Trash2,
+  Play,
+  Music,
+  Copy,
+  Settings,
+  Upload,
+  Download,
+  Eye,
+  Loader,
+  CheckSquare,
+  Square,
+  Briefcase,
+  Sparkles,
+  Mic,
+  ZoomIn,
+  X,
+} from "lucide-react";
 
-type PhaseTab = "toc" | "briefs" | "ppts" | "recording" | "transcript" | "content" | "review";
+// ─── TYPE DEFINITIONS ───────────────────────────────────────────
 
-const PHASE_TABS: Record<string, PhaseTab[]> = {
-  draft: ["toc"],
-  toc_generation: ["toc"],
-  toc_review: ["toc"],
-  toc_approved: ["toc", "briefs"],
-  content_briefs: ["toc", "briefs"],
-  ppt_generation: ["toc", "briefs", "ppts"],
-  ppt_review: ["toc", "briefs", "ppts"],
-  recording: ["toc", "briefs", "ppts", "recording"],
-  transcription: ["toc", "briefs", "ppts", "recording", "transcript"],
-  content_generation: ["toc", "briefs", "ppts", "recording", "transcript", "content"],
-  content_review: ["toc", "briefs", "ppts", "recording", "transcript", "content"],
-  final_review: ["toc", "briefs", "ppts", "recording", "transcript", "content", "review"],
-  published: ["toc", "briefs", "ppts", "recording", "transcript", "content", "review"],
-};
+type TabType = "toc" | "briefs" | "ppts" | "recording" | "transcript" | "content" | "review";
 
-const PHASE_LABELS: Record<string, string> = {
-  draft: "Draft",
-  toc_generation: "Generating TOC",
-  toc_review: "Review TOC",
-  toc_approved: "TOC Approved",
-  content_briefs: "Content Briefs",
-  ppt_generation: "Generating PPTs",
-  ppt_review: "Review PPTs",
-  recording: "Recording",
-  transcription: "Transcription",
-  content_generation: "Generating Content",
-  content_review: "Review Content",
-  final_review: "Final Review",
-  published: "Published",
-};
-
-const CONTENT_TYPES = ["reading", "practice_quiz", "graded_quiz", "discussion", "case_study", "glossary"] as const;
-
-// Toast notification component
-function Toast({ message, type, onClose }: { message: string; type: "success" | "error"; onClose: () => void }) {
-  useEffect(() => {
-    const timer = setTimeout(onClose, 3000);
-    return () => clearTimeout(timer);
-  }, [onClose]);
-
-  return (
-    <div className={`fixed bottom-4 right-4 px-6 py-3 rounded-lg text-white font-medium shadow-lg animate-pulse ${
-      type === "success" ? "bg-green-600" : "bg-red-600"
-    }`}>
-      {message}
-    </div>
-  );
+interface ExpandedState {
+  [key: string]: boolean;
 }
 
-// Status badge helper
-function StatusBadge({ status }: { status: string }) {
-  const statusColors: Record<string, string> = {
-    pending: "bg-gray-100 text-gray-700",
-    generating: "bg-blue-100 text-blue-700",
-    ready: "bg-green-100 text-green-700",
-    error: "bg-red-100 text-red-700",
-    completed: "bg-green-100 text-green-700",
-    "in-progress": "bg-blue-100 text-blue-700",
-  };
-
-  return (
-    <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[status] || statusColors.pending}`}>
-      {status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, " ")}
-    </span>
-  );
+interface ToastState {
+  message: string;
+  type: "success" | "error" | "info";
+  id: string;
 }
 
-// Loading spinner component
-function LoadingSpinner({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
-  const sizes = { sm: "w-4 h-4", md: "w-6 h-6", lg: "w-8 h-8" };
-  return <div className={`${sizes[size]} border-3 border-blue-600 border-t-transparent rounded-full animate-spin`} />;
+interface SlideEditorState {
+  videoId: string;
+  slideIndex: number;
 }
 
-export default function CoursePage() {
+// ─── MAIN PAGE COMPONENT ────────────────────────────────────────
+
+export default function CourseDetailPage() {
   const router = useRouter();
   const params = useParams();
-  const courseId = params.id as string;
+  const courseId = params?.id as string;
 
-  const [user, setUser] = useState<User | null>(null);
+  // State management
   const [course, setCourse] = useState<Course | null>(null);
   const [modules, setModules] = useState<Module[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
-  const [activeTab, setActiveTab] = useState<PhaseTab>("toc");
-  const [isLoading, setIsLoading] = useState(true);
-  const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({});
-  const [newComment, setNewComment] = useState("");
-  const [selectedTarget, setSelectedTarget] = useState<{
-    type: "module" | "lesson" | "video" | "brief" | "ppt" | "content";
-    id: string;
-  } | null>(null);
+  const [expandedModules, setExpandedModules] = useState<ExpandedState>({});
+  const [expandedLessons, setExpandedLessons] = useState<ExpandedState>({});
+  const [activeTab, setActiveTab] = useState<TabType>("toc");
+  const [toasts, setToasts] = useState<ToastState[]>([]);
+  const [currentUser, setCurrentUser] = useState(DEMO_USERS.pm);
+  const [loading, setLoading] = useState(true);
+  const [courseResearch, setCourseResearchState] = useState<CourseResearch | null>(null);
 
-  // State for briefs, ppts, recordings, transcripts, content
-  const [contentBriefs, setContentBriefs] = useState<ContentBrief[]>([]);
-  const [pptSlides, setPptSlides] = useState<PPTSlide[]>([]);
+  // Tab-specific state
+  const [selectedVideoForBrief, setSelectedVideoForBrief] = useState<string>("");
+  const [briefs, setBriefs] = useState<ContentBrief[]>([]);
+  const [pptSlides, setPPTSlides] = useState<PPTSlide[]>([]);
+  const [pptSubTab, setPPTSubTab] = useState<"ai" | "upload">("ai");
+  const [slideEditor, setSlideEditor] = useState<SlideEditorState | null>(null);
   const [recordings, setRecordings] = useState<Recording[]>([]);
+  const [zoomConnected, setZoomConnected] = useState(false);
   const [transcripts, setTranscripts] = useState<Transcript[]>([]);
+  const [selectedVideoForTranscript, setSelectedVideoForTranscript] = useState<string>("");
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
+  const [pptUploads, setPPTUploads] = useState<any[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<{ videoId: string; filename: string }[]>([]);
+  const [contentGenerating, setContentGenerating] = useState<Record<string, boolean>>({});
+  const [qualityChecklistItems, setQualityChecklistItems] = useState<Record<string, boolean>>({
+    completeness: false,
+    accuracy: false,
+    engagement: false,
+    accessibility: false,
+    alignment: false,
+    production: false,
+    testing: false,
+    documentation: false,
+  });
+  const [coachSignOff, setCoachSignOff] = useState(false);
+  const [pmReview, setPmReview] = useState(false);
+  const [authoritySubmission, setAuthoritySubmission] = useState(false);
 
-  // UI state
-  const [expandedVideos, setExpandedVideos] = useState<Record<string, boolean>>({});
-  const [loadingVideos, setLoadingVideos] = useState<Record<string, boolean>>({});
-  const [editingBrief, setEditingBrief] = useState<string | null>(null);
-  const [briefEdits, setBriefEdits] = useState<Record<string, Partial<ContentBrief>>>({});
-  const [editingTranscript, setEditingTranscript] = useState<string | null>(null);
-  const [transcriptEdits, setTranscriptEdits] = useState<Record<string, string>>({});
-  const [selectedContentType, setSelectedContentType] = useState<Record<string, string>>({});
-  const [generatingContent, setGeneratingContent] = useState<Record<string, boolean>>({});
-  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
-
-  // Load initial data
+  // Initialize data
   useEffect(() => {
-    const storedUser = localStorage.getItem("courseforge_user");
-    if (!storedUser) {
-      router.push("/");
+    const courseData = getCourseById(courseId);
+    if (!courseData) {
+      router.push("/dashboard");
       return;
     }
 
-    try {
-      const parsedUser = JSON.parse(storedUser);
-      setUser(parsedUser);
+    setCourse(courseData);
+    const modulesData = getModulesByCourse(courseId);
+    setModules(modulesData);
 
-      const foundCourse = getCourseById(courseId);
-      if (!foundCourse) {
-        router.push("/dashboard");
-        return;
-      }
+    const commentsData = getCommentsByCourse(courseId);
+    setComments(commentsData);
 
-      setCourse(foundCourse);
-      const foundModules = getModulesByCourse(courseId);
-      setModules(foundModules);
-      const foundComments = getCommentsByCourse(courseId);
-      setComments(foundComments);
+    const research = getCourseResearch(courseId);
+    if (research) setCourseResearchState(research);
 
-      // Load briefs, ppts, recordings, transcripts
-      const allBriefs: ContentBrief[] = [];
-      const allSlides: PPTSlide[] = [];
-      const allRecordings: Recording[] = [];
-      const allTranscripts: Transcript[] = [];
-      const allContentItems: ContentItem[] = [];
+    // Initialize other data
+    const allBriefs: ContentBrief[] = [];
+    const allSlides: PPTSlide[] = [];
+    const allRecordings: Recording[] = [];
+    const allTranscripts: Transcript[] = [];
+    const allContentItems: ContentItem[] = [];
+    const allUploads: any[] = [];
 
-      for (const module of foundModules) {
-        for (const lesson of module.lessons) {
-          for (const video of lesson.videos) {
-            allBriefs.push(...getContentBriefsByVideo(video.id));
-            allSlides.push(...getPPTSlidesByVideo(video.id));
-            const rec = getRecordingByVideo(video.id);
-            if (rec) {
-              allRecordings.push(rec);
-              const trans = getTranscriptByRecording(rec.id);
-              if (trans) allTranscripts.push(trans);
-            }
-          }
-          allContentItems.push(...getContentItemsByLesson(lesson.id));
+    for (const mod of modulesData) {
+      for (const lesson of mod.lessons) {
+        for (const video of lesson.videos) {
+          const vBriefs = getContentBriefsByVideo(video.id);
+          allBriefs.push(...vBriefs);
+
+          const vSlides = getPPTSlidesByVideo(video.id);
+          allSlides.push(...vSlides);
+
+          const vRecording = getRecordingByVideo(video.id);
+          if (vRecording) allRecordings.push(vRecording);
+
+          const vTranscript = getTranscriptByRecording(
+            vRecording?.id || "none"
+          );
+          if (vTranscript) allTranscripts.push(vTranscript);
+
+          const vUploads = getPPTUploadsByVideo(video.id);
+          allUploads.push(...vUploads);
         }
-      }
 
-      setContentBriefs(allBriefs);
-      setPptSlides(allSlides);
-      setRecordings(allRecordings);
-      setTranscripts(allTranscripts);
-      setContentItems(allContentItems);
-
-      const availableTabs = PHASE_TABS[foundCourse.status] || ["toc"];
-      if (!availableTabs.includes(activeTab)) {
-        setActiveTab(availableTabs[0] as PhaseTab);
+        const lItems = getContentItemsByLesson(lesson.id);
+        allContentItems.push(...lItems);
       }
-    } catch (err) {
-      console.error("Course load error:", err);
-      router.push("/");
-      return;
     }
 
-    setIsLoading(false);
+    setBriefs(allBriefs);
+    setPPTSlides(allSlides);
+    setRecordings(allRecordings);
+    setTranscripts(allTranscripts);
+    setContentItems(allContentItems);
+    setPPTUploads(allUploads);
+
+    setLoading(false);
   }, [courseId, router]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("courseforge_user");
-    router.push("/");
+  // Helper functions
+  const addToast = (message: string, type: "success" | "error" | "info" = "info") => {
+    const id = generateId();
+    setToasts((prev) => [...prev, { message, type, id }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 3000);
   };
 
-  const handleAddComment = () => {
-    if (!newComment.trim() || !selectedTarget || !user || !course) return;
+  const toggleModuleExpand = (moduleId: string) => {
+    setExpandedModules((prev) => ({
+      ...prev,
+      [moduleId]: !prev[moduleId],
+    }));
+  };
 
-    const comment: Comment = {
+  const toggleLessonExpand = (lessonId: string) => {
+    setExpandedLessons((prev) => ({
+      ...prev,
+      [lessonId]: !prev[lessonId],
+    }));
+  };
+
+  const handleAddComment = (
+    targetId: string,
+    targetType: string,
+    text: string,
+    isAskPM: boolean = false
+  ) => {
+    const newComment: Comment = {
       id: generateId(),
       course_id: courseId,
-      author: user.id,
-      author_role: user.role,
-      text: newComment,
-      target_type: selectedTarget.type,
-      target_id: selectedTarget.id,
+      author: currentUser.name,
+      author_role: currentUser.role,
+      text,
+      target_type: targetType as any,
+      target_id: targetId,
       resolved: false,
+      is_ai_flag: false,
+      is_ask_pm: isAskPM,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
 
-    addComment(comment);
-    setComments([...comments, comment]);
-    setNewComment("");
-    setSelectedTarget(null);
-    setToast({ message: "Comment added successfully", type: "success" });
+    addComment(newComment);
+    setComments([...comments, newComment]);
+    addToast(
+      isAskPM ? "Question sent to PM" : "Comment added",
+      "success"
+    );
   };
 
-  const handleResolveComment = (commentId: string) => {
-    resolveComment(commentId);
-    setComments(comments.map((c) => (c.id === commentId ? { ...c, resolved: true } : c)));
-    setToast({ message: "Comment resolved", type: "success" });
-  };
-
-  const generateAllVideoBriefs = useCallback(async () => {
-    const allVideos = modules.flatMap((m) => m.lessons.flatMap((l) => l.videos));
-    const toBrief = allVideos.filter((v) => !contentBriefs.some((b) => b.video_id === v.id));
-
-    if (toBrief.length === 0) {
-      setToast({ message: "All videos already have briefs", type: "error" });
-      return;
-    }
-
-    for (const video of toBrief) {
-      setLoadingVideos((prev) => ({ ...prev, [video.id]: true }));
-      try {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        const brief: ContentBrief = {
-          id: generateId(),
-          video_id: video.id,
-          lesson_id: video.lesson_id,
-          course_id: courseId,
-          coach_id: user?.id || "",
-          what_to_cover: `Key concepts and applications for: ${video.title}`,
-          examples: "Real-world business scenarios and use cases",
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-        addContentBrief(brief);
-        setContentBriefs((prev) => [...prev, brief]);
-      } finally {
-        setLoadingVideos((prev) => ({ ...prev, [video.id]: false }));
-      }
-    }
-
-    setToast({ message: `Generated ${toBrief.length} content briefs`, type: "success" });
-  }, [modules, contentBriefs, courseId, user?.id]);
-
-  const generateBrief = useCallback(
-    async (videoId: string) => {
-      setLoadingVideos((prev) => ({ ...prev, [videoId]: true }));
-      try {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        const brief: ContentBrief = {
-          id: generateId(),
-          video_id: videoId,
-          lesson_id: modules.flatMap((m) => m.lessons.flatMap((l) => l.videos)).find((v) => v.id === videoId)?.lesson_id || "",
-          course_id: courseId,
-          coach_id: user?.id || "",
-          what_to_cover: "Key concepts and business applications",
-          examples: "Real-world scenarios and case studies",
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-        addContentBrief(brief);
-        setContentBriefs((prev) => [...prev, brief]);
-        setToast({ message: "Brief generated successfully", type: "success" });
-      } finally {
-        setLoadingVideos((prev) => ({ ...prev, [videoId]: false }));
-      }
-    },
-    [modules, courseId, user?.id]
-  );
-
-  const generateAllPPTs = useCallback(async () => {
-    const allVideos = modules.flatMap((m) => m.lessons.flatMap((l) => l.videos));
-    const toGenerate = allVideos.filter((v) => !pptSlides.some((s) => s.video_id === v.id));
-
-    if (toGenerate.length === 0) {
-      setToast({ message: "All videos already have slides", type: "error" });
-      return;
-    }
-
-    for (const video of toGenerate) {
-      setLoadingVideos((prev) => ({ ...prev, [video.id]: true }));
-      try {
-        await new Promise((resolve) => setTimeout(resolve, 2500));
-        for (let i = 1; i <= 5; i++) {
-          const slide: PPTSlide = {
-            id: generateId(),
-            video_id: video.id,
-            lesson_id: video.lesson_id,
-            course_id: courseId,
-            slide_number: i,
-            title: `Slide ${i}: ${video.title}`,
-            content: `Key point ${i} about the topic\nSecondary information`,
-            notes: `Speaker notes for slide ${i}`,
-            status: "generated",
-          };
-          addPPTSlide(slide);
-          setPptSlides((prev) => [...prev, slide]);
-        }
-      } finally {
-        setLoadingVideos((prev) => ({ ...prev, [video.id]: false }));
-      }
-    }
-
-    setToast({ message: `Generated slides for ${toGenerate.length} videos`, type: "success" });
-  }, [modules, pptSlides, courseId]);
-
-  const generatePPT = useCallback(
-    async (videoId: string) => {
-      setLoadingVideos((prev) => ({ ...prev, [videoId]: true }));
-      try {
-        await new Promise((resolve) => setTimeout(resolve, 2500));
-        const video = modules.flatMap((m) => m.lessons.flatMap((l) => l.videos)).find((v) => v.id === videoId);
-        if (!video) return;
-
-        for (let i = 1; i <= 5; i++) {
-          const slide: PPTSlide = {
-            id: generateId(),
-            video_id: videoId,
-            lesson_id: video.lesson_id,
-            course_id: courseId,
-            slide_number: i,
-            title: `Slide ${i}: ${video.title}`,
-            content: `Key concept ${i}\nSupporting details`,
-            notes: `Speaker notes for slide ${i}`,
-            status: "generated",
-          };
-          addPPTSlide(slide);
-          setPptSlides((prev) => [...prev, slide]);
-        }
-
-        setToast({ message: "Slides generated successfully", type: "success" });
-      } finally {
-        setLoadingVideos((prev) => ({ ...prev, [videoId]: false }));
-      }
-    },
-    [modules, courseId]
-  );
-
-  const generateAllRecordings = useCallback(async () => {
-    const allVideos = modules.flatMap((m) => m.lessons.flatMap((l) => l.videos));
-    const toRecord = allVideos.filter((v) => !recordings.some((r) => r.video_id === v.id));
-
-    if (toRecord.length === 0) {
-      setToast({ message: "All videos already have recordings", type: "error" });
-      return;
-    }
-
-    for (const video of toRecord) {
-      setLoadingVideos((prev) => ({ ...prev, [video.id]: true }));
-      try {
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-        const recording: Recording = {
-          id: generateId(),
-          video_id: video.id,
-          lesson_id: video.lesson_id,
-          course_id: courseId,
-          coach_id: user?.id || "",
-          duration_seconds: video.duration_minutes * 60,
-          status: "recorded",
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-        addRecording(recording);
-        setRecordings((prev) => [...prev, recording]);
-      } finally {
-        setLoadingVideos((prev) => ({ ...prev, [video.id]: false }));
-      }
-    }
-
-    setToast({ message: `Generated AI voice for ${toRecord.length} videos`, type: "success" });
-  }, [modules, recordings, courseId, user?.id]);
-
-  const generateRecording = useCallback(
-    async (videoId: string) => {
-      setLoadingVideos((prev) => ({ ...prev, [videoId]: true }));
-      try {
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-        const video = modules.flatMap((m) => m.lessons.flatMap((l) => l.videos)).find((v) => v.id === videoId);
-        if (!video) return;
-
-        const recording: Recording = {
-          id: generateId(),
-          video_id: videoId,
-          lesson_id: video.lesson_id,
-          course_id: courseId,
-          coach_id: user?.id || "",
-          duration_seconds: video.duration_minutes * 60,
-          status: "recorded",
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-        addRecording(recording);
-        setRecordings((prev) => [...prev, recording]);
-        setToast({ message: "AI voice generated successfully", type: "success" });
-      } finally {
-        setLoadingVideos((prev) => ({ ...prev, [videoId]: false }));
-      }
-    },
-    [modules, courseId, user?.id]
-  );
-
-  const generateAllTranscripts = useCallback(async () => {
-    const toTranscribe = recordings.filter((r) => !transcripts.some((t) => t.recording_id === r.id));
-
-    if (toTranscribe.length === 0) {
-      setToast({ message: "All recordings already have transcripts", type: "error" });
-      return;
-    }
-
-    for (const recording of toTranscribe) {
-      setLoadingVideos((prev) => ({ ...prev, [recording.video_id]: true }));
-      try {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        const transcript: Transcript = {
-          id: generateId(),
-          recording_id: recording.id,
-          video_id: recording.video_id,
-          course_id: courseId,
-          text: "This is the auto-generated transcript from the AI voice recording. It contains all the key concepts discussed in the video including examples and explanations.",
-          language: "en",
-          confidence: 0.95,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-        addTranscript(transcript);
-        setTranscripts((prev) => [...prev, transcript]);
-      } finally {
-        setLoadingVideos((prev) => ({ ...prev, [recording.video_id]: false }));
-      }
-    }
-
-    setToast({ message: `Transcribed ${toTranscribe.length} recordings`, type: "success" });
-  }, [recordings, transcripts, courseId]);
-
-  const generateTranscript = useCallback(
-    async (recordingId: string) => {
-      const recording = recordings.find((r) => r.id === recordingId);
-      if (!recording) return;
-
-      setLoadingVideos((prev) => ({ ...prev, [recording.video_id]: true }));
-      try {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        const transcript: Transcript = {
-          id: generateId(),
-          recording_id: recordingId,
-          video_id: recording.video_id,
-          course_id: courseId,
-          text: "This is the auto-generated transcript from the recording. It contains all the key concepts and information from the video.",
-          language: "en",
-          confidence: 0.95,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-        addTranscript(transcript);
-        setTranscripts((prev) => [...prev, transcript]);
-        setToast({ message: "Transcript generated successfully", type: "success" });
-      } finally {
-        setLoadingVideos((prev) => ({ ...prev, [recording.video_id]: false }));
-      }
-    },
-    [recordings, courseId]
-  );
-
-  const generateAllContent = useCallback(async () => {
-    const lessonsWithTranscripts = new Set<string>();
-    for (const transcript of transcripts) {
-      const video = modules.flatMap((m) => m.lessons.flatMap((l) => l.videos)).find((v) => v.id === transcript.video_id);
-      if (video) lessonsWithTranscripts.add(video.lesson_id);
-    }
-
-    const toLessonArray = Array.from(lessonsWithTranscripts);
-    if (toLessonArray.length === 0) {
-      setToast({ message: "No transcripts available for content generation", type: "error" });
-      return;
-    }
-
-    for (const lessonId of toLessonArray) {
-      const selectedType = selectedContentType[lessonId] || "reading";
-      setGeneratingContent((prev) => ({ ...prev, [lessonId]: true }));
-      try {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        const item: ContentItem = {
-          id: generateId(),
-          lesson_id: lessonId,
-          type: selectedType as any,
-          title: `${selectedType.charAt(0).toUpperCase() + selectedType.slice(1).replace(/_/g, " ")} - AI Generated`,
-          content: "This is AI-generated content based on the video transcript.",
-          order: contentItems.filter((c) => c.lesson_id === lessonId).length + 1,
-        };
-        addContentItem(item);
-        setContentItems((prev) => [...prev, item]);
-      } finally {
-        setGeneratingContent((prev) => ({ ...prev, [lessonId]: false }));
-      }
-    }
-
-    setToast({ message: `Generated content for ${toLessonArray.length} lessons`, type: "success" });
-  }, [modules, transcripts, selectedContentType, contentItems]);
-
-  const generateContent = useCallback(
-    async (lessonId: string) => {
-      const selectedType = selectedContentType[lessonId] || "reading";
-      setGeneratingContent((prev) => ({ ...prev, [lessonId]: true }));
-      try {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        const item: ContentItem = {
-          id: generateId(),
-          lesson_id: lessonId,
-          type: selectedType as any,
-          title: `${selectedType.charAt(0).toUpperCase() + selectedType.slice(1).replace(/_/g, " ")} - AI Generated`,
-          content: "This is AI-generated content based on the video transcripts for this lesson.",
-          order: contentItems.filter((c) => c.lesson_id === lessonId).length + 1,
-        };
-        addContentItem(item);
-        setContentItems((prev) => [...prev, item]);
-        setToast({ message: "Content generated successfully", type: "success" });
-      } finally {
-        setGeneratingContent((prev) => ({ ...prev, [lessonId]: false }));
-      }
-    },
-    [selectedContentType, contentItems]
-  );
-
-  const handlePublish = () => {
+  const handleApproveAndAdvance = () => {
     if (!course) return;
-    updateCourse(courseId, { status: "published" });
-    setCourse({ ...course, status: "published" });
-    setToast({ message: "Course published successfully!", type: "success" });
+
+    const nextStatus = NEXT_PHASE[course.status as CourseStatus] as CourseStatus;
+    if (!nextStatus) {
+      addToast("Course is already at final status", "error");
+      return;
+    }
+
+    updateCourse(courseId, { status: nextStatus });
+    setCourse({ ...course, status: nextStatus });
+    addToast(`Course advanced to ${PHASE_CONFIG[nextStatus].label}`, "success");
   };
 
-  const getVideoStats = () => {
-    const allVideos = modules.flatMap((m) => m.lessons.flatMap((l) => l.videos));
-    const totalDuration = allVideos.reduce((sum, v) => sum + v.duration_minutes, 0);
-    const recordedCount = recordings.length;
-    const transcribedCount = transcripts.length;
-    const contentCount = contentItems.length;
+  const getTabUnlocked = (tab: TabType): boolean => {
+    if (!course) return false;
 
-    return {
-      totalVideos: allVideos.length,
-      totalDuration,
-      recordedCount,
-      transcribedCount,
-      contentCount,
+    const phaseMap: Record<TabType, number[]> = {
+      toc: [1, 2, 3],
+      briefs: [4],
+      ppts: [5, 6],
+      recording: [7],
+      transcript: [8],
+      content: [8],
+      review: [9],
     };
+
+    const requiredPhases = phaseMap[tab];
+    return requiredPhases.includes(PHASE_CONFIG[course.status].phase);
   };
 
-  if (isLoading || !course || !user) {
+  const getAllVideos = (): { video: Video; lesson: Lesson; module: Module }[] => {
+    const videos: { video: Video; lesson: Lesson; module: Module }[] = [];
+    for (const mod of modules) {
+      for (const lesson of mod.lessons) {
+        for (const video of lesson.videos) {
+          videos.push({ video, lesson, module: mod });
+        }
+      }
+    }
+    return videos;
+  };
+
+  const getVideoDetails = (videoId: string) => {
+    for (const mod of modules) {
+      for (const lesson of mod.lessons) {
+        const video = lesson.videos.find((v) => v.id === videoId);
+        if (video) return { video, lesson, module: mod };
+      }
+    }
+    return null;
+  };
+
+  const getCommentsForTarget = (
+    targetId: string,
+    targetType: string
+  ): Comment[] => {
+    return comments.filter(
+      (c) => c.target_id === targetId && c.target_type === targetType
+    );
+  };
+
+  if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
-        <LoadingSpinner size="lg" />
+      <div className="flex h-screen bg-gray-50">
+        <Sidebar />
+        <div className="flex-1 flex items-center justify-center">
+          <Loader className="w-8 h-8 text-blue-600 animate-spin" />
+        </div>
       </div>
     );
   }
 
-  const availableTabs = PHASE_TABS[course.status] || ["toc"];
-  const isCoachOrCreator = user.role === "coach" || user.id === course.created_by;
-  const stats = getVideoStats();
+  if (!course) {
+    return (
+      <div className="flex h-screen bg-gray-50">
+        <Sidebar />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <AlertCircle className="w-12 h-12 text-red-600 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-gray-900">Course not found</h1>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-  // Get all videos with their parent lesson
-  const allVideos = modules.flatMap((m) =>
-    m.lessons.flatMap((l) =>
-      l.videos.map((v) => ({
-        video: v,
-        lesson: l,
-        module: m,
-      }))
-    )
-  );
+  const phaseConfig = PHASE_CONFIG[course.status];
+  const progressPercent = (phaseConfig.phase / 9) * 100;
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar user={user} onLogout={handleLogout} />
+      <Sidebar />
 
-      <main className="flex-1 md:ml-64 overflow-auto">
-        <div className="p-8">
-          {/* Header */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">{course.title}</h1>
-                <p className="text-gray-600 mt-1">{course.description}</p>
+      <main className="flex-1 overflow-auto">
+        {/* Header */}
+        <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
+          <div className="p-6">
+            <div className="flex justify-between items-start mb-4">
+              <div className="flex-1">
+                <h1 className="text-3xl font-bold text-gray-900">
+                  {course.title}
+                </h1>
+                <p className="text-gray-600 mt-2">{course.description}</p>
               </div>
               <div className="text-right">
-                <div className={`inline-block px-4 py-2 rounded-lg font-medium text-sm ${
-                  course.status === "published"
-                    ? "bg-green-100 text-green-700"
-                    : course.status.includes("review")
-                    ? "bg-yellow-100 text-yellow-700"
-                    : "bg-blue-100 text-blue-700"
-                }`}>
-                  {PHASE_LABELS[course.status]}
-                </div>
+                <span
+                  className={`inline-block px-4 py-2 rounded-lg font-semibold text-white ${
+                    phaseConfig.color === "gray"
+                      ? "bg-gray-500"
+                      : phaseConfig.color === "blue"
+                        ? "bg-blue-600"
+                        : phaseConfig.color === "yellow"
+                          ? "bg-yellow-500"
+                          : phaseConfig.color === "green"
+                            ? "bg-green-600"
+                            : phaseConfig.color === "purple"
+                              ? "bg-purple-600"
+                              : phaseConfig.color === "orange"
+                                ? "bg-orange-500"
+                                : "bg-blue-600"
+                  }`}
+                >
+                  {phaseConfig.label}
+                </span>
               </div>
             </div>
 
             {/* Progress bar */}
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className="bg-blue-600 h-2 rounded-full transition-all"
-                style={{
-                  width: `${((Object.keys(PHASE_LABELS).indexOf(course.status) + 1) / Object.keys(PHASE_LABELS).length) * 100}%`,
-                }}
-              />
+            <div className="mb-6">
+              <div className="flex justify-between text-sm text-gray-600 mb-2">
+                <span>Progress</span>
+                <span>{Math.round(progressPercent)}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${progressPercent}%` }}
+                ></div>
+              </div>
+            </div>
+
+            {/* Tab navigation */}
+            <div className="flex gap-2 overflow-x-auto">
+              {(
+                ["toc", "briefs", "ppts", "recording", "transcript", "content", "review"] as TabType[]
+              ).map((tab) => {
+                const unlocked = getTabUnlocked(tab);
+                const isActive = activeTab === tab;
+
+                const tabLabels: Record<TabType, string> = {
+                  toc: "Table of Contents",
+                  briefs: "Content Briefs",
+                  ppts: "Presentations",
+                  recording: "Recording",
+                  transcript: "Transcript",
+                  content: "Content",
+                  review: "Final Review",
+                };
+
+                return (
+                  <button
+                    key={tab}
+                    onClick={() => unlocked && setActiveTab(tab)}
+                    disabled={!unlocked}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${
+                      isActive
+                        ? "bg-blue-600 text-white"
+                        : unlocked
+                          ? "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+                          : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    }`}
+                  >
+                    {!unlocked && <Lock className="w-4 h-4" />}
+                    {tabLabels[tab]}
+                  </button>
+                );
+              })}
             </div>
           </div>
+        </div>
 
-          {/* Tab Navigation */}
-          <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
-            {(["toc", "briefs", "ppts", "recording", "transcript", "content", "review"] as PhaseTab[]).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                disabled={!availableTabs.includes(tab)}
-                className={`px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-colors ${
-                  activeTab === tab
-                    ? "bg-blue-600 text-white"
-                    : availableTabs.includes(tab)
-                    ? "bg-white text-gray-700 border border-gray-200 hover:border-gray-300"
-                    : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                }`}
-              >
-                {tab === "briefs" ? "Content Briefs" : tab === "ppts" ? "PPTs" : tab === "recording" ? "Recording" : tab === "transcript" ? "Transcript" : tab === "content" ? "Content" : tab === "review" ? "Review" : "TOC"}
-              </button>
-            ))}
-          </div>
-
-          {/* Tab Content */}
-          <div className="bg-white rounded-lg border border-gray-200 p-8">
-            {/* TOC Tab */}
-            {activeTab === "toc" && (
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-4">Table of Contents</h2>
-                  {modules.length === 0 ? (
-                    <div className="text-center py-12 text-gray-500">
-                      <p>No modules yet. Generate TOC to start.</p>
-                    </div>
-                  ) : (
+        {/* Content area */}
+        <div className="p-6">
+          {/* ─── TOC TAB ─── */}
+          {activeTab === "toc" && (
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              <div className="lg:col-span-3">
+                {course.status === "toc_generation" ? (
+                  <div className="bg-white rounded-lg p-6 border border-gray-200">
+                    <h2 className="text-xl font-bold text-gray-900 mb-6">
+                      Research Progress
+                    </h2>
                     <div className="space-y-4">
-                      {modules.map((module) => (
-                        <div key={module.id} className="border border-gray-200 rounded-lg overflow-hidden">
-                          <button
-                            onClick={() =>
-                              setExpandedModules((prev) => ({
-                                ...prev,
-                                [module.id]: !prev[module.id],
-                              }))
-                            }
-                            className="w-full px-6 py-4 hover:bg-gray-50 flex items-center justify-between"
-                          >
-                            <div className="text-left flex-1">
-                              <h3 className="font-bold text-gray-900">{module.title}</h3>
-                              <p className="text-sm text-gray-600 mt-1">{module.description}</p>
-                              <div className="flex gap-3 mt-2">
-                                <span className="text-xs text-gray-500">Lessons: {module.lessons.length}</span>
-                                <span className="text-xs text-gray-500">
-                                  Duration: {module.lessons.reduce((sum, l) => sum + l.videos.reduce((s, v) => s + v.duration_minutes, 0), 0)} min
-                                </span>
-                              </div>
-                              {module.learning_objectives.length > 0 && (
-                                <div className="mt-2 text-xs text-blue-600">
-                                  {module.learning_objectives.length} learning objectives
-                                </div>
-                              )}
-                            </div>
-                            <svg
-                              className={`w-5 h-5 text-gray-400 transition-transform flex-shrink-0 ml-4 ${expandedModules[module.id] ? "rotate-180" : ""}`}
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                            </svg>
-                          </button>
-
-                          {expandedModules[module.id] && (
-                            <div className="border-t border-gray-200 bg-gray-50 p-6 space-y-4">
-                              {module.lessons.map((lesson) => (
-                                <div key={lesson.id} className="bg-white p-4 rounded-lg border border-gray-100 space-y-3">
-                                  <div className="flex items-start justify-between gap-4">
-                                    <div className="flex-1">
-                                      <h4 className="font-semibold text-gray-900">{lesson.title}</h4>
-                                      <p className="text-sm text-gray-600 mt-1">{lesson.description}</p>
-                                      <div className="mt-2 flex flex-wrap gap-2">
-                                        {lesson.content_types.map((ct) => (
-                                          <span key={ct} className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded">
-                                            {ct}
-                                          </span>
-                                        ))}
-                                      </div>
-                                    </div>
-                                    {isCoachOrCreator && (
-                                      <button
-                                        onClick={() => setSelectedTarget({ type: "lesson", id: lesson.id })}
-                                        className="text-blue-600 hover:text-blue-700 text-sm whitespace-nowrap"
-                                      >
-                                        Comment
-                                      </button>
-                                    )}
-                                  </div>
-
-                                  {lesson.videos.length > 0 && (
-                                    <div className="pl-4 border-l-2 border-gray-200 space-y-2">
-                                      {lesson.videos.map((video) => (
-                                        <div key={video.id} className="text-sm">
-                                          <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                              </svg>
-                                              <span className="text-gray-700">{video.title}</span>
-                                              <span className="text-xs text-gray-500">({video.duration_minutes} min)</span>
-                                            </div>
-                                            {isCoachOrCreator && (
-                                              <button onClick={() => setSelectedTarget({ type: "video", id: video.id })} className="text-blue-600 hover:text-blue-700 text-xs">
-                                                Comment
-                                              </button>
-                                            )}
-                                          </div>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          )}
+                      {[
+                        {
+                          label: "Market Research",
+                          description: "Analyzing competitor courses",
+                          status: "done" as const,
+                        },
+                        {
+                          label: "Skills Gap Analysis",
+                          description: "Identifying missing skills in market",
+                          status: "done" as const,
+                        },
+                        {
+                          label: "Curriculum Mapping",
+                          description: "Structuring course modules",
+                          status: "loading" as const,
+                        },
+                        {
+                          label: "Learning Objectives",
+                          description: "Defining learning outcomes",
+                          status: "loading" as const,
+                        },
+                        {
+                          label: "Content Outline",
+                          description: "Creating detailed TOC",
+                          status: "pending" as const,
+                        },
+                        {
+                          label: "Resource Curation",
+                          description: "Gathering reference materials",
+                          status: "pending" as const,
+                        },
+                        {
+                          label: "Quality Review",
+                          description: "Final QA check",
+                          status: "pending" as const,
+                        },
+                      ].map((step, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg"
+                        >
+                          <div className="flex-shrink-0 mt-1">
+                            {step.status === "done" && (
+                              <CheckCircle2 className="w-5 h-5 text-green-600" />
+                            )}
+                            {step.status === "loading" && (
+                              <Loader className="w-5 h-5 text-blue-600 animate-spin" />
+                            )}
+                            {step.status === "pending" && (
+                              <Circle className="w-5 h-5 text-gray-400" />
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-semibold text-gray-900">
+                              {step.label}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              {step.description}
+                            </p>
+                          </div>
                         </div>
                       ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {modules.map((module) => (
+                      <div
+                        key={module.id}
+                        className="bg-white rounded-lg border border-gray-200 overflow-hidden"
+                      >
+                        <button
+                          onClick={() => toggleModuleExpand(module.id)}
+                          className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                        >
+                          <div className="flex items-center gap-3 flex-1">
+                            {expandedModules[module.id] ? (
+                              <ChevronDown className="w-5 h-5 text-gray-600" />
+                            ) : (
+                              <ChevronRight className="w-5 h-5 text-gray-600" />
+                            )}
+                            <div className="text-left">
+                              <h3 className="font-bold text-gray-900">
+                                {module.title}
+                              </h3>
+                              <p className="text-sm text-gray-600">
+                                {module.lessons.length} lessons
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <span className="text-sm text-gray-600 flex items-center gap-1">
+                              <Clock className="w-4 h-4" />
+                              {module.duration_hours}h
+                            </span>
+                            <span className="text-sm font-semibold text-blue-600 flex items-center gap-1">
+                              <MessageSquare className="w-4 h-4" />
+                              {getCommentsForTarget(module.id, "module").length}
+                            </span>
+                          </div>
+                        </button>
+
+                        {expandedModules[module.id] && (
+                          <div className="border-t border-gray-200 divide-y divide-gray-200">
+                            {module.lessons.map((lesson) => (
+                              <div key={lesson.id}>
+                                <button
+                                  onClick={() => toggleLessonExpand(lesson.id)}
+                                  className="w-full px-6 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors bg-gray-50"
+                                >
+                                  <div className="flex items-center gap-3 flex-1">
+                                    {expandedLessons[lesson.id] ? (
+                                      <ChevronDown className="w-4 h-4 text-gray-600" />
+                                    ) : (
+                                      <ChevronRight className="w-4 h-4 text-gray-600" />
+                                    )}
+                                    <div className="text-left">
+                                      <h4 className="font-semibold text-gray-900">
+                                        {lesson.title}
+                                      </h4>
+                                    </div>
+                                  </div>
+                                  <span className="text-sm font-semibold text-blue-600 flex items-center gap-1">
+                                    <MessageSquare className="w-4 h-4" />
+                                    {getCommentsForTarget(lesson.id, "lesson").length}
+                                  </span>
+                                </button>
+
+                                {expandedLessons[lesson.id] && (
+                                  <div className="divide-y divide-gray-200">
+                                    {lesson.videos.map((video) => {
+                                      const videoComments =
+                                        getCommentsForTarget(
+                                          video.id,
+                                          "video"
+                                        );
+
+                                      return (
+                                        <div
+                                          key={video.id}
+                                          className="px-12 py-4 flex items-center justify-between hover:bg-gray-100 transition-colors"
+                                        >
+                                          <div className="flex items-center gap-3 flex-1">
+                                            <Play className="w-4 h-4 text-blue-600" />
+                                            <div className="text-left">
+                                              <p className="font-medium text-gray-900">
+                                                {video.title}
+                                              </p>
+                                              <p className="text-xs text-gray-600">
+                                                {video.duration_minutes} min
+                                                {video.is_handson && (
+                                                  <span className="ml-2 px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs rounded font-medium">
+                                                    Hands-on
+                                                  </span>
+                                                )}
+                                              </p>
+                                            </div>
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-sm font-semibold text-blue-600 flex items-center gap-1">
+                                              <MessageSquare className="w-4 h-4" />
+                                              {videoComments.length}
+                                            </span>
+                                            <button
+                                              onClick={() => {
+                                                const text =
+                                                  prompt(
+                                                    "Add comment:"
+                                                  );
+                                                if (text) {
+                                                  handleAddComment(
+                                                    video.id,
+                                                    "video",
+                                                    text
+                                                  );
+                                                }
+                                              }}
+                                              className="p-1 hover:bg-gray-300 rounded"
+                                            >
+                                              <Plus className="w-4 h-4 text-gray-600" />
+                                            </button>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {course.status !== "toc_generation" &&
+                  currentUser.role === "pm" &&
+                  comments.filter((c) => !c.resolved && c.course_id === courseId).length > 0 && (
+                    <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+                      <button
+                        onClick={handleApproveAndAdvance}
+                        className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        Approve & Advance to Next Phase
+                      </button>
+                    </div>
+                  )}
+              </div>
+
+              {/* Right sidebar - Research & competitive analysis */}
+              {courseResearch && course.status !== "toc_generation" && (
+                <div className="lg:col-span-1">
+                  <div className="bg-white rounded-lg p-6 border border-gray-200 sticky top-32">
+                    <h3 className="text-lg font-bold text-gray-900 mb-4">
+                      Source Citations
+                    </h3>
+
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="font-semibold text-gray-900 text-sm mb-2">
+                          Best Existing Course
+                        </h4>
+                        <div className="bg-blue-50 p-3 rounded text-sm">
+                          <p className="font-medium text-gray-900">
+                            {courseResearch.best_existing_course.name}
+                          </p>
+                          <p className="text-gray-600 text-xs">
+                            {courseResearch.best_existing_course.platform}
+                          </p>
+                          <p className="text-yellow-600 text-xs mt-1">
+                            Rating: {courseResearch.best_existing_course.rating}/5
+                          </p>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="font-semibold text-gray-900 text-sm mb-2">
+                          Why We're Better
+                        </h4>
+                        <ul className="space-y-1 text-sm text-gray-600">
+                          {courseResearch.why_better
+                            .slice(0, 3)
+                            .map((reason, idx) => (
+                              <li key={idx} className="flex gap-2">
+                                <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
+                                <span>{reason}</span>
+                              </li>
+                            ))}
+                        </ul>
+                      </div>
+
+                      <div>
+                        <h4 className="font-semibold text-gray-900 text-sm mb-2">
+                          Market Skills
+                        </h4>
+                        <div className="flex flex-wrap gap-1">
+                          {courseResearch.job_market_skills
+                            .slice(0, 4)
+                            .map((skill, idx) => (
+                              <span
+                                key={idx}
+                                className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded"
+                              >
+                                {skill}
+                              </span>
+                            ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ─── BRIEFS TAB ─── */}
+          {activeTab === "briefs" && (
+            <div className="space-y-6">
+              <div className="bg-white rounded-lg p-6 border border-gray-200">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">
+                  Content Briefs Tracker
+                </h2>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="text-left py-3 px-4 font-semibold text-gray-900">
+                          Video
+                        </th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-900">
+                          Coach Input
+                        </th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-900">
+                          Brief Status
+                        </th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-900">
+                          Coach Review
+                        </th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-900">
+                          PM Notes
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {getAllVideos().map(({ video }) => {
+                        const brief = briefs.find(
+                          (b) => b.video_id === video.id
+                        );
+                        const coachInput = getCoachInputByVideo(video.id);
+
+                        return (
+                          <tr
+                            key={video.id}
+                            className="hover:bg-gray-50 cursor-pointer"
+                            onClick={() =>
+                              setSelectedVideoForBrief(video.id)
+                            }
+                          >
+                            <td className="py-3 px-4 text-gray-900 font-medium">
+                              {video.title}
+                            </td>
+                            <td className="py-3 px-4">
+                              <span
+                                className={`text-xs font-semibold px-2 py-1 rounded ${
+                                  coachInput?.status === "completed"
+                                    ? "bg-green-100 text-green-800"
+                                    : coachInput?.status === "in_progress"
+                                      ? "bg-blue-100 text-blue-800"
+                                      : "bg-gray-100 text-gray-800"
+                                }`}
+                              >
+                                {coachInput?.status || "not_started"}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4">
+                              <span
+                                className={`text-xs font-semibold px-2 py-1 rounded ${
+                                  brief?.status === "approved"
+                                    ? "bg-green-100 text-green-800"
+                                    : brief?.status === "generated"
+                                      ? "bg-blue-100 text-blue-800"
+                                      : brief?.status === "generating"
+                                        ? "bg-yellow-100 text-yellow-800"
+                                        : "bg-gray-100 text-gray-800"
+                                }`}
+                              >
+                                {brief?.status || "pending"}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className="text-gray-600 text-xs">
+                                -
+                              </span>
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className="text-gray-600 text-xs">
+                                -
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {selectedVideoForBrief && (
+                <div className="bg-white rounded-lg p-6 border border-gray-200">
+                  <h2 className="text-xl font-bold text-gray-900 mb-4">
+                    Coach Input - {getVideoDetails(selectedVideoForBrief)?.video.title}
+                  </h2>
+
+                  <div className="space-y-4">
+                    {[
+                      {
+                        label: "Key Topics to Cover",
+                        placeholder: "Enter main topics...",
+                        field: "key_topics",
+                      },
+                      {
+                        label: "Examples & Case Studies",
+                        placeholder: "Real-world examples...",
+                        field: "examples",
+                      },
+                      {
+                        label: "Visual Requirements",
+                        placeholder: "Describe needed visuals...",
+                        field: "visual_requirements",
+                      },
+                      {
+                        label: "Difficulty Notes",
+                        placeholder: "Complexity level guidance...",
+                        field: "difficulty_notes",
+                      },
+                      {
+                        label: "References",
+                        placeholder: "External resources...",
+                        field: "references",
+                      },
+                      {
+                        label: "Special Instructions",
+                        placeholder: "Any other guidance...",
+                        field: "special_instructions",
+                      },
+                    ].map((item) => (
+                      <div key={item.field}>
+                        <label className="block text-sm font-semibold text-gray-900 mb-2">
+                          {item.label}
+                        </label>
+                        <textarea
+                          placeholder={item.placeholder}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          rows={2}
+                        />
+                      </div>
+                    ))}
+
+                    <button className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
+                      <Sparkles className="w-5 h-5" />
+                      Submit & Generate Brief
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ─── PPT TAB ─── */}
+          {activeTab === "ppts" && (
+            <div className="space-y-6">
+              <div className="bg-white rounded-lg border border-gray-200">
+                <div className="border-b border-gray-200 flex">
+                  <button
+                    onClick={() => setPPTSubTab("ai")}
+                    className={`flex-1 px-6 py-4 font-semibold ${
+                      pptSubTab === "ai"
+                        ? "text-blue-600 border-b-2 border-blue-600"
+                        : "text-gray-600"
+                    }`}
+                  >
+                    AI Generated
+                  </button>
+                  <button
+                    onClick={() => setPPTSubTab("upload")}
+                    className={`flex-1 px-6 py-4 font-semibold ${
+                      pptSubTab === "upload"
+                        ? "text-blue-600 border-b-2 border-blue-600"
+                        : "text-gray-600"
+                    }`}
+                  >
+                    Upload External
+                  </button>
+                </div>
+
+                <div className="p-6">
+                  {pptSubTab === "ai" ? (
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-900 mb-4">
+                          Presentation Generation Tracker
+                        </h3>
+
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b border-gray-200">
+                                <th className="text-left py-3 px-4 font-semibold text-gray-900">
+                                  Video
+                                </th>
+                                <th className="text-left py-3 px-4 font-semibold text-gray-900">
+                                  Slides
+                                </th>
+                                <th className="text-left py-3 px-4 font-semibold text-gray-900">
+                                  Generation
+                                </th>
+                                <th className="text-left py-3 px-4 font-semibold text-gray-900">
+                                  Coach Edit
+                                </th>
+                                <th className="text-left py-3 px-4 font-semibold text-gray-900">
+                                  Images
+                                </th>
+                                <th className="text-left py-3 px-4 font-semibold text-gray-900">
+                                  PM Review
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200">
+                              {getAllVideos().map(({ video }) => {
+                                const slides = pptSlides.filter(
+                                  (s) => s.video_id === video.id
+                                );
+
+                                return (
+                                  <tr key={video.id} className="hover:bg-gray-50">
+                                    <td className="py-3 px-4 text-gray-900 font-medium">
+                                      {video.title}
+                                    </td>
+                                    <td className="py-3 px-4">
+                                      <input
+                                        type="number"
+                                        defaultValue="5"
+                                        className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
+                                      />
+                                    </td>
+                                    <td className="py-3 px-4">
+                                      <button className="px-3 py-1 bg-blue-600 text-white text-xs font-semibold rounded hover:bg-blue-700">
+                                        {slides.length > 0
+                                          ? "Regenerate"
+                                          : "Generate"}
+                                      </button>
+                                    </td>
+                                    <td className="py-3 px-4">
+                                      {slides.length > 0 && (
+                                        <button
+                                          onClick={() =>
+                                            setSlideEditor({
+                                              videoId: video.id,
+                                              slideIndex: 0,
+                                            })
+                                          }
+                                          className="text-blue-600 font-semibold text-sm hover:text-blue-700"
+                                        >
+                                          Edit
+                                        </button>
+                                      )}
+                                    </td>
+                                    <td className="py-3 px-4">
+                                      <button className="text-xs text-gray-600 hover:text-gray-900">
+                                        Request
+                                      </button>
+                                    </td>
+                                    <td className="py-3 px-4">
+                                      <span className="text-xs text-gray-600">
+                                        -
+                                      </span>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+
+                      {slideEditor && (
+                        <div className="border-t border-gray-200 pt-6">
+                          <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-lg font-bold text-gray-900">
+                              Slide Editor
+                            </h3>
+                            <button
+                              onClick={() => setSlideEditor(null)}
+                              className="text-gray-600 hover:text-gray-900"
+                            >
+                              <X className="w-6 h-6" />
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <div className="lg:col-span-2 space-y-4">
+                              {pptSlides
+                                .filter(
+                                  (s) =>
+                                    s.video_id ===
+                                    slideEditor.videoId
+                                )
+                                .map((slide, idx) => (
+                                  <div
+                                    key={slide.id}
+                                    className={`p-4 border-2 rounded-lg cursor-pointer transition-colors ${
+                                      slideEditor.slideIndex === idx
+                                        ? "border-blue-600 bg-blue-50"
+                                        : "border-gray-300"
+                                    }`}
+                                    onClick={() =>
+                                      setSlideEditor({
+                                        ...slideEditor,
+                                        slideIndex: idx,
+                                      })
+                                    }
+                                  >
+                                    <h4 className="font-semibold text-gray-900">
+                                      Slide {slide.slide_number}:{" "}
+                                      {slide.title}
+                                    </h4>
+                                    <p className="text-sm text-gray-600 mt-1">
+                                      {slide.content.substring(0, 100)}
+                                      ...
+                                    </p>
+                                  </div>
+                                ))}
+                            </div>
+
+                            <div className="space-y-4">
+                              {pptSlides
+                                .filter(
+                                  (s) =>
+                                    s.video_id ===
+                                    slideEditor.videoId
+                                )
+                                .slice(slideEditor.slideIndex, slideEditor.slideIndex + 1)
+                                .map((slide) => (
+                                  <div
+                                    key={slide.id}
+                                    className="bg-gray-50 p-4 rounded-lg"
+                                  >
+                                    <h4 className="font-semibold text-gray-900 mb-2">
+                                      Content
+                                    </h4>
+                                    <textarea
+                                      defaultValue={slide.content}
+                                      className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                      rows={4}
+                                    />
+
+                                    <h4 className="font-semibold text-gray-900 mt-4 mb-2">
+                                      Speaker Notes
+                                    </h4>
+                                    <textarea
+                                      defaultValue={slide.notes || ""}
+                                      className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                      rows={3}
+                                    />
+
+                                    <h4 className="font-semibold text-gray-900 mt-4 mb-2">
+                                      Layout
+                                    </h4>
+                                    <select className="w-full px-3 py-2 border border-gray-300 rounded text-sm">
+                                      {[
+                                        "title",
+                                        "content",
+                                        "two_column",
+                                        "diagram",
+                                        "summary",
+                                        "code",
+                                      ].map((type) => (
+                                        <option
+                                          key={type}
+                                          value={type}
+                                          selected={
+                                            slide.layout_type === type
+                                          }
+                                        >
+                                          {type}
+                                        </option>
+                                      ))}
+                                    </select>
+
+                                    <button className="w-full mt-4 bg-purple-600 text-white font-semibold py-2 rounded hover:bg-purple-700 flex items-center justify-center gap-2">
+                                      <Sparkles className="w-4 h-4" />
+                                      AI Improve
+                                    </button>
+                                  </div>
+                                ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                        <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                        <p className="text-gray-900 font-semibold mb-1">
+                          Drag and drop your presentations
+                        </p>
+                        <p className="text-gray-600 text-sm">
+                          or click to browse
+                        </p>
+                      </div>
+
+                      {uploadedFiles.length > 0 && (
+                        <div className="space-y-3">
+                          {uploadedFiles.map((file, idx) => (
+                            <div
+                              key={idx}
+                              className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200"
+                            >
+                              <div className="flex items-center gap-3">
+                                <FileText className="w-5 h-5 text-blue-600" />
+                                <div>
+                                  <p className="font-semibold text-gray-900">
+                                    {file.filename}
+                                  </p>
+                                  <p className="text-xs text-gray-600">
+                                    {getVideoDetails(file.videoId)?.video
+                                      .title || "Unknown"}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <button className="p-2 hover:bg-gray-300 rounded">
+                                  <Edit2 className="w-4 h-4 text-gray-600" />
+                                </button>
+                                <button className="p-2 hover:bg-gray-300 rounded">
+                                  <Sparkles className="w-4 h-4 text-purple-600" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
+              </div>
+            </div>
+          )}
 
-                {/* Comments Section */}
-                {isCoachOrCreator && (
-                  <div className="border-t border-gray-200 pt-6">
-                    <h3 className="font-bold text-gray-900 mb-4">Comments & Feedback</h3>
-                    <div className="space-y-4 mb-6">
-                      {comments
-                        .filter((c) => !c.resolved && ["toc", "module", "lesson", "video"].includes(c.target_type))
-                        .map((comment) => (
-                          <div key={comment.id} className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="flex-1">
-                                <p className="text-sm text-gray-600">
-                                  <strong>{comment.author_role}</strong> on <span className="font-medium">{comment.target_type}</span>
-                                </p>
-                                <p className="text-gray-900 mt-2">{comment.text}</p>
-                                <p className="text-xs text-gray-500 mt-2">{new Date(comment.created_at).toLocaleDateString()}</p>
-                              </div>
-                              {user.role === "pm" && (
-                                <button
-                                  onClick={() => handleResolveComment(comment.id)}
-                                  className="text-sm px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 whitespace-nowrap"
-                                >
-                                  Resolve
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                    </div>
+          {/* ─── RECORDING TAB ─── */}
+          {activeTab === "recording" && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <button
+                  onClick={() => setZoomConnected(!zoomConnected)}
+                  className={`p-4 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 ${
+                    zoomConnected
+                      ? "bg-green-50 text-green-700 border border-green-300"
+                      : "bg-blue-600 text-white border border-blue-700 hover:bg-blue-700"
+                  }`}
+                >
+                  <ZoomIn className="w-5 h-5" />
+                  {zoomConnected ? "Zoom Connected" : "Connect Zoom"}
+                </button>
+                <button className="p-4 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 bg-white text-blue-600 border border-blue-600 hover:bg-blue-50">
+                  <Upload className="w-5 h-5" />
+                  Upload Video
+                </button>
+              </div>
 
-                    {selectedTarget && (
-                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                        <p className="text-sm text-gray-600 mb-3">Comment on {selectedTarget.type}</p>
-                        <textarea
-                          value={newComment}
-                          onChange={(e) => setNewComment(e.target.value)}
-                          placeholder="Add your feedback..."
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg resize-none mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          rows={3}
-                        />
-                        <div className="flex gap-2">
-                          <button
-                            onClick={handleAddComment}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
-                          >
-                            Post Comment
-                          </button>
-                          <button
-                            onClick={() => setSelectedTarget(null)}
-                            className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
-                          >
-                            Cancel
-                          </button>
+              <div className="bg-white rounded-lg p-6 border border-gray-200">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">
+                  Recording Dashboard
+                </h3>
+
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  {[
+                    { label: "Recorded", value: "0", icon: Music },
+                    { label: "Total Duration", value: "0h 0m", icon: Clock },
+                    {
+                      label: "Scheduled",
+                      value: "0",
+                      icon: CheckCircle2,
+                    },
+                  ].map((stat, idx) => {
+                    const Icon = stat.icon;
+                    return (
+                      <div key={idx} className="bg-gray-50 p-4 rounded-lg">
+                        <div className="flex items-center gap-3 mb-2">
+                          <Icon className="w-5 h-5 text-blue-600" />
+                          <p className="text-sm text-gray-600">
+                            {stat.label}
+                          </p>
                         </div>
+                        <p className="text-2xl font-bold text-gray-900">
+                          {stat.value}
+                        </p>
                       </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Send for AI Improvement */}
-                {user.role === "pm" && comments.filter((c) => !c.resolved && ["module", "lesson", "video"].includes(c.target_type)).length > 0 && (
-                  <div className="border-t border-gray-200 pt-6">
-                    <button
-                      onClick={async () => {
-                        const unresolvedComments = comments
-                          .filter((c) => !c.resolved && ["module", "lesson", "video"].includes(c.target_type))
-                          .map((c) => ({ id: c.id, text: c.text, target_id: c.target_id, target_type: c.target_type as "module" | "lesson" | "video" }));
-
-                        setToast({ message: "Sending TOC for AI improvement...", type: "success" });
-
-                        try {
-                          const res = await fetch("/api/ai/improve-toc", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                              currentTOC: modules,
-                              comments: unresolvedComments,
-                            }),
-                          });
-
-                          const data = await res.json();
-                          if (data.success && data.modules) {
-                            setModules(data.modules);
-                            // Resolve all comments that were sent
-                            for (const c of unresolvedComments) {
-                              resolveComment(c.id);
-                            }
-                            setComments(comments.map((c) =>
-                              unresolvedComments.some((uc) => uc.id === c.id) ? { ...c, resolved: true } : c
-                            ));
-                            setToast({ message: "TOC improved by AI! Comments resolved.", type: "success" });
-                          } else {
-                            setToast({ message: "AI improvement failed. Please try again.", type: "error" });
-                          }
-                        } catch (err) {
-                          console.error("AI improve error:", err);
-                          setToast({ message: "Network error. Please try again.", type: "error" });
-                        }
-                      }}
-                      className="w-full px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium flex items-center justify-center gap-2 transition-colors"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
-                      Send for AI Improvement ({comments.filter((c) => !c.resolved && ["module", "lesson", "video"].includes(c.target_type)).length} comments)
-                    </button>
-                    <p className="text-xs text-gray-500 mt-2 text-center">AI will address all unresolved coach comments and update the TOC</p>
-                  </div>
-                )}
-
-                {/* Advance Phase Button */}
-                {user.role === "pm" && (course.status === "toc_review" || course.status === "toc_generation") && (
-                  <div className="border-t border-gray-200 pt-6">
-                    <button
-                      onClick={() => {
-                        const nextStatus = course.status === "toc_generation" ? "toc_review" : "toc_approved";
-                        updateCourse(courseId, { status: nextStatus });
-                        setCourse({ ...course, status: nextStatus as any });
-                        setToast({ message: `Phase advanced to ${PHASE_LABELS[nextStatus]}`, type: "success" });
-                      }}
-                      className="w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition-colors"
-                    >
-                      Approve & Advance to {course.status === "toc_generation" ? "TOC Review" : "Content Briefs"}
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Content Briefs Tab */}
-            {activeTab === "briefs" && (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold text-gray-900">Content Briefs</h2>
-                  <button
-                    onClick={generateAllVideoBriefs}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm"
-                  >
-                    Generate All Briefs
-                  </button>
+                    );
+                  })}
                 </div>
 
-                {allVideos.length === 0 ? (
-                  <div className="text-center py-12 text-gray-500">
-                    <p>No videos available. Please generate TOC first.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {allVideos.map(({ video, lesson, module }) => {
-                      const brief = contentBriefs.find((b) => b.video_id === video.id);
-                      const isLoading = loadingVideos[video.id];
-                      const isEditing = editingBrief === video.id;
-
-                      return (
-                        <div key={video.id} className="border border-gray-200 rounded-lg overflow-hidden">
-                          <button
-                            onClick={() => setExpandedVideos((prev) => ({ ...prev, [video.id]: !prev[video.id] }))}
-                            className="w-full px-6 py-4 hover:bg-gray-50 flex items-center justify-between"
-                          >
-                            <div className="text-left flex-1">
-                              <h3 className="font-semibold text-gray-900">{video.title}</h3>
-                              <div className="text-xs text-gray-600 mt-1">
-                                {module.title} / {lesson.title} • {video.duration_minutes} min
-                              </div>
-                              <div className="mt-2">
-                                {brief ? <StatusBadge status="ready" /> : isLoading ? <StatusBadge status="generating" /> : <StatusBadge status="pending" />}
-                              </div>
-                            </div>
-                            {!brief && !isLoading && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  generateBrief(video.id);
-                                }}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium ml-2 whitespace-nowrap"
-                              >
-                                Generate Brief
-                              </button>
-                            )}
-                            {isLoading && (
-                              <div className="ml-2">
-                                <LoadingSpinner size="sm" />
-                              </div>
-                            )}
-                            <svg
-                              className={`w-5 h-5 text-gray-400 transition-transform ml-4 ${expandedVideos[video.id] ? "rotate-180" : ""}`}
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                            </svg>
-                          </button>
-
-                          {expandedVideos[video.id] && brief && (
-                            <div className="border-t border-gray-200 bg-gray-50 p-6 space-y-4">
-                              <div>
-                                <label className="block text-sm font-semibold text-gray-900 mb-2">What to Cover</label>
-                                {isEditing ? (
-                                  <textarea
-                                    value={briefEdits[brief.id]?.what_to_cover ?? brief.what_to_cover}
-                                    onChange={(e) =>
-                                      setBriefEdits((prev) => ({
-                                        ...prev,
-                                        [brief.id]: { ...prev[brief.id], what_to_cover: e.target.value },
-                                      }))
-                                    }
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    rows={3}
-                                  />
-                                ) : (
-                                  <p className="text-gray-700">{brief.what_to_cover}</p>
-                                )}
-                              </div>
-
-                              <div>
-                                <label className="block text-sm font-semibold text-gray-900 mb-2">Examples & Use Cases</label>
-                                {isEditing ? (
-                                  <textarea
-                                    value={briefEdits[brief.id]?.examples ?? brief.examples}
-                                    onChange={(e) =>
-                                      setBriefEdits((prev) => ({
-                                        ...prev,
-                                        [brief.id]: { ...prev[brief.id], examples: e.target.value },
-                                      }))
-                                    }
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    rows={3}
-                                  />
-                                ) : (
-                                  <p className="text-gray-700">{brief.examples}</p>
-                                )}
-                              </div>
-
-                              <div className="flex gap-2 pt-2">
-                                {isEditing ? (
-                                  <>
-                                    <button
-                                      onClick={() => {
-                                        const edits = briefEdits[brief.id];
-                                        if (edits) {
-                                          updateContentBrief(brief.id, edits);
-                                          setContentBriefs((prev) =>
-                                            prev.map((b) => (b.id === brief.id ? { ...b, ...edits } : b))
-                                          );
-                                        }
-                                        setEditingBrief(null);
-                                        setToast({ message: "Brief updated", type: "success" });
-                                      }}
-                                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium"
-                                    >
-                                      Save
-                                    </button>
-                                    <button
-                                      onClick={() => {
-                                        setEditingBrief(null);
-                                        setBriefEdits((prev) => {
-                                          const next = { ...prev };
-                                          delete next[brief.id];
-                                          return next;
-                                        });
-                                      }}
-                                      className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 text-sm font-medium"
-                                    >
-                                      Cancel
-                                    </button>
-                                  </>
-                                ) : (
-                                  <button
-                                    onClick={() => {
-                                      setEditingBrief(brief.id);
-                                      setBriefEdits((prev) => ({
-                                        ...prev,
-                                        [brief.id]: { what_to_cover: brief.what_to_cover, examples: brief.examples },
-                                      }));
-                                    }}
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
-                                  >
-                                    Edit
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* PPTs Tab */}
-            {activeTab === "ppts" && (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold text-gray-900">Generated Presentations</h2>
-                  <button
-                    onClick={generateAllPPTs}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm"
-                  >
-                    Generate All PPTs
-                  </button>
-                </div>
-
-                {allVideos.length === 0 ? (
-                  <div className="text-center py-12 text-gray-500">
-                    <p>No videos available.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {allVideos.map(({ video, lesson, module }) => {
-                      const slides = pptSlides.filter((s) => s.video_id === video.id);
-                      const isLoading = loadingVideos[video.id];
-
-                      return (
-                        <div key={video.id} className="border border-gray-200 rounded-lg overflow-hidden">
-                          <button
-                            onClick={() => setExpandedVideos((prev) => ({ ...prev, [video.id]: !prev[video.id] }))}
-                            className="w-full px-6 py-4 hover:bg-gray-50 flex items-center justify-between"
-                          >
-                            <div className="text-left flex-1">
-                              <h3 className="font-semibold text-gray-900">{video.title}</h3>
-                              <div className="text-xs text-gray-600 mt-1">
-                                {module.title} / {lesson.title}
-                              </div>
-                              <div className="mt-2">
-                                {slides.length > 0 ? (
-                                  <span className="text-sm text-blue-600 font-medium">{slides.length} slides generated</span>
-                                ) : isLoading ? (
-                                  <StatusBadge status="generating" />
-                                ) : (
-                                  <StatusBadge status="pending" />
-                                )}
-                              </div>
-                            </div>
-                            {slides.length === 0 && !isLoading && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  generatePPT(video.id);
-                                }}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium ml-2 whitespace-nowrap"
-                              >
-                                Generate Slides
-                              </button>
-                            )}
-                            {isLoading && (
-                              <div className="ml-2">
-                                <LoadingSpinner size="sm" />
-                              </div>
-                            )}
-                            <svg
-                              className={`w-5 h-5 text-gray-400 transition-transform ml-4 ${expandedVideos[video.id] ? "rotate-180" : ""}`}
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                            </svg>
-                          </button>
-
-                          {expandedVideos[video.id] && slides.length > 0 && (
-                            <div className="border-t border-gray-200 bg-gray-50 p-6">
-                              <div className="grid grid-cols-2 gap-4">
-                                {slides.map((slide) => (
-                                  <div key={slide.id} className="bg-white border border-gray-200 rounded-lg p-4">
-                                    <div className="bg-gray-100 rounded mb-3 p-3 min-h-24 flex items-center justify-center">
-                                      <div className="text-center">
-                                        <div className="text-2xl font-bold text-gray-600">{slide.slide_number}</div>
-                                        <div className="text-xs text-gray-500 mt-1">{slide.title}</div>
-                                      </div>
-                                    </div>
-                                    <h4 className="font-semibold text-gray-900 text-sm mb-2">{slide.title}</h4>
-                                    <p className="text-xs text-gray-600 mb-3">{slide.content}</p>
-                                    {slide.notes && <p className="text-xs text-gray-500 italic">Notes: {slide.notes}</p>}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Recording Tab */}
-            {activeTab === "recording" && (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold text-gray-900">Video Recording</h2>
-                  <button
-                    onClick={generateAllRecordings}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm"
-                  >
-                    Generate All AI Voices
-                  </button>
-                </div>
-
-                {allVideos.length === 0 ? (
-                  <div className="text-center py-12 text-gray-500">
-                    <p>No videos available.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {allVideos.map(({ video, lesson, module }) => {
-                      const recording = recordings.find((r) => r.video_id === video.id);
-                      const isLoading = loadingVideos[video.id];
-
-                      return (
-                        <div key={video.id} className="border border-gray-200 rounded-lg p-6">
-                          <div className="flex items-center justify-between mb-4">
-                            <div>
-                              <h3 className="font-semibold text-gray-900">{video.title}</h3>
-                              <div className="text-sm text-gray-600 mt-1">
-                                {module.title} / {lesson.title}
-                              </div>
-                            </div>
-                            {recording ? (
-                              <StatusBadge status="completed" />
-                            ) : isLoading ? (
-                              <StatusBadge status="generating" />
-                            ) : (
-                              <StatusBadge status="pending" />
-                            )}
-                          </div>
-
-                          {recording && (
-                            <div className="mb-4 bg-gray-100 rounded-lg p-4 flex items-center justify-center min-h-20">
-                              <svg className="w-8 h-8 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                              </svg>
-                              <div className="flex-1">
-                                <div className="h-1 bg-blue-600 rounded-full w-full"></div>
-                                <div className="text-xs text-gray-600 mt-2 text-center">{video.duration_minutes}:00 / {video.duration_minutes}:00</div>
-                              </div>
-                            </div>
-                          )}
-
-                          <div className="flex gap-2">
-                            {!recording && !isLoading && (
-                              <>
-                                <button
-                                  onClick={() => generateRecording(video.id)}
-                                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm"
-                                >
-                                  Generate AI Voice
-                                </button>
-                                <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm">
-                                  Upload Recording
-                                </button>
-                              </>
-                            )}
-                            {isLoading && (
-                              <div className="flex items-center gap-2">
-                                <LoadingSpinner size="sm" />
-                                <span className="text-sm text-gray-600">Generating AI voice...</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Transcript Tab */}
-            {activeTab === "transcript" && (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold text-gray-900">Transcripts</h2>
-                  <button
-                    onClick={generateAllTranscripts}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm"
-                  >
-                    Transcribe All
-                  </button>
-                </div>
-
-                {recordings.length === 0 ? (
-                  <div className="text-center py-12 text-gray-500">
-                    <p>No recordings available. Please record videos first.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {recordings.map((recording) => {
-                      const video = modules.flatMap((m) => m.lessons.flatMap((l) => l.videos)).find((v) => v.id === recording.video_id);
-                      const transcript = transcripts.find((t) => t.recording_id === recording.id);
-                      const isLoading = loadingVideos[recording.video_id];
-
-                      if (!video) return null;
-
-                      return (
-                        <div key={recording.id} className="border border-gray-200 rounded-lg overflow-hidden">
-                          <button
-                            onClick={() => setExpandedVideos((prev) => ({ ...prev, [recording.id]: !prev[recording.id] }))}
-                            className="w-full px-6 py-4 hover:bg-gray-50 flex items-center justify-between"
-                          >
-                            <div className="text-left flex-1">
-                              <h3 className="font-semibold text-gray-900">{video.title}</h3>
-                              <div className="text-sm text-gray-600 mt-1">{video.duration_minutes} minute recording</div>
-                              <div className="mt-2">
-                                {transcript ? (
-                                  <StatusBadge status="completed" />
-                                ) : isLoading ? (
-                                  <StatusBadge status="generating" />
-                                ) : (
-                                  <StatusBadge status="pending" />
-                                )}
-                              </div>
-                            </div>
-                            {!transcript && !isLoading && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  generateTranscript(recording.id);
-                                }}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium ml-2 whitespace-nowrap"
-                              >
-                                Auto-Transcribe
-                              </button>
-                            )}
-                            {isLoading && (
-                              <div className="ml-2">
-                                <LoadingSpinner size="sm" />
-                              </div>
-                            )}
-                            <svg
-                              className={`w-5 h-5 text-gray-400 transition-transform ml-4 ${expandedVideos[recording.id] ? "rotate-180" : ""}`}
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                            </svg>
-                          </button>
-
-                          {expandedVideos[recording.id] && transcript && (
-                            <div className="border-t border-gray-200 bg-gray-50 p-6 space-y-4">
-                              <div>
-                                <label className="block text-sm font-semibold text-gray-900 mb-2">Transcript</label>
-                                {editingTranscript === transcript.id ? (
-                                  <textarea
-                                    value={transcriptEdits[transcript.id] ?? transcript.text}
-                                    onChange={(e) =>
-                                      setTranscriptEdits((prev) => ({
-                                        ...prev,
-                                        [transcript.id]: e.target.value,
-                                      }))
-                                    }
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    rows={6}
-                                  />
-                                ) : (
-                                  <p className="text-gray-700 leading-relaxed">{transcript.text}</p>
-                                )}
-                              </div>
-
-                              <div className="text-sm text-gray-600">
-                                <span>Word count: {transcript.text.split(/\s+/).length}</span> •
-                                <span className="ml-2">Confidence: {(transcript.confidence * 100).toFixed(0)}%</span>
-                              </div>
-
-                              <div className="flex gap-2 pt-2">
-                                {editingTranscript === transcript.id ? (
-                                  <>
-                                    <button
-                                      onClick={() => {
-                                        const edited = transcriptEdits[transcript.id];
-                                        if (edited) {
-                                          updateTranscript(transcript.id, { text: edited });
-                                          setTranscripts((prev) =>
-                                            prev.map((t) => (t.id === transcript.id ? { ...t, text: edited } : t))
-                                          );
-                                        }
-                                        setEditingTranscript(null);
-                                        setToast({ message: "Transcript updated", type: "success" });
-                                      }}
-                                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium"
-                                    >
-                                      Save
-                                    </button>
-                                    <button
-                                      onClick={() => {
-                                        setEditingTranscript(null);
-                                        setTranscriptEdits((prev) => {
-                                          const next = { ...prev };
-                                          delete next[transcript.id];
-                                          return next;
-                                        });
-                                      }}
-                                      className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 text-sm font-medium"
-                                    >
-                                      Cancel
-                                    </button>
-                                  </>
-                                ) : (
-                                  <button
-                                    onClick={() => {
-                                      setEditingTranscript(transcript.id);
-                                      setTranscriptEdits((prev) => ({
-                                        ...prev,
-                                        [transcript.id]: transcript.text,
-                                      }));
-                                    }}
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
-                                  >
-                                    Edit
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Content Items Tab */}
-            {activeTab === "content" && (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold text-gray-900">Generated Content Items</h2>
-                  <button
-                    onClick={generateAllContent}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm"
-                  >
-                    Generate All Content
-                  </button>
-                </div>
-
-                {modules.length === 0 ? (
-                  <div className="text-center py-12 text-gray-500">
-                    <p>No lessons available.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {modules.map((module) =>
-                      module.lessons.map((lesson) => {
-                        const lessonContent = contentItems.filter((c) => c.lesson_id === lesson.id);
-                        const hasTranscript = transcripts.some(
-                          (t) => lesson.videos.some((v) => v.id === t.video_id)
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="text-left py-3 px-4 font-semibold text-gray-900">
+                          Video
+                        </th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-900">
+                          Source
+                        </th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-900">
+                          Status
+                        </th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-900">
+                          Duration
+                        </th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-900">
+                          Quality
+                        </th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-900">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {getAllVideos().map(({ video }) => {
+                        const recording = recordings.find(
+                          (r) => r.video_id === video.id
                         );
 
                         return (
-                          <div key={lesson.id} className="border border-gray-200 rounded-lg overflow-hidden">
-                            <button
-                              onClick={() => setExpandedVideos((prev) => ({ ...prev, [lesson.id]: !prev[lesson.id] }))}
-                              className="w-full px-6 py-4 hover:bg-gray-50 flex items-center justify-between"
-                            >
-                              <div className="text-left flex-1">
-                                <h3 className="font-semibold text-gray-900">{lesson.title}</h3>
-                                <div className="text-sm text-gray-600 mt-1">{module.title}</div>
-                                {lessonContent.length > 0 && (
-                                  <div className="mt-2 text-sm text-blue-600 font-medium">{lessonContent.length} content items</div>
-                                )}
-                              </div>
-                              {hasTranscript && (
-                                <div className="text-right mr-4">
-                                  <select
-                                    value={selectedContentType[lesson.id] || "reading"}
-                                    onChange={(e) =>
-                                      setSelectedContentType((prev) => ({
-                                        ...prev,
-                                        [lesson.id]: e.target.value,
-                                      }))
-                                    }
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="text-sm px-3 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                  >
-                                    {CONTENT_TYPES.map((type) => (
-                                      <option key={type} value={type}>
-                                        {type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, " ")}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </div>
-                              )}
-                              {hasTranscript && !generatingContent[lesson.id] && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    generateContent(lesson.id);
-                                  }}
-                                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium ml-2 whitespace-nowrap"
-                                >
-                                  Generate Content
-                                </button>
-                              )}
-                              {generatingContent[lesson.id] && (
-                                <div className="ml-2">
-                                  <LoadingSpinner size="sm" />
-                                </div>
-                              )}
-                              <svg
-                                className={`w-5 h-5 text-gray-400 transition-transform ml-4 ${expandedVideos[lesson.id] ? "rotate-180" : ""}`}
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
+                          <tr key={video.id} className="hover:bg-gray-50">
+                            <td className="py-3 px-4 text-gray-900 font-medium">
+                              {video.title}
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded">
+                                {recording?.source || "zoom"}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4">
+                              <span
+                                className={`text-xs px-2 py-1 rounded font-semibold ${
+                                  recording?.status === "ready"
+                                    ? "bg-green-100 text-green-800"
+                                    : "bg-gray-100 text-gray-800"
+                                }`}
                               >
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                              </svg>
-                            </button>
-
-                            {expandedVideos[lesson.id] && (
-                              <div className="border-t border-gray-200 bg-gray-50 p-6">
-                                {lessonContent.length === 0 ? (
-                                  <p className="text-gray-600 text-sm">No content items yet. {!hasTranscript && "Generate transcript first to create content."}</p>
-                                ) : (
-                                  <div className="space-y-4">
-                                    {lessonContent.map((item) => (
-                                      <div key={item.id} className="bg-white border border-gray-200 rounded-lg p-4">
-                                        <h4 className="font-semibold text-gray-900">{item.title}</h4>
-                                        <p className="text-sm text-gray-700 mt-2">{item.content}</p>
-                                        <div className="mt-3 text-xs text-gray-500">Type: {item.type}</div>
-                                      </div>
-                                    ))}
-                                  </div>
+                                {recording?.status || "not_started"}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-gray-600 text-xs">
+                              {recording?.duration_seconds
+                                ? `${Math.floor(recording.duration_seconds / 60)}m`
+                                : "-"}
+                            </td>
+                            <td className="py-3 px-4 text-gray-600 text-xs">
+                              {recording?.quality || "-"}
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="flex gap-2">
+                                <button className="text-xs text-blue-600 hover:text-blue-700 font-semibold">
+                                  Schedule
+                                </button>
+                                {zoomConnected && (
+                                  <button className="text-xs text-green-600 hover:text-green-700 font-semibold">
+                                    Join
+                                  </button>
                                 )}
+                                <button className="text-xs text-orange-600 hover:text-orange-700 font-semibold">
+                                  Upload
+                                </button>
+                                <button className="text-xs text-purple-600 hover:text-purple-700 font-semibold">
+                                  Preview
+                                </button>
                               </div>
-                            )}
-                          </div>
+                            </td>
+                          </tr>
                         );
-                      })
-                    )}
-                  </div>
-                )}
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Review & Publish Tab */}
-            {activeTab === "review" && (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-gray-900">Final Review & Publish</h2>
+          {/* ─── TRANSCRIPT TAB ─── */}
+          {activeTab === "transcript" && (
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              <div className="lg:col-span-1">
+                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                  <div className="p-4 border-b border-gray-200">
+                    <h3 className="font-bold text-gray-900">Videos</h3>
+                  </div>
+                  <div className="divide-y divide-gray-200">
+                    {getAllVideos().map(({ video }) => {
+                      const transcript = transcripts.find(
+                        (t) => t.video_id === video.id
+                      );
+                      const isSelected = selectedVideoForTranscript === video.id;
 
-                {/* Stats Cards */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <div className="text-3xl font-bold text-blue-600">{stats.totalVideos}</div>
-                    <div className="text-sm text-gray-600">Total Videos</div>
-                  </div>
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <div className="text-3xl font-bold text-blue-600">{stats.totalDuration}</div>
-                    <div className="text-sm text-gray-600">Total Duration (min)</div>
-                  </div>
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <div className="text-3xl font-bold text-green-600">{stats.recordedCount}</div>
-                    <div className="text-sm text-gray-600">Recorded</div>
-                  </div>
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <div className="text-3xl font-bold text-green-600">{stats.contentCount}</div>
-                    <div className="text-sm text-gray-600">Content Items</div>
+                      return (
+                        <button
+                          key={video.id}
+                          onClick={() =>
+                            setSelectedVideoForTranscript(video.id)
+                          }
+                          className={`w-full text-left p-4 hover:bg-gray-50 transition-colors flex items-center gap-3 ${
+                            isSelected ? "bg-blue-50" : ""
+                          }`}
+                        >
+                          <div className="flex-1">
+                            <p className="font-medium text-gray-900 text-sm">
+                              {video.title}
+                            </p>
+                            <div className="flex gap-1 mt-1">
+                              <span
+                                className={`text-xs px-2 py-0.5 rounded font-semibold ${
+                                  transcript?.status === "approved"
+                                    ? "bg-green-100 text-green-800"
+                                    : transcript?.status === "edited"
+                                      ? "bg-blue-100 text-blue-800"
+                                      : "bg-gray-100 text-gray-800"
+                                }`}
+                              >
+                                {transcript?.status || "pending"}
+                              </span>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
+              </div>
 
-                {/* Checklist */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="bg-blue-50 rounded-lg border border-blue-200 p-6">
-                    <h3 className="font-bold text-gray-900 mb-4">Pre-Publication Checklist</h3>
-                    <ul className="space-y-3">
-                      {[
-                        { label: "TOC reviewed and approved", completed: modules.length > 0 },
-                        { label: "Content briefs completed", completed: stats.totalVideos > 0 && contentBriefs.length === stats.totalVideos },
-                        { label: "Slides generated", completed: stats.totalVideos > 0 && pptSlides.length > 0 },
-                        { label: "All videos recorded", completed: stats.recordedCount === stats.totalVideos },
-                        { label: "Transcripts verified", completed: stats.transcribedCount === stats.recordedCount },
-                        { label: "Content items reviewed", completed: stats.contentCount > 0 },
-                      ].map((item, idx) => (
-                        <li key={idx} className="flex items-center gap-3">
-                          <input
-                            type="checkbox"
-                            checked={item.completed}
-                            disabled
-                            className="w-5 h-5 rounded border-gray-300 text-blue-600"
-                          />
-                          <span className="text-sm text-gray-700">{item.label}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div className={`rounded-lg border p-6 ${
-                    stats.totalVideos > 0 &&
-                    contentBriefs.length === stats.totalVideos &&
-                    stats.recordedCount === stats.totalVideos &&
-                    stats.contentCount > 0
-                      ? "bg-green-50 border-green-200"
-                      : "bg-yellow-50 border-yellow-200"
-                  }`}>
-                    <h3 className={`font-bold mb-3 ${
-                      stats.totalVideos > 0 &&
-                      contentBriefs.length === stats.totalVideos &&
-                      stats.recordedCount === stats.totalVideos &&
-                      stats.contentCount > 0
-                        ? "text-green-900"
-                        : "text-yellow-900"
-                    }`}>
-                      Publication Status
-                    </h3>
-                    <p className={`text-sm mb-6 ${
-                      stats.totalVideos > 0 &&
-                      contentBriefs.length === stats.totalVideos &&
-                      stats.recordedCount === stats.totalVideos &&
-                      stats.contentCount > 0
-                        ? "text-green-700"
-                        : "text-yellow-700"
-                    }`}>
-                      {stats.totalVideos > 0 &&
-                      contentBriefs.length === stats.totalVideos &&
-                      stats.recordedCount === stats.totalVideos &&
-                      stats.contentCount > 0
-                        ? "All requirements met. Course is ready to publish!"
-                        : "Complete remaining items to enable publishing."}
-                    </p>
-                    {user.role === "pm" && (
-                      <button
-                        onClick={handlePublish}
-                        disabled={!(
-                          stats.totalVideos > 0 &&
-                          contentBriefs.length === stats.totalVideos &&
-                          stats.recordedCount === stats.totalVideos &&
-                          stats.contentCount > 0
-                        )}
-                        className={`w-full px-4 py-3 rounded-lg font-medium text-white ${
-                          stats.totalVideos > 0 &&
-                          contentBriefs.length === stats.totalVideos &&
-                          stats.recordedCount === stats.totalVideos &&
-                          stats.contentCount > 0
-                            ? "bg-green-600 hover:bg-green-700 cursor-pointer"
-                            : "bg-gray-400 cursor-not-allowed"
-                        }`}
-                      >
-                        Publish Course
+              {selectedVideoForTranscript && (
+                <div className="lg:col-span-3">
+                  <div className="bg-white rounded-lg border border-gray-200 p-6">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-bold text-gray-900">
+                        Transcript Editor
+                      </h3>
+                      <button className="px-4 py-2 bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 flex items-center gap-2">
+                        <Mic className="w-4 h-4" />
+                        Transcribe
                       </button>
-                    )}
+                    </div>
+
+                    <textarea
+                      defaultValue="Click 'Transcribe' to generate the transcript..."
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4"
+                      rows={10}
+                    />
+
+                    <div className="grid grid-cols-3 gap-4 mb-4">
+                      {[
+                        { label: "Word Count", value: "0" },
+                        { label: "Confidence", value: "-" },
+                        { label: "Language", value: "English" },
+                      ].map((stat, idx) => (
+                        <div key={idx} className="bg-gray-50 p-3 rounded">
+                          <p className="text-xs text-gray-600">
+                            {stat.label}
+                          </p>
+                          <p className="text-lg font-bold text-gray-900">
+                            {stat.value}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex gap-3">
+                      <button className="flex-1 bg-green-600 text-white font-semibold py-3 rounded hover:bg-green-700 flex items-center justify-center gap-2">
+                        <CheckCircle2 className="w-5 h-5" />
+                        Approve Transcript
+                      </button>
+                      <button className="flex-1 bg-purple-600 text-white font-semibold py-3 rounded hover:bg-purple-700 flex items-center justify-center gap-2">
+                        <Sparkles className="w-5 h-5" />
+                        AI Polish
+                      </button>
+                    </div>
                   </div>
                 </div>
+              )}
+            </div>
+          )}
 
-                {/* Export Options */}
-                <div className="bg-white border border-gray-200 rounded-lg p-6">
-                  <h3 className="font-bold text-gray-900 mb-4">Export Options</h3>
-                  <div className="flex flex-wrap gap-3">
-                    <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium">
-                      Export as PDF
-                    </button>
-                    <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium">
-                      Export Transcripts
-                    </button>
-                    <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium">
-                      Export Content Briefs
-                    </button>
+          {/* ─── CONTENT TAB ─── */}
+          {activeTab === "content" && (
+            <div className="space-y-6">
+              <div className="bg-white rounded-lg p-6 border border-gray-200">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">
+                  Content Generation
+                </h2>
+
+                {modules.map((module) => (
+                  <div key={module.id} className="mb-8 pb-8 border-b border-gray-200 last:border-b-0">
+                    <h3 className="text-lg font-bold text-gray-900 mb-4">
+                      {module.title}
+                    </h3>
+
+                    <div className="space-y-6">
+                      {module.lessons.map((lesson) => (
+                        <div key={lesson.id} className="pl-6">
+                          <h4 className="font-semibold text-gray-900 mb-3">
+                            {lesson.title}
+                          </h4>
+
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            {[
+                              "reading",
+                              "practice_quiz",
+                              "graded_quiz",
+                              "case_study",
+                              "discussion",
+                            ].map((contentType) => {
+                              const existing = contentItems.find(
+                                (ci) =>
+                                  ci.lesson_id === lesson.id &&
+                                  ci.type === contentType
+                              );
+
+                              return (
+                                <button
+                                  key={contentType}
+                                  onClick={() => {
+                                    if (!existing) {
+                                      const newItem: ContentItem = {
+                                        id: generateId(),
+                                        lesson_id: lesson.id,
+                                        type: contentType as ContentType,
+                                        title: `${contentType} for ${lesson.title}`,
+                                        status: "generating",
+                                        order: contentItems.filter(
+                                          (c) => c.lesson_id === lesson.id
+                                        ).length + 1,
+                                      };
+                                      addContentItem(newItem);
+                                      setContentItems([
+                                        ...contentItems,
+                                        newItem,
+                                      ]);
+
+                                      setTimeout(() => {
+                                        updateContentItem(newItem.id, {
+                                          status: "generated",
+                                          content: `Sample ${contentType} content...`,
+                                        });
+                                        setContentItems((prev) =>
+                                          prev.map((c) =>
+                                            c.id === newItem.id
+                                              ? {
+                                                  ...c,
+                                                  status: "generated",
+                                                  content: `Sample ${contentType} content...`,
+                                                }
+                                              : c
+                                          )
+                                        );
+                                      }, 2000);
+                                    }
+                                  }}
+                                  className={`p-4 rounded-lg border-2 text-center transition-colors ${
+                                    existing
+                                      ? existing.status === "generated"
+                                        ? "border-green-300 bg-green-50"
+                                        : existing.status === "generating"
+                                          ? "border-yellow-300 bg-yellow-50"
+                                          : "border-gray-300 bg-gray-50"
+                                      : "border-gray-300 hover:border-blue-300"
+                                  }`}
+                                >
+                                  <p className="font-semibold text-gray-900 capitalize text-sm">
+                                    {contentType.replace("_", " ")}
+                                  </p>
+                                  {existing && (
+                                    <p className="text-xs text-gray-600 mt-1">
+                                      {existing.status}
+                                    </p>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ─── REVIEW TAB ─── */}
+          {activeTab === "review" && (
+            <div className="space-y-6">
+              {/* Completion Stats */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {[
+                  {
+                    label: "Videos",
+                    value: getAllVideos().length,
+                    total: getAllVideos().length,
+                  },
+                  {
+                    label: "Transcripts",
+                    value: transcripts.filter((t) => t.status === "approved").length,
+                    total: getAllVideos().length,
+                  },
+                  {
+                    label: "Content Items",
+                    value: contentItems.filter((c) => c.status === "approved")
+                      .length,
+                    total: contentItems.length,
+                  },
+                  {
+                    label: "Slides",
+                    value: pptSlides.filter((s) => s.status === "approved")
+                      .length,
+                    total: pptSlides.length,
+                  },
+                ].map((stat, idx) => (
+                  <div
+                    key={idx}
+                    className="bg-white rounded-lg p-4 border border-gray-200"
+                  >
+                    <p className="text-sm text-gray-600 mb-1">{stat.label}</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {stat.value}/{stat.total}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Quality Checklist */}
+              <div className="bg-white rounded-lg p-6 border border-gray-200">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">
+                  Quality Checklist
+                </h3>
+
+                <div className="space-y-3">
+                  {[
+                    { key: "completeness", label: "Course completeness verified" },
+                    { key: "accuracy", label: "Content accuracy checked" },
+                    { key: "engagement", label: "Engagement level reviewed" },
+                    { key: "accessibility", label: "Accessibility standards met" },
+                    { key: "alignment", label: "Learning objectives aligned" },
+                    { key: "production", label: "Production quality approved" },
+                    { key: "testing", label: "Functionality tested" },
+                    { key: "documentation", label: "Documentation complete" },
+                  ].map((item) => (
+                    <label
+                      key={item.key}
+                      className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={qualityChecklistItems[item.key]}
+                        onChange={(e) =>
+                          setQualityChecklistItems((prev) => ({
+                            ...prev,
+                            [item.key]: e.target.checked,
+                          }))
+                        }
+                        className="w-5 h-5 text-blue-600 rounded"
+                      />
+                      <span className="font-medium text-gray-900">
+                        {item.label}
+                      </span>
+                    </label>
+                  ))}
                 </div>
               </div>
-            )}
-          </div>
 
-          {/* Action Buttons */}
-          {user.role === "pm" &&
-            ["toc_review", "ppt_review", "content_review", "final_review"].includes(course.status) && (
-              <div className="flex gap-4 mt-8">
+              {/* Approval Status */}
+              <div className="bg-white rounded-lg p-6 border border-gray-200">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">
+                  Approval Status
+                </h3>
+
+                <div className="space-y-3">
+                  {[
+                    { key: "coachSignOff", label: "Coach Sign-off", state: coachSignOff, setter: setCoachSignOff },
+                    { key: "pmReview", label: "PM Review", state: pmReview, setter: setPmReview },
+                    {
+                      key: "authoritySubmission",
+                      label: "Authority Submission",
+                      state: authoritySubmission,
+                      setter: setAuthoritySubmission,
+                    },
+                  ].map((item) => (
+                    <label
+                      key={item.key}
+                      className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 rounded cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={item.state}
+                        onChange={(e) => item.setter(e.target.checked)}
+                        className="w-5 h-5 text-green-600 rounded"
+                      />
+                      <span className="font-semibold text-gray-900">
+                        {item.label}
+                      </span>
+                      {item.state && (
+                        <CheckCircle2 className="w-5 h-5 text-green-600 ml-auto" />
+                      )}
+                    </label>
+                  ))}
+                </div>
+
                 <button
-                  onClick={() => {
-                    const nextPhases: Record<string, string> = {
-                      toc_review: "toc_approved",
-                      ppt_review: "recording",
-                      content_review: "final_review",
-                      final_review: "published",
-                    };
-                    const nextStatus = nextPhases[course.status];
-                    if (nextStatus) {
-                      updateCourse(courseId, { status: nextStatus as any });
-                      setCourse({ ...course, status: nextStatus as any });
-                      setToast({ message: "Phase approved. Moving to next stage...", type: "success" });
-                    }
-                  }}
-                  className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
+                  disabled={
+                    !Object.values(qualityChecklistItems).every(Boolean) ||
+                    !coachSignOff ||
+                    !pmReview ||
+                    !authoritySubmission
+                  }
+                  className={`w-full mt-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors ${
+                    Object.values(qualityChecklistItems).every(Boolean) &&
+                    coachSignOff &&
+                    pmReview &&
+                    authoritySubmission
+                      ? "bg-green-600 text-white hover:bg-green-700"
+                      : "bg-gray-300 text-gray-600 cursor-not-allowed"
+                  }`}
+                  onClick={handleApproveAndAdvance}
                 >
-                  Approve & Move to Next Phase
+                  <CheckCircle2 className="w-5 h-5" />
+                  Publish Course
                 </button>
-                <Link href="/dashboard">
-                  <button className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium">
-                    Back to Dashboard
-                  </button>
-                </Link>
               </div>
-            )}
+            </div>
+          )}
         </div>
       </main>
 
-      {/* Toast Notification */}
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
+      {/* Toast notifications */}
+      <div className="fixed bottom-6 right-6 space-y-3 z-50">
+        {toasts.map((toast) => (
+          <div
+            key={toast.id}
+            className={`px-6 py-3 rounded-lg font-semibold text-white shadow-lg animate-in fade-in slide-in-from-bottom-4 ${
+              toast.type === "success"
+                ? "bg-green-600"
+                : toast.type === "error"
+                  ? "bg-red-600"
+                  : "bg-blue-600"
+            }`}
+          >
+            {toast.message}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
