@@ -262,9 +262,28 @@ END
 $$;
 
 -- ═══════════════════════════════════════════════════════════════
--- SEED DATA: Demo profiles
+-- SEED DATA: Demo org + profiles
+-- (org_id may be NOT NULL if migration_v2 ran first — always seed org before profiles)
 -- ═══════════════════════════════════════════════════════════════
-INSERT INTO profiles (id, email, name, role) VALUES
-  ('00000000-0000-0000-0000-000000000001', 'ravi@boardinfinity.com', 'Ravi (PM)', 'pm'),
-  ('00000000-0000-0000-0000-000000000002', 'priya@boardinfinity.com', 'Dr. Priya Sharma (Coach)', 'coach')
-ON CONFLICT (email) DO NOTHING;
+CREATE TABLE IF NOT EXISTS orgs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL,
+  slug TEXT UNIQUE NOT NULL,
+  brand_kit JSONB DEFAULT '{}',
+  default_platform TEXT DEFAULT 'infylearn',
+  ai_provider TEXT DEFAULT 'anthropic' CHECK (ai_provider IN ('anthropic','openai','azure','bedrock')),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+INSERT INTO orgs (id, name, slug)
+VALUES ('00000000-0000-0000-0000-0000000000aa', 'Board Infinity', 'board-infinity')
+ON CONFLICT (slug) DO NOTHING;
+
+-- Add org_id to profiles if not already present (idempotent)
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS org_id UUID REFERENCES orgs(id) ON DELETE CASCADE;
+
+INSERT INTO profiles (id, email, name, role, org_id) VALUES
+  ('00000000-0000-0000-0000-000000000001', 'ravi@boardinfinity.com', 'Ravi (PM)', 'pm', '00000000-0000-0000-0000-0000000000aa'),
+  ('00000000-0000-0000-0000-000000000002', 'priya@boardinfinity.com', 'Dr. Priya Sharma (Coach)', 'coach', '00000000-0000-0000-0000-0000000000aa')
+ON CONFLICT (id) DO UPDATE SET org_id = EXCLUDED.org_id;
