@@ -100,7 +100,7 @@ CREATE TABLE IF NOT EXISTS coach_inputs (
   examples TEXT,
   visual_requirements TEXT,
   difficulty_notes TEXT,
-  references TEXT,
+  "references" TEXT,
   special_instructions TEXT,
   status TEXT DEFAULT 'not_started' CHECK (status IN ('not_started','in_progress','completed')),
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -256,17 +256,17 @@ $$;
 -- HELPER: which org does the calling user belong to
 -- ════════════════════════════════════════════════════════════════════════════
 CREATE OR REPLACE FUNCTION current_user_org_id() RETURNS UUID
-LANGUAGE SQL STABLE AS $$
+LANGUAGE SQL STABLE SECURITY DEFINER SET search_path = public AS $$
   SELECT org_id FROM profiles WHERE auth_user_id = auth.uid() LIMIT 1
 $$;
 
 CREATE OR REPLACE FUNCTION current_user_role() RETURNS TEXT
-LANGUAGE SQL STABLE AS $$
+LANGUAGE SQL STABLE SECURITY DEFINER SET search_path = public AS $$
   SELECT role FROM profiles WHERE auth_user_id = auth.uid() LIMIT 1
 $$;
 
 CREATE OR REPLACE FUNCTION current_profile_id() RETURNS UUID
-LANGUAGE SQL STABLE AS $$
+LANGUAGE SQL STABLE SECURITY DEFINER SET search_path = public AS $$
   SELECT id FROM profiles WHERE auth_user_id = auth.uid() LIMIT 1
 $$;
 
@@ -284,12 +284,12 @@ BEGIN
     'ppt_slides','recordings','transcripts','toc_versions'
   ])
   LOOP
-    FOR p IN ARRAY[
+    FOR p IN SELECT unnest(ARRAY[
       format('Allow all select on %s', t),
       format('Allow all insert on %s', t),
       format('Allow all update on %s', t),
       format('Allow all delete on %s', t)
-    ]::TEXT[]
+    ])
     LOOP
       EXECUTE format('DROP POLICY IF EXISTS %I ON %I', p, t);
     END LOOP;
