@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Sidebar } from "@/components/Sidebar";
-import { Course, User } from "@/types";
-import { loadState, getCommentsByCourse } from "@/lib/store";
+import { Course } from "@/types";
+import { loadState } from "@/lib/store";
+import { createClient } from "@/lib/supabase/client";
 import { Plus, ArrowRight, BookOpen, Zap, Clock, CheckCircle } from "lucide-react";
 
 const statusLabels: Record<string, string> = {
@@ -49,20 +50,25 @@ const statusToPhase: Record<string, number> = {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<{ name: string; email: string; role: string } | null>(null);
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("courseforge_user");
-    if (!storedUser) { router.push("/"); return; }
-    try {
-      const parsedUser = JSON.parse(storedUser);
-      setUser(parsedUser);
+    const init = async () => {
+      const supabase = createClient();
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) { router.push("/login"); return; }
+      setUser({
+        name: authUser.user_metadata?.name ?? authUser.email ?? "User",
+        email: authUser.email ?? "",
+        role: authUser.user_metadata?.role ?? "pm",
+      });
       const state = loadState();
       setCourses(state.courses || []);
-    } catch { router.push("/"); return; }
-    setIsLoading(false);
+      setIsLoading(false);
+    };
+    init();
   }, [router]);
 
   if (isLoading || !user) {
@@ -110,7 +116,7 @@ export default function DashboardPage() {
               { label: "Pending Review", value: stats.inReview, icon: Clock, color: "yellow" },
               { label: "Published", value: stats.published, icon: CheckCircle, color: "green" },
             ].map(s => (
-              <div key={s.label} className={`bg-white rounded-xl border border-gray-200 p-5 shadow-sm`}>
+              <div key={s.label} className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-500">{s.label}</p>
