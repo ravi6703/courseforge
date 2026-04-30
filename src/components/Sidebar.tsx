@@ -10,17 +10,24 @@ import {
   ChevronRight,
   LogOut,
 } from "lucide-react";
-import { loadState } from "@/lib/store";
+import { createClient } from "@/lib/supabase/client";
 
 export function Sidebar() {
   const [isExpanded, setIsExpanded] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<{ name: string; email: string; role: string } | null>(null);
 
   useEffect(() => {
-    const state = loadState();
-    setUser(state.currentUser);
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user: authUser } }) => {
+      if (!authUser) return;
+      setUser({
+        name: authUser.user_metadata?.name ?? authUser.email ?? "User",
+        email: authUser.email ?? "",
+        role: authUser.user_metadata?.role ?? "pm",
+      });
+    });
   }, []);
 
   if (!user) return null;
@@ -30,10 +37,11 @@ export function Sidebar() {
   const getInitials = (name: string) =>
     name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 
-  const handleLogout = () => {
-    localStorage.removeItem("courseforge_user");
-    localStorage.removeItem("courseforge_data");
-    router.push("/");
+  const handleLogout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
   };
 
   const navItems = [
