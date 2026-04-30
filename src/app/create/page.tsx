@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/Sidebar";
 import { User, Platform, ContentType, Course } from "@/types";
-import { loadState, saveState, generateId, addCourse, addModules } from "@/lib/store";
+import { addCourse, addModules } from "@/lib/store";
+import { createClient } from "@/lib/supabase/client";
 import {
   BookOpen,
   Globe,
@@ -138,23 +139,21 @@ export default function CreateCoursePage() {
 
   // Auth check
   useEffect(() => {
-    const storedUser = localStorage.getItem("courseforge_user");
-    if (!storedUser) {
-      router.push("/");
-      return;
-    }
-    try {
-      const parsedUser = JSON.parse(storedUser) as User;
-      // Only PMs can create courses
-      if (parsedUser.role !== "pm") {
-        router.push("/dashboard");
-        return;
-      }
-      setUser(parsedUser);
-    } catch {
-      router.push("/");
-    }
-    setIsLoading(false);
+    const init = async () => {
+      const supabase = createClient();
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) { router.push("/login"); return; }
+      const role = (authUser.user_metadata?.role ?? "pm") as "pm" | "coach";
+      if (role !== "pm") { router.push("/dashboard"); return; }
+      setUser({
+        id: authUser.id,
+        name: authUser.user_metadata?.name ?? authUser.email ?? "User",
+        email: authUser.email ?? "",
+        role,
+      } as User);
+      setIsLoading(false);
+    };
+    init();
   }, [router]);
 
   // Calculate total hours from module hours
@@ -283,6 +282,13 @@ export default function CreateCoursePage() {
       }
       const modulesWithCourseId = generatedModules.map((m) => ({ ...m, course_id: courseId }));
       addModules(courseId, modulesWithCourseId);
+
+      // Persist modules/lessons/videos to Supabase
+      fetch(`/api/courses/${courseId}/sync-toc`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ modules: modulesWithCourseId }),
+      }).catch((e) => console.error("sync-toc failed:", e));
 
       router.push(`/course/${courseId}`);
     } catch (err) {
