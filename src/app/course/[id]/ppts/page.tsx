@@ -3,9 +3,8 @@
 // Presentations tab. Lists every video with its slide count, status, and
 // per-video PPTX export. Server component.
 
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
 import Link from "next/link";
+import { getServerSupabase } from "@/lib/supabase/server";
 
 export default async function PresentationsTab({
   params,
@@ -13,12 +12,7 @@ export default async function PresentationsTab({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
-  );
+  const supabase = await getServerSupabase();
 
   const [{ data: videos }, { data: slides }, { data: uploads }] = await Promise.all([
     supabase

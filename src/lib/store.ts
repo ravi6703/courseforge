@@ -322,6 +322,13 @@ export function addCourse(course: Course): void {
   const state = loadState();
   state.courses.push(course);
   saveState(state);
+  if (typeof window !== "undefined") {
+    fetch("/api/courses", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(course),
+    }).catch((e) => console.error("Course sync to Supabase failed:", e));
+  }
 }
 
 export function updateCourse(courseId: string, updates: Partial<Course>): void {

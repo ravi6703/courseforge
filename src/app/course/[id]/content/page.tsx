@@ -1,7 +1,5 @@
 // src/app/course/[id]/content/page.tsx — generated supplemental content viewer.
 
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
 
 const KIND_LABEL: Record<string, string> = {
   reading: "Reading",
@@ -20,12 +18,7 @@ export default async function ContentTab({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
-  );
+  const supabase = await getServerSupabase();
 
   const { data: items } = await supabase
     .from("content_items")

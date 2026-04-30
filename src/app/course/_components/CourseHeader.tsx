@@ -3,9 +3,8 @@
 // Header row shared across all course tabs. Pulls the course's status, phase,
 // and progress directly from Supabase so it's always fresh.
 
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
 import Link from "next/link";
+import { getServerSupabase } from "@/lib/supabase/server";
 
 const PHASE_LABEL: Record<string, { label: string; n: number }> = {
   draft: { label: "Draft", n: 0 },
@@ -24,14 +23,7 @@ const PHASE_LABEL: Record<string, { label: string; n: number }> = {
 };
 
 export async function CourseHeader({ courseId }: { courseId: string }) {
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} },
-    }
-  );
+  const supabase = await getServerSupabase();
 
   const { data: course } = await supabase
     .from("courses")

@@ -8,8 +8,7 @@
 // importable by Canvas / Blackboard / Moodle / Cornerstone / etc.
 
 import { NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { getServerSupabase } from "@/lib/supabase/server";
 import { buildScormZip, CourseForExport, LessonForExport } from "@/lib/exporters/scorm";
 
 export const runtime = "nodejs";
@@ -21,17 +20,7 @@ export async function GET(req: NextRequest) {
   if (!courseId)
     return NextResponse.json({ error: "courseId is required" }, { status: 400 });
 
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => cookieStore.getAll(),
-        setAll: () => {},
-      },
-    }
-  );
+  const supabase = await getServerSupabase();
 
   // 1. Course + org
   const { data: course, error: cErr } = await supabase

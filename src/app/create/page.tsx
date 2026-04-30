@@ -242,7 +242,7 @@ export default function CreateCoursePage() {
 
     setIsSaving(true);
     try {
-      const courseId = generateId();
+      const courseId = crypto.randomUUID();
       const now = new Date().toISOString();
 
       const course: Course = {
@@ -272,6 +272,15 @@ export default function CreateCoursePage() {
       };
 
       addCourse(course);
+      try {
+        await fetch("/api/courses", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(course),
+        });
+      } catch (e) {
+        console.error("Course sync awaited failed:", e);
+      }
       const modulesWithCourseId = generatedModules.map((m) => ({ ...m, course_id: courseId }));
       addModules(courseId, modulesWithCourseId);
 

@@ -4,9 +4,8 @@
 // completion checklist. The PM cannot publish unless health score ≥ 80 AND
 // all critical findings are resolved (enforced server-side at publish time).
 
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
 import { CourseHealthPanel } from "@/components/CourseHealthPanel";
+import { getServerSupabase } from "@/lib/supabase/server";
 
 export default async function ReviewTab({
   params,
@@ -14,12 +13,7 @@ export default async function ReviewTab({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
-  );
+  const supabase = await getServerSupabase();
 
   const [{ data: videos }, { data: transcripts }, { data: contentItems }, { data: pptSlides }] =
     await Promise.all([
