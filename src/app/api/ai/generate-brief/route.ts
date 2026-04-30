@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { aiHeaders, aiMode } from "@/lib/ai/fallback";
+import { getServerSupabase } from "@/lib/supabase/server";
 
 interface GenerateBriefRequest {
-  videoId: string;
+  videoId?: string;
+  lessonId?: string;
+  courseId?: string;
   videoTitle: string;
   lessonTitle: string;
   moduleTitle: string;
+  courseTitle: string;
   coachInput?: {
     key_topics?: string;
     examples?: string;
@@ -13,7 +17,6 @@ interface GenerateBriefRequest {
     difficulty_notes?: string;
     references?: string;
   };
-  courseTitle: string;
 }
 
 interface ContentBrief {
@@ -135,6 +138,21 @@ export async function POST(request: NextRequest) {
     const brief = process.env.ANTHROPIC_API_KEY
       ? await generateWithAI(body)
       : generateFallbackBrief(body);
+
+    // Persist to Supabase if courseId + lessonId provided
+    if (body.courseId && body.lessonId) {
+      const supabase = await getServerSupabase();
+      const toArr = (s: string) => s.split("\n").filter((l) => l.trim());
+      await supabase.from("content_briefs").insert({
+        lesson_id: body.lessonId,
+        course_id: body.courseId,
+        talking_points: toArr(brief.talking_points),
+        visual_cues: toArr(brief.visual_cues),
+        key_takeaways: toArr(brief.key_takeaways),
+        script_outline: brief.script_outline,
+        status: "generated",
+      });
+    }
 
     return NextResponse.json({ success: true, brief }, { headers: aiHeaders(aiMode()) });
   } catch (error) {
