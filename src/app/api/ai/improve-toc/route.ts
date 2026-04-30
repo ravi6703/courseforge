@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { aiHeaders, aiMode } from "@/lib/ai/fallback";
 import { Module } from "@/types";
 
 interface ImproveTOCRequest {
@@ -107,12 +108,12 @@ export async function POST(request: NextRequest) {
       ? await improveWithAI(body)
       : generateFallbackImprovement(body.modules);
 
-    return NextResponse.json({ success: true, modules });
+    return NextResponse.json({ success: true, modules }, { headers: aiHeaders(aiMode()) });
   } catch (error) {
     console.error("Error in /api/ai/improve-toc:", error);
     return NextResponse.json(
       { success: false, error: "Failed to improve TOC" },
-      { status: 500 }
+      { status: 500, headers: aiHeaders(aiMode()) }
     );
   }
 }

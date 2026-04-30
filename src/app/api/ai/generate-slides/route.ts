@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { aiHeaders, aiMode } from "@/lib/ai/fallback";
 
 interface ContentBrief {
   talking_points: string;
@@ -157,12 +158,12 @@ export async function POST(request: NextRequest) {
       ? await generateWithAI(body)
       : generateFallbackSlides(body);
 
-    return NextResponse.json({ success: true, slides });
+    return NextResponse.json({ success: true, slides }, { headers: aiHeaders(aiMode()) });
   } catch (error) {
     console.error("Error in /api/ai/generate-slides:", error);
     return NextResponse.json(
       { success: false, error: "Failed to generate slides" },
-      { status: 500 }
+      { status: 500, headers: aiHeaders(aiMode()) }
     );
   }
 }

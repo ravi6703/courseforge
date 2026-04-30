@@ -247,6 +247,8 @@ export default function CreateCoursePage() {
 
       const course: Course = {
         id: courseId,
+        org_id: "00000000-0000-0000-0000-0000000000aa",
+        toc_locked: false,
         title: formState.title,
         description: formState.description,
         platform: formState.platform,

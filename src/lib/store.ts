@@ -66,21 +66,29 @@ const defaultState: AppState = {
 export const DEMO_USERS: Record<Role, User> = {
   pm: {
     id: "pm-001",
+    org_id: "00000000-0000-0000-0000-0000000000aa",
+    auth_user_id: "pm-001",
     email: "ravi@boardinfinity.com",
     name: "Ravi",
     role: "pm",
+    is_admin: true,
   },
   coach: {
     id: "coach-001",
+    org_id: "00000000-0000-0000-0000-0000000000aa",
+    auth_user_id: "coach-001",
     email: "coach@boardinfinity.com",
     name: "Dr. Priya Sharma",
     role: "coach",
+    is_admin: false,
   },
 };
 
 // Sample course for demo
 export const SAMPLE_COURSE: Course = {
   id: "course-001",
+  org_id: "00000000-0000-0000-0000-0000000000aa",
+  toc_locked: false,
   title: "Applied Generative AI for Business",
   description: "A comprehensive course covering practical applications of generative AI in business contexts, including prompt engineering, AI workflow automation, and responsible AI deployment.",
   platform: "infylearn",
@@ -107,6 +115,7 @@ export const SAMPLE_COURSE: Course = {
 export const SAMPLE_MODULES: Module[] = [
   {
     id: "mod-1",
+    org_id: "00000000-0000-0000-0000-0000000000aa",
     course_id: "course-001",
     title: "Module 1: Foundations of Generative AI",
     description: "Understanding the core concepts, architectures, and capabilities of generative AI systems.",
@@ -121,35 +130,36 @@ export const SAMPLE_MODULES: Module[] = [
     ],
     lessons: [
       {
-        id: "les-1-1", module_id: "mod-1", title: "What is Generative AI?", description: "Introduction to generative AI and its business significance", order: 1,
+        id: "les-1-1", org_id: "00000000-0000-0000-0000-0000000000aa", course_id: "course-001", module_id: "mod-1", title: "What is Generative AI?", description: "Introduction to generative AI and its business significance", order: 1,
         learning_objectives: [{ id: "lo-les-1-1", text: "Define generative AI and distinguish it from traditional AI approaches", bloom_level: "understand" }],
         content_types: ["reading", "glossary", "discussion", "practice_quiz"],
         videos: [
-          { id: "v-1-1-1", lesson_id: "les-1-1", title: "The Rise of Generative AI", duration_minutes: 12, order: 1, is_handson: false, status: "pending" },
-          { id: "v-1-1-2", lesson_id: "les-1-1", title: "How LLMs Work: A Non-Technical Overview", duration_minutes: 15, order: 2, is_handson: false, status: "pending" },
+          { id: "v-1-1-1", org_id: "00000000-0000-0000-0000-0000000000aa", course_id: "course-001", lesson_id: "les-1-1", title: "The Rise of Generative AI", duration_minutes: 12, order: 1, is_handson: false, status: "pending" },
+          { id: "v-1-1-2", org_id: "00000000-0000-0000-0000-0000000000aa", course_id: "course-001", lesson_id: "les-1-1", title: "How LLMs Work: A Non-Technical Overview", duration_minutes: 15, order: 2, is_handson: false, status: "pending" },
         ]
       },
       {
-        id: "les-1-2", module_id: "mod-1", title: "AI Architectures Demystified", description: "Transformers, Diffusion Models, and GANs explained for business leaders", order: 2,
+        id: "les-1-2", org_id: "00000000-0000-0000-0000-0000000000aa", course_id: "course-001", module_id: "mod-1", title: "AI Architectures Demystified", description: "Transformers, Diffusion Models, and GANs explained for business leaders", order: 2,
         learning_objectives: [{ id: "lo-les-1-2", text: "Compare transformer, diffusion, and GAN architectures at a conceptual level", bloom_level: "analyze" }],
         content_types: ["reading", "plugin", "practice_quiz"],
         videos: [
-          { id: "v-1-2-1", lesson_id: "les-1-2", title: "Transformer Architecture Explained", duration_minutes: 18, order: 1, is_handson: false, status: "pending" },
-          { id: "v-1-2-2", lesson_id: "les-1-2", title: "Diffusion Models and Image Generation", duration_minutes: 14, order: 2, is_handson: false, status: "pending" },
+          { id: "v-1-2-1", org_id: "00000000-0000-0000-0000-0000000000aa", course_id: "course-001", lesson_id: "les-1-2", title: "Transformer Architecture Explained", duration_minutes: 18, order: 1, is_handson: false, status: "pending" },
+          { id: "v-1-2-2", org_id: "00000000-0000-0000-0000-0000000000aa", course_id: "course-001", lesson_id: "les-1-2", title: "Diffusion Models and Image Generation", duration_minutes: 14, order: 2, is_handson: false, status: "pending" },
         ]
       },
       {
-        id: "les-1-3", module_id: "mod-1", title: "The Business Landscape of AI", description: "Market overview, key players, and enterprise adoption patterns", order: 3,
+        id: "les-1-3", org_id: "00000000-0000-0000-0000-0000000000aa", course_id: "course-001", module_id: "mod-1", title: "The Business Landscape of AI", description: "Market overview, key players, and enterprise adoption patterns", order: 3,
         learning_objectives: [{ id: "lo-les-1-3", text: "Assess the current state of enterprise AI adoption and identify key trends", bloom_level: "evaluate" }],
         content_types: ["reading", "plugin", "practice_quiz", "graded_quiz"],
         videos: [
-          { id: "v-1-3-1", lesson_id: "les-1-3", title: "AI Market Landscape 2026", duration_minutes: 16, order: 1, is_handson: false, status: "pending" },
+          { id: "v-1-3-1", org_id: "00000000-0000-0000-0000-0000000000aa", course_id: "course-001", lesson_id: "les-1-3", title: "AI Market Landscape 2026", duration_minutes: 16, order: 1, is_handson: false, status: "pending" },
         ]
       },
     ],
   },
   {
     id: "mod-2",
+    org_id: "00000000-0000-0000-0000-0000000000aa",
     course_id: "course-001",
     title: "Module 2: Prompt Engineering for Professionals",
     description: "Master the art and science of effective prompting to get reliable, high-quality outputs from AI systems.",
@@ -164,35 +174,36 @@ export const SAMPLE_MODULES: Module[] = [
     ],
     lessons: [
       {
-        id: "les-2-1", module_id: "mod-2", title: "Principles of Effective Prompting", description: "Core frameworks and mental models for prompt design", order: 1,
+        id: "les-2-1", org_id: "00000000-0000-0000-0000-0000000000aa", course_id: "course-001", module_id: "mod-2", title: "Principles of Effective Prompting", description: "Core frameworks and mental models for prompt design", order: 1,
         learning_objectives: [{ id: "lo-les-2-1", text: "Apply the STAR framework to construct business-relevant prompts", bloom_level: "apply" }],
         content_types: ["reading", "discussion", "practice_quiz"],
         videos: [
-          { id: "v-2-1-1", lesson_id: "les-2-1", title: "The STAR Prompting Framework", duration_minutes: 20, order: 1, is_handson: false, status: "pending" },
-          { id: "v-2-1-2", lesson_id: "les-2-1", title: "Common Prompting Mistakes", duration_minutes: 12, order: 2, is_handson: false, status: "pending" },
+          { id: "v-2-1-1", org_id: "00000000-0000-0000-0000-0000000000aa", course_id: "course-001", lesson_id: "les-2-1", title: "The STAR Prompting Framework", duration_minutes: 20, order: 1, is_handson: false, status: "pending" },
+          { id: "v-2-1-2", org_id: "00000000-0000-0000-0000-0000000000aa", course_id: "course-001", lesson_id: "les-2-1", title: "Common Prompting Mistakes", duration_minutes: 12, order: 2, is_handson: false, status: "pending" },
         ]
       },
       {
-        id: "les-2-2", module_id: "mod-2", title: "Advanced Prompting Techniques", description: "Chain-of-thought, few-shot, and system prompts for complex tasks", order: 2,
+        id: "les-2-2", org_id: "00000000-0000-0000-0000-0000000000aa", course_id: "course-001", module_id: "mod-2", title: "Advanced Prompting Techniques", description: "Chain-of-thought, few-shot, and system prompts for complex tasks", order: 2,
         learning_objectives: [{ id: "lo-les-2-2", text: "Implement chain-of-thought prompting for multi-step reasoning tasks", bloom_level: "apply" }],
         content_types: ["reading", "plugin", "practice_quiz"],
         videos: [
-          { id: "v-2-2-1", lesson_id: "les-2-2", title: "Chain-of-Thought Prompting", duration_minutes: 18, order: 1, is_handson: false, status: "pending" },
-          { id: "v-2-2-2", lesson_id: "les-2-2", title: "Few-Shot vs Zero-Shot: When to Use Each", duration_minutes: 15, order: 2, is_handson: false, status: "pending" },
+          { id: "v-2-2-1", org_id: "00000000-0000-0000-0000-0000000000aa", course_id: "course-001", lesson_id: "les-2-2", title: "Chain-of-Thought Prompting", duration_minutes: 18, order: 1, is_handson: false, status: "pending" },
+          { id: "v-2-2-2", org_id: "00000000-0000-0000-0000-0000000000aa", course_id: "course-001", lesson_id: "les-2-2", title: "Few-Shot vs Zero-Shot: When to Use Each", duration_minutes: 15, order: 2, is_handson: false, status: "pending" },
         ]
       },
       {
-        id: "les-2-3", module_id: "mod-2", title: "Prompt Engineering for Enterprise", description: "Building reusable prompt libraries for teams", order: 3,
+        id: "les-2-3", org_id: "00000000-0000-0000-0000-0000000000aa", course_id: "course-001", module_id: "mod-2", title: "Prompt Engineering for Enterprise", description: "Building reusable prompt libraries for teams", order: 3,
         learning_objectives: [{ id: "lo-les-2-3", text: "Design a reusable prompt library for a business function", bloom_level: "create" }],
         content_types: ["reading", "practice_quiz", "graded_quiz"],
         videos: [
-          { id: "v-2-3-1", lesson_id: "les-2-3", title: "Building Your Prompt Library", duration_minutes: 22, order: 1, is_handson: false, status: "pending" },
+          { id: "v-2-3-1", org_id: "00000000-0000-0000-0000-0000000000aa", course_id: "course-001", lesson_id: "les-2-3", title: "Building Your Prompt Library", duration_minutes: 22, order: 1, is_handson: false, status: "pending" },
         ]
       },
     ],
   },
   {
     id: "mod-3",
+    org_id: "00000000-0000-0000-0000-0000000000aa",
     course_id: "course-001",
     title: "Module 3: AI Workflow Automation",
     description: "Design and implement AI-powered workflows that automate repetitive business processes.",
@@ -207,34 +218,35 @@ export const SAMPLE_MODULES: Module[] = [
     ],
     lessons: [
       {
-        id: "les-3-1", module_id: "mod-3", title: "Identifying Automation Opportunities", description: "Framework for finding high-value automation targets", order: 1,
+        id: "les-3-1", org_id: "00000000-0000-0000-0000-0000000000aa", course_id: "course-001", module_id: "mod-3", title: "Identifying Automation Opportunities", description: "Framework for finding high-value automation targets", order: 1,
         learning_objectives: [{ id: "lo-les-3-1", text: "Apply the automation ROI framework to identify high-impact workflow candidates", bloom_level: "apply" }],
         content_types: ["reading", "discussion", "practice_quiz"],
         videos: [
-          { id: "v-3-1-1", lesson_id: "les-3-1", title: "The Automation ROI Framework", duration_minutes: 16, order: 1, is_handson: false, status: "pending" },
-          { id: "v-3-1-2", lesson_id: "les-3-1", title: "Case Study: Automating Customer Support", duration_minutes: 20, order: 2, is_handson: false, status: "pending" },
+          { id: "v-3-1-1", org_id: "00000000-0000-0000-0000-0000000000aa", course_id: "course-001", lesson_id: "les-3-1", title: "The Automation ROI Framework", duration_minutes: 16, order: 1, is_handson: false, status: "pending" },
+          { id: "v-3-1-2", org_id: "00000000-0000-0000-0000-0000000000aa", course_id: "course-001", lesson_id: "les-3-1", title: "Case Study: Automating Customer Support", duration_minutes: 20, order: 2, is_handson: false, status: "pending" },
         ]
       },
       {
-        id: "les-3-2", module_id: "mod-3", title: "Building AI Workflows", description: "Hands-on: creating automation pipelines with AI tools", order: 2,
+        id: "les-3-2", org_id: "00000000-0000-0000-0000-0000000000aa", course_id: "course-001", module_id: "mod-3", title: "Building AI Workflows", description: "Hands-on: creating automation pipelines with AI tools", order: 2,
         learning_objectives: [{ id: "lo-les-3-2", text: "Build an AI workflow using Zapier/Make with LLM integration", bloom_level: "create" }],
         content_types: ["reading", "plugin", "case_study", "practice_quiz"],
         videos: [
-          { id: "v-3-2-1", lesson_id: "les-3-2", title: "Building Your First AI Workflow", duration_minutes: 25, order: 1, is_handson: true, status: "pending" },
+          { id: "v-3-2-1", org_id: "00000000-0000-0000-0000-0000000000aa", course_id: "course-001", lesson_id: "les-3-2", title: "Building Your First AI Workflow", duration_minutes: 25, order: 1, is_handson: true, status: "pending" },
         ]
       },
       {
-        id: "les-3-3", module_id: "mod-3", title: "Scaling and Monitoring AI Automation", description: "Governance, monitoring, and scaling AI workflows", order: 3,
+        id: "les-3-3", org_id: "00000000-0000-0000-0000-0000000000aa", course_id: "course-001", module_id: "mod-3", title: "Scaling and Monitoring AI Automation", description: "Governance, monitoring, and scaling AI workflows", order: 3,
         learning_objectives: [{ id: "lo-les-3-3", text: "Design a monitoring and governance framework for AI automation", bloom_level: "create" }],
         content_types: ["reading", "practice_quiz", "graded_quiz"],
         videos: [
-          { id: "v-3-3-1", lesson_id: "les-3-3", title: "AI Governance for Automation", duration_minutes: 18, order: 1, is_handson: false, status: "pending" },
+          { id: "v-3-3-1", org_id: "00000000-0000-0000-0000-0000000000aa", course_id: "course-001", lesson_id: "les-3-3", title: "AI Governance for Automation", duration_minutes: 18, order: 1, is_handson: false, status: "pending" },
         ]
       },
     ],
   },
   {
     id: "mod-4",
+    org_id: "00000000-0000-0000-0000-0000000000aa",
     course_id: "course-001",
     title: "Module 4: Responsible AI & Future Trends",
     description: "Navigate ethical considerations, bias mitigation, and prepare for the next wave of AI capabilities.",
@@ -249,28 +261,28 @@ export const SAMPLE_MODULES: Module[] = [
     ],
     lessons: [
       {
-        id: "les-4-1", module_id: "mod-4", title: "AI Ethics and Bias", description: "Understanding and mitigating AI bias in business applications", order: 1,
+        id: "les-4-1", org_id: "00000000-0000-0000-0000-0000000000aa", course_id: "course-001", module_id: "mod-4", title: "AI Ethics and Bias", description: "Understanding and mitigating AI bias in business applications", order: 1,
         learning_objectives: [{ id: "lo-les-4-1", text: "Identify common sources of bias in AI systems and propose mitigation strategies", bloom_level: "analyze" }],
         content_types: ["reading", "discussion", "practice_quiz"],
         videos: [
-          { id: "v-4-1-1", lesson_id: "les-4-1", title: "Understanding AI Bias", duration_minutes: 18, order: 1, is_handson: false, status: "pending" },
-          { id: "v-4-1-2", lesson_id: "les-4-1", title: "Bias Mitigation Strategies", duration_minutes: 15, order: 2, is_handson: false, status: "pending" },
+          { id: "v-4-1-1", org_id: "00000000-0000-0000-0000-0000000000aa", course_id: "course-001", lesson_id: "les-4-1", title: "Understanding AI Bias", duration_minutes: 18, order: 1, is_handson: false, status: "pending" },
+          { id: "v-4-1-2", org_id: "00000000-0000-0000-0000-0000000000aa", course_id: "course-001", lesson_id: "les-4-1", title: "Bias Mitigation Strategies", duration_minutes: 15, order: 2, is_handson: false, status: "pending" },
         ]
       },
       {
-        id: "les-4-2", module_id: "mod-4", title: "Building an AI Policy", description: "Practical guide to responsible AI governance", order: 2,
+        id: "les-4-2", org_id: "00000000-0000-0000-0000-0000000000aa", course_id: "course-001", module_id: "mod-4", title: "Building an AI Policy", description: "Practical guide to responsible AI governance", order: 2,
         learning_objectives: [{ id: "lo-les-4-2", text: "Draft a responsible AI usage policy for a department or organization", bloom_level: "create" }],
         content_types: ["reading", "plugin", "case_study", "practice_quiz"],
         videos: [
-          { id: "v-4-2-1", lesson_id: "les-4-2", title: "Components of an AI Policy", duration_minutes: 20, order: 1, is_handson: false, status: "pending" },
+          { id: "v-4-2-1", org_id: "00000000-0000-0000-0000-0000000000aa", course_id: "course-001", lesson_id: "les-4-2", title: "Components of an AI Policy", duration_minutes: 20, order: 1, is_handson: false, status: "pending" },
         ]
       },
       {
-        id: "les-4-3", module_id: "mod-4", title: "The Future of AI in Business", description: "Emerging trends: agents, multimodal AI, and industry-specific models", order: 3,
+        id: "les-4-3", org_id: "00000000-0000-0000-0000-0000000000aa", course_id: "course-001", module_id: "mod-4", title: "The Future of AI in Business", description: "Emerging trends: agents, multimodal AI, and industry-specific models", order: 3,
         learning_objectives: [{ id: "lo-les-4-3", text: "Predict which AI trends will have the highest impact on your industry within 2 years", bloom_level: "evaluate" }],
         content_types: ["reading", "practice_quiz", "graded_quiz"],
         videos: [
-          { id: "v-4-3-1", lesson_id: "les-4-3", title: "AI Trends Shaping 2027 and Beyond", duration_minutes: 22, order: 1, is_handson: false, status: "pending" },
+          { id: "v-4-3-1", org_id: "00000000-0000-0000-0000-0000000000aa", course_id: "course-001", lesson_id: "les-4-3", title: "AI Trends Shaping 2027 and Beyond", duration_minutes: 22, order: 1, is_handson: false, status: "pending" },
         ]
       },
     ],
@@ -625,7 +637,7 @@ export function markNotificationRead(notificationId: string): void {
   const state = loadState();
   const notification = state.notifications.find((n) => n.id === notificationId);
   if (notification) {
-    notification.read = true;
+    notification.read_at = new Date().toISOString();
     saveState(state);
   }
 }

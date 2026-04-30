@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { aiHeaders, aiMode } from "@/lib/ai/fallback";
 
 interface GenerateBriefRequest {
   videoId: string;
@@ -135,12 +136,12 @@ export async function POST(request: NextRequest) {
       ? await generateWithAI(body)
       : generateFallbackBrief(body);
 
-    return NextResponse.json({ success: true, brief });
+    return NextResponse.json({ success: true, brief }, { headers: aiHeaders(aiMode()) });
   } catch (error) {
     console.error("Error in /api/ai/generate-brief:", error);
     return NextResponse.json(
       { success: false, error: "Failed to generate brief" },
-      { status: 500 }
+      { status: 500, headers: aiHeaders(aiMode()) }
     );
   }
 }
