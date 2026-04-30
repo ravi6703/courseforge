@@ -324,7 +324,7 @@ IMPORTANT:
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-6",
         max_tokens: 8000,
         messages: [
           {
@@ -344,7 +344,7 @@ IMPORTANT:
     const content = data.content[0].text;
 
     // Extract JSON from response (handle markdown code blocks)
-    let jsonMatch = content.match(/\[[\s\S]*\]/);
+    const jsonMatch = content.match(/\[[\s\S]*\]/);
     if (!jsonMatch) {
       console.warn("Could not extract JSON array from Claude response");
       return generateFallbackTOC(input);
