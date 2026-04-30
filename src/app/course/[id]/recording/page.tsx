@@ -1,3 +1,4 @@
+import { getServerSupabase } from "@/lib/supabase/server";
 // src/app/course/[id]/recording/page.tsx — recording dashboard.
 
 

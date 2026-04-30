@@ -1,3 +1,4 @@
+import { getServerSupabase } from "@/lib/supabase/server";
 // src/app/course/[id]/transcript/page.tsx — transcript view + word-count audit.
 
 

@@ -1,3 +1,4 @@
+import { getServerSupabase } from "@/lib/supabase/server";
 // src/app/course/[id]/content/page.tsx — generated supplemental content viewer.
 
 
