@@ -367,9 +367,9 @@ export function updateModule(courseId: string, moduleId: string, updates: Partia
   const state = loadState();
   const modules = state.modules[courseId];
   if (modules) {
-    const module = modules.find((m) => m.id === moduleId);
-    if (module) {
-      Object.assign(module, updates);
+    const mod = modules.find((m) => m.id === moduleId);
+    if (mod) {
+      Object.assign(mod, updates);
       saveState(state);
     }
   }
