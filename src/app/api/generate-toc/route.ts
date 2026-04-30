@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { aiHeaders, aiMode } from "@/lib/ai/fallback";
 import { GeneratedTOC, Module, Lesson, Video, LearningObjective, CourseResearch, ContentType } from "@/types";
 
 interface GenerateTOCRequest {
@@ -102,6 +103,8 @@ function generateFallbackTOC(input: GenerateTOCRequest): Module[] {
         const isHandsOn = input.theory_handson_ratio < 50 && v === videosPerLesson - 1;
         videos.push({
           id: `video-${m}-${l}-${v}`,
+          org_id: "00000000-0000-0000-0000-0000000000aa",
+          course_id: "draft-course",
           lesson_id: `lesson-${m}-${l}`,
           title: `${input.domain} - ${isHandsOn ? "Hands-on" : "Theory"} Part ${v + 1}`,
           duration_minutes: 20,
@@ -113,6 +116,8 @@ function generateFallbackTOC(input: GenerateTOCRequest): Module[] {
 
       lessons.push({
         id: `lesson-${m}-${l}`,
+        org_id: "00000000-0000-0000-0000-0000000000aa",
+        course_id: "draft-course",
         module_id: `module-${m}`,
         title: `Lesson ${l + 1}: ${moduleTitles[m]?.split("&")[0] || "Key Concepts"}`,
         description: `Learning outcomes in ${input.domain} - ${moduleTitles[m] || "Module Content"}`,
@@ -132,6 +137,7 @@ function generateFallbackTOC(input: GenerateTOCRequest): Module[] {
 
     modules.push({
       id: `module-${m}`,
+      org_id: "00000000-0000-0000-0000-0000000000aa",
       course_id: "temp-course-id",
       title: `Module ${m + 1}: ${moduleTitles[m] || input.domain}`,
       description: isCapstoneMod
@@ -358,8 +364,9 @@ IMPORTANT:
         lesson.id ||= `lesson-${Math.random().toString(36).substr(2, 9)}`;
         lesson.learning_objectives ||= generateLearningObjectives(lesson.title, 2);
 
-        lesson.content_items ||= [];
-        lesson.content_items.forEach((item) => {
+        const lessonAny = lesson as unknown as { content_items?: Array<{ id?: string; lesson_id?: string }> };
+        lessonAny.content_items ||= [];
+        lessonAny.content_items.forEach((item) => {
           item.lesson_id ||= lesson.id;
           item.id ||= `content-${Math.random().toString(36).substr(2, 9)}`;
         });
@@ -386,7 +393,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<GenerateT
 
     // Validate required fields
     if (!body.title || !body.description || !body.domain) {
-      return NextResponse.json({ error: "Missing required fields: title, description, domain" }, { status: 400 });
+      return NextResponse.json({ error: "Missing required fields: title, description, domain" }, { status: 400, headers: aiHeaders(aiMode()) });
     }
 
     const modules = process.env.ANTHROPIC_API_KEY
@@ -401,9 +408,9 @@ export async function POST(request: NextRequest): Promise<NextResponse<GenerateT
       research,
     };
 
-    return NextResponse.json(response);
+    return NextResponse.json(response, { headers: aiHeaders(aiMode()) });
   } catch (error) {
     console.error("Error in /api/generate-toc:", error);
-    return NextResponse.json({ error: "Failed to generate table of contents" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to generate table of contents" }, { status: 500, headers: aiHeaders(aiMode()) });
   }
 }

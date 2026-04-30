@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { aiHeaders, aiMode } from "@/lib/ai/fallback";
 
 type ContentType =
   | "reading"
@@ -229,7 +230,7 @@ export async function POST(request: NextRequest) {
     if (!validTypes.includes(body.type)) {
       return NextResponse.json(
         { success: false, error: `Invalid content type: ${body.type}` },
-        { status: 400 }
+        { status: 400, headers: aiHeaders(aiMode()) }
       );
     }
 
@@ -237,12 +238,12 @@ export async function POST(request: NextRequest) {
       ? await generateWithAI(body)
       : generateFallbackContent(body);
 
-    return NextResponse.json({ success: true, content });
+    return NextResponse.json({ success: true, content }, { headers: aiHeaders(aiMode()) });
   } catch (error) {
     console.error("Error in /api/ai/generate-content:", error);
     return NextResponse.json(
       { success: false, error: "Failed to generate content" },
-      { status: 500 }
+      { status: 500, headers: aiHeaders(aiMode()) }
     );
   }
 }
