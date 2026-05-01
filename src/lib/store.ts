@@ -293,16 +293,15 @@ export function loadState(): AppState {
   if (typeof window === "undefined") return defaultState;
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
+    if (stored) {
+      const parsed: AppState = JSON.parse(stored);
+      // Strip legacy sample course so it never shows up in the dashboard
+      parsed.courses = (parsed.courses || []).filter((c) => c.id !== "course-001");
+      return parsed;
+    }
   } catch {}
-  // Initialize with sample data
-  const initial: AppState = {
-    ...defaultState,
-    courses: [SAMPLE_COURSE],
-    modules: { "course-001": SAMPLE_MODULES },
-  };
-  saveState(initial);
-  return initial;
+  saveState(defaultState);
+  return defaultState;
 }
 
 export function saveState(state: AppState): void {

@@ -99,6 +99,8 @@ interface FormState {
   prerequisites: string;
   targetJobRoles: string[];
   certificationGoal: string;
+  assignedCoach: string;
+  coachExpertise: string;
   contentTypes: ContentType[];
   theoryRatio: number;
   projectBased: boolean;
@@ -127,6 +129,8 @@ export default function CreateCoursePage() {
     prerequisites: "",
     targetJobRoles: [],
     certificationGoal: "",
+    assignedCoach: "",
+    coachExpertise: "",
     contentTypes: ["reading", "practice_quiz", "graded_quiz", "discussion"],
     theoryRatio: 60,
     projectBased: false,
@@ -220,6 +224,8 @@ export default function CreateCoursePage() {
           project_based: formState.projectBased,
           capstone: formState.capstone,
           reference_course_url: formState.referenceUrl,
+          assigned_coach: formState.assignedCoach || undefined,
+          coach_expertise: formState.coachExpertise || undefined,
         }),
       });
 
@@ -264,6 +270,7 @@ export default function CreateCoursePage() {
         capstone: formState.capstone,
         reference_course_url: formState.referenceUrl,
         created_by: user.id,
+        assigned_coach: formState.assignedCoach || undefined,
         content_types: formState.contentTypes,
         module_hours: formState.moduleHours,
         created_at: now,
@@ -600,6 +607,34 @@ export default function CreateCoursePage() {
                         value={formState.certificationGoal}
                         onChange={(e) => updateFormField("certificationGoal", e.target.value)}
                         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* AI Coach Assignment */}
+                <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+                  <h3 className="font-semibold text-gray-900 mb-1">AI Coach Assignment</h3>
+                  <p className="text-sm text-gray-500 mb-4">Assign an AI coach persona to guide content brief generation</p>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Coach Name (Optional)</label>
+                      <input
+                        type="text"
+                        placeholder="e.g., Dr. Sarah Chen, Senior Data Scientist"
+                        value={formState.assignedCoach}
+                        onChange={(e) => updateFormField("assignedCoach", e.target.value)}
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Coach Expertise & Style Notes (Optional)</label>
+                      <textarea
+                        placeholder="e.g., Expert in ML pipelines with 10 years industry experience. Prefers practical examples over theory, uses real-world case studies from FAANG companies..."
+                        value={formState.coachExpertise}
+                        onChange={(e) => updateFormField("coachExpertise", e.target.value)}
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none"
+                        rows={3}
                       />
                     </div>
                   </div>

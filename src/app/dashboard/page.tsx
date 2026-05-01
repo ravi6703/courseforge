@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Sidebar } from "@/components/Sidebar";
 import { Course } from "@/types";
-import { loadState } from "@/lib/store";
 import { createClient } from "@/lib/supabase/client";
 import { Plus, ArrowRight, BookOpen, Zap, Clock, CheckCircle } from "lucide-react";
 
@@ -64,8 +63,11 @@ export default function DashboardPage() {
         email: authUser.email ?? "",
         role: authUser.user_metadata?.role ?? "pm",
       });
-      const state = loadState();
-      setCourses(state.courses || []);
+      const res = await fetch("/api/courses");
+      if (res.ok) {
+        const data = await res.json();
+        setCourses(data.courses || []);
+      }
       setIsLoading(false);
     };
     init();
