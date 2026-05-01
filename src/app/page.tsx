@@ -114,14 +114,14 @@ export default function Landing() {
                 Book a demo <ArrowRight size={16} />
               </Link>
               <Link
-                href="/login"
+                href="/signup"
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md border border-slate-300 font-medium hover:bg-slate-50"
               >
-                Try the live sandbox
+                Get started free
               </Link>
             </div>
             <p className="mt-3 text-xs text-slate-500">
-              No credit card. Demo seeded with a real sample course.
+              No credit card required.
             </p>
           </div>
 
@@ -342,10 +342,10 @@ export default function Landing() {
             Book a demo <ArrowRight size={16} />
           </Link>
           <Link
-            href="/login"
+            href="/signup"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md border border-slate-300 font-medium hover:bg-slate-50"
           >
-            Try the live sandbox
+            Get started free
           </Link>
         </div>
       </section>
