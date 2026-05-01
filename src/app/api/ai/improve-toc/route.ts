@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { aiHeaders, aiMode } from "@/lib/ai/fallback";
+import { getServiceSupabase, requireUser } from "@/lib/supabase/server";
 import { Module } from "@/types";
 
 interface ImproveTOCRequest {
@@ -101,8 +102,23 @@ Return the improved modules as a JSON array matching the Module interface. Inclu
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireUser();
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const body = (await request.json()) as ImproveTOCRequest;
+
+    if (body.courseId) {
+      const supabase = getServiceSupabase();
+      const { data: courseRow } = await supabase
+        .from("courses")
+        .select("org_id")
+        .eq("id", body.courseId)
+        .maybeSingle();
+      if (!courseRow || courseRow.org_id !== auth.orgId) {
+        return NextResponse.json({ error: "course not found" }, { status: 404 });
+      }
+    }
 
     const modules = process.env.ANTHROPIC_API_KEY
       ? await improveWithAI(body)

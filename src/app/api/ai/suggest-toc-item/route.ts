@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { aiHeaders, aiMode } from "@/lib/ai/fallback";
-import { getServerSupabase } from "@/lib/supabase/server";
+import { getServiceSupabase, requireUser } from "@/lib/supabase/server";
 
 interface SuggestRequest {
   courseId: string;
@@ -76,8 +76,23 @@ Return ONLY valid JSON:
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireUser();
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const body = (await request.json()) as SuggestRequest;
+
+    if (body.courseId) {
+      const ownership = getServiceSupabase();
+      const { data: courseRow } = await ownership
+        .from("courses")
+        .select("org_id")
+        .eq("id", body.courseId)
+        .maybeSingle();
+      if (!courseRow || courseRow.org_id !== auth.orgId) {
+        return NextResponse.json({ error: "course not found" }, { status: 404 });
+      }
+    }
 
     const suggestion = process.env.ANTHROPIC_API_KEY
       ? await suggestWithAI(body)
@@ -85,7 +100,7 @@ export async function POST(request: NextRequest) {
 
     // Persist accepted suggestion as a comment for audit trail
     if (body.courseId && body.itemId) {
-      const supabase = await getServerSupabase();
+      const supabase = getServiceSupabase();
       await supabase.from("comments").insert({
         course_id: body.courseId,
         target_type: body.itemType,

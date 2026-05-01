@@ -8,19 +8,32 @@
 // importable by Canvas / Blackboard / Moodle / Cornerstone / etc.
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSupabase } from "@/lib/supabase/server";
+import { getServiceSupabase, requireUser } from "@/lib/supabase/server";
 import { buildScormZip, CourseForExport, LessonForExport } from "@/lib/exporters/scorm";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
+  const auth = await requireUser();
+  if (auth instanceof NextResponse) return auth;
+
   const url = new URL(req.url);
   const courseId = url.searchParams.get("courseId");
   if (!courseId)
     return NextResponse.json({ error: "courseId is required" }, { status: 400 });
 
-  const supabase = await getServerSupabase();
+  const supabase = getServiceSupabase();
+
+  // Ownership check: collapse "not found" and "not yours" into 404 to avoid
+  // leaking which course IDs exist in other orgs.
+  const { data: ownerRow } = await supabase
+    .from("courses")
+    .select("org_id")
+    .eq("id", courseId)
+    .maybeSingle();
+  if (!ownerRow || ownerRow.org_id !== auth.orgId)
+    return NextResponse.json({ error: "Course not found" }, { status: 404 });
 
   // 1. Course + org
   const { data: course, error: cErr } = await supabase

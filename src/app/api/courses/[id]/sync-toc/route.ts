@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSupabase } from "@/lib/supabase/server";
+import { getServiceSupabase, requireUser } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -7,10 +7,22 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireUser();
+  if (auth instanceof NextResponse) return auth;
+
   const { id: courseId } = await params;
   const { modules } = await request.json();
 
-  const supabase = await getServerSupabase();
+  const supabase = getServiceSupabase();
+
+  const { data: courseRow } = await supabase
+    .from("courses")
+    .select("org_id")
+    .eq("id", courseId)
+    .maybeSingle();
+  if (!courseRow || courseRow.org_id !== auth.orgId) {
+    return NextResponse.json({ error: "course not found" }, { status: 404 });
+  }
 
   for (const mod of modules ?? []) {
     const modId = crypto.randomUUID();

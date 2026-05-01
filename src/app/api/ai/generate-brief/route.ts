@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { aiHeaders, aiMode } from "@/lib/ai/fallback";
-import { getServerSupabase } from "@/lib/supabase/server";
+import { getServiceSupabase, requireUser } from "@/lib/supabase/server";
 
 interface GenerateBriefRequest {
   videoId?: string;
@@ -132,8 +132,23 @@ The brief should be:
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireUser();
+  if (auth instanceof NextResponse) return auth;
+
   try {
     const body = (await request.json()) as GenerateBriefRequest;
+
+    if (body.courseId) {
+      const ownership = getServiceSupabase();
+      const { data: courseRow } = await ownership
+        .from("courses")
+        .select("org_id")
+        .eq("id", body.courseId)
+        .maybeSingle();
+      if (!courseRow || courseRow.org_id !== auth.orgId) {
+        return NextResponse.json({ error: "course not found" }, { status: 404 });
+      }
+    }
 
     const brief = process.env.ANTHROPIC_API_KEY
       ? await generateWithAI(body)
@@ -141,7 +156,7 @@ export async function POST(request: NextRequest) {
 
     // Persist to Supabase if courseId + lessonId provided
     if (body.courseId && body.lessonId) {
-      const supabase = await getServerSupabase();
+      const supabase = getServiceSupabase();
       const toArr = (s: string) => s.split("\n").filter((l) => l.trim());
       await supabase.from("content_briefs").insert({
         lesson_id: body.lessonId,
