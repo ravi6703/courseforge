@@ -1,0 +1,14 @@
+# Supabase CLI config — see https://supabase.com/docs/guides/cli/config
+# Run: supabase db push  to apply pending migrations to the linked project.
+
+project_id = "rbyvyecizlfbkukevsci"
+
+[api]
+schemas = ["public"]
+
+[db]
+port = 54322
+shadow_port = 54320
+
+[migrations]
+schema_paths = ["supabase/migrations"]
