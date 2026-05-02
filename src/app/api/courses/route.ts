@@ -2,10 +2,12 @@
 // POST /api/courses        create a course (+ optional modules + lessons)
 //
 // Both verbs require an authenticated user. We derive org_id from the user's
-// profile rather than trusting the client or hardcoding DEMO_ORG_ID.
+// profile rather than trusting the client. Reads/writes go through the
+// session-bound Supabase client so RLS enforces org scoping (defense in depth
+// alongside the explicit ownership check on upsert).
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServiceSupabase, requireUser } from "@/lib/supabase/server";
+import { getServerSupabase, requireUser } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,7 +16,9 @@ export async function GET() {
   const auth = await requireUser();
   if (auth instanceof NextResponse) return auth;
 
-  const supabase = getServiceSupabase();
+  const supabase = await getServerSupabase();
+  // RLS already restricts to the caller's org; the explicit eq is belt-and-braces
+  // and also makes the intent obvious to a reader.
   const { data, error } = await supabase
     .from("courses")
     .select("id, title, description, status, platform, domain, audience_level, duration_weeks, created_at, updated_at")
@@ -33,12 +37,12 @@ export async function POST(req: NextRequest) {
   try { body = await req.json(); }
   catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
 
-  const supabase = getServiceSupabase();
+  const supabase = await getServerSupabase();
+  // Always server-generate the id for new courses. If the client sends an id
+  // we honour it (so existing flows that pre-allocate a UUID still work) but
+  // RLS will reject the upsert if the row exists in a different org.
   const id = (body.id as string) || crypto.randomUUID();
 
-  // If a client provided an id for an existing course, it must belong to
-  // this user's org — otherwise this is an attempt to overwrite someone
-  // else's course via upsert.
   if (body.id) {
     const { data: existing } = await supabase
       .from("courses")
@@ -73,24 +77,43 @@ export async function POST(req: NextRequest) {
   const { error: cErr } = await supabase.from("courses").upsert(courseRow, { onConflict: "id" });
   if (cErr) return NextResponse.json({ error: cErr.message }, { status: 500 });
 
-  // Optional modules + lessons
+  // Optional modules + lessons. Bulk insert (PERF-1 fix) lives in
+  // /api/courses/[id]/sync-toc; this path is for callers that pass the tree
+  // inline at create time, which is rare and small (1–2 modules max).
   type IM = { id?: string; title: string; description?: string; order?: number; learning_objectives?: unknown; lessons?: IL[] };
   type IL = { id?: string; title: string; description?: string; order?: number; content_types?: string[]; learning_objectives?: unknown };
-  for (const m of ((body.modules as IM[]) ?? [])) {
-    const moduleId = m.id || crypto.randomUUID();
-    await supabase.from("modules").upsert({
-      id: moduleId, org_id: auth.orgId, course_id: id,
-      title: m.title, description: m.description ?? "", order: m.order ?? 0,
+  const inlineModules = (body.modules as IM[]) ?? [];
+  if (inlineModules.length) {
+    const moduleRows = inlineModules.map((m) => ({
+      id: m.id || crypto.randomUUID(),
+      org_id: auth.orgId,
+      course_id: id,
+      title: m.title,
+      description: m.description ?? "",
+      order: m.order ?? 0,
       learning_objectives: m.learning_objectives ?? [],
-    }, { onConflict: "id" });
+    }));
+    await supabase.from("modules").upsert(moduleRows, { onConflict: "id" });
 
-    for (const l of (m.lessons ?? [])) {
-      await supabase.from("lessons").upsert({
-        id: l.id || crypto.randomUUID(),
-        org_id: auth.orgId, course_id: id, module_id: moduleId,
-        title: l.title, description: l.description ?? "", order: l.order ?? 0,
-        content_types: l.content_types ?? [], learning_objectives: l.learning_objectives ?? [],
-      }, { onConflict: "id" });
+    const lessonRows: Array<Record<string, unknown>> = [];
+    inlineModules.forEach((m, idx) => {
+      const moduleId = moduleRows[idx].id;
+      (m.lessons ?? []).forEach((l) => {
+        lessonRows.push({
+          id: l.id || crypto.randomUUID(),
+          org_id: auth.orgId,
+          course_id: id,
+          module_id: moduleId,
+          title: l.title,
+          description: l.description ?? "",
+          order: l.order ?? 0,
+          content_types: l.content_types ?? [],
+          learning_objectives: l.learning_objectives ?? [],
+        });
+      });
+    });
+    if (lessonRows.length) {
+      await supabase.from("lessons").upsert(lessonRows, { onConflict: "id" });
     }
   }
 

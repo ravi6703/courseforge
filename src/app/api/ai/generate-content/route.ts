@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { aiHeaders, aiMode } from "@/lib/ai/fallback";
-import { getServiceSupabase, requireUser } from "@/lib/supabase/server";
+import { getServerSupabase, requireUser } from "@/lib/supabase/server";
 
 type ContentType =
   | "reading"
@@ -165,7 +165,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (body.courseId) {
-      const supabase = getServiceSupabase();
+      const supabase = await getServerSupabase();
       const { data: courseRow } = await supabase
         .from("courses")
         .select("org_id")

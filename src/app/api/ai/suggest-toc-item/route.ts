@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { aiHeaders, aiMode } from "@/lib/ai/fallback";
-import { getServiceSupabase, requireUser } from "@/lib/supabase/server";
+import { getServerSupabase, requireUser } from "@/lib/supabase/server";
 
 interface SuggestRequest {
   courseId: string;
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     const body = (await request.json()) as SuggestRequest;
 
     if (body.courseId) {
-      const ownership = getServiceSupabase();
+      const ownership = await getServerSupabase();
       const { data: courseRow } = await ownership
         .from("courses")
         .select("org_id")
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
 
     // Persist accepted suggestion as a comment for audit trail
     if (body.courseId && body.itemId) {
-      const supabase = getServiceSupabase();
+      const supabase = await getServerSupabase();
       await supabase.from("comments").insert({
         course_id: body.courseId,
         target_type: body.itemType,

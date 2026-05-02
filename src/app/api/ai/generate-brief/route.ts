@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { aiHeaders, aiMode } from "@/lib/ai/fallback";
-import { getServiceSupabase, requireUser } from "@/lib/supabase/server";
+import { getServerSupabase, requireUser } from "@/lib/supabase/server";
 
 interface GenerateBriefRequest {
   videoId?: string;
@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
     const body = (await request.json()) as GenerateBriefRequest;
 
     if (body.courseId) {
-      const ownership = getServiceSupabase();
+      const ownership = await getServerSupabase();
       const { data: courseRow } = await ownership
         .from("courses")
         .select("org_id")
@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
 
     // Persist to Supabase if courseId + lessonId provided
     if (body.courseId && body.lessonId) {
-      const supabase = getServiceSupabase();
+      const supabase = await getServerSupabase();
       const toArr = (s: string) => s.split("\n").filter((l) => l.trim());
       await supabase.from("content_briefs").insert({
         lesson_id: body.lessonId,

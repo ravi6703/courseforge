@@ -1,7 +1,7 @@
 // src/app/api/export/coursera/route.ts — Coursera import-pack download.
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServiceSupabase, requireUser } from "@/lib/supabase/server";
+import { getServerSupabase, requireUser } from "@/lib/supabase/server";
 import { buildCourseraPack, CourseraCourse, CourseraModule, CourseraLesson, CourseraVideo } from "@/lib/exporters/coursera";
 import type { SlideJSON } from "@/lib/exporters/pptx";
 
@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
   if (!courseId)
     return NextResponse.json({ error: "courseId required" }, { status: 400 });
 
-  const supabase = getServiceSupabase();
+  const supabase = await getServerSupabase();
 
   // Ownership check: collapse "not found" and "not yours" into 404 to avoid
   // leaking which course IDs exist in other orgs.

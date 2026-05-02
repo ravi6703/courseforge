@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServiceSupabase, requireUser } from "@/lib/supabase/server";
+import { getServerSupabase, requireUser } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +17,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid table or id" }, { status: 400 });
   }
 
-  const supabase = getServiceSupabase();
+  const supabase = await getServerSupabase();
 
   const { data: courseRow } = await supabase
     .from("courses")

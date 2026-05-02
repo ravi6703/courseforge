@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { aiHeaders, aiMode } from "@/lib/ai/fallback";
-import { getServiceSupabase, requireUser } from "@/lib/supabase/server";
+import { getServerSupabase, requireUser } from "@/lib/supabase/server";
 import { Module } from "@/types";
 
 interface ImproveTOCRequest {
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
     const body = (await request.json()) as ImproveTOCRequest;
 
     if (body.courseId) {
-      const supabase = getServiceSupabase();
+      const supabase = await getServerSupabase();
       const { data: courseRow } = await supabase
         .from("courses")
         .select("org_id")
