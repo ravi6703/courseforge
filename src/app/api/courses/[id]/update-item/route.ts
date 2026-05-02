@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServiceSupabase, requireUser } from "@/lib/supabase/server";
+import { UpdateItemSchema, parseBody } from "@/lib/validation/schemas";
+import { getServerSupabase, requireUser } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -11,13 +12,18 @@ export async function PATCH(
   if (auth instanceof NextResponse) return auth;
 
   const { id: courseId } = await params;
-  const { table, id, title, description } = await request.json();
+  let __raw: unknown;
+  try { __raw = await request.json(); }
+  catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
+  const __p = parseBody(UpdateItemSchema, __raw);
+  if (!__p.ok) return __p.res;
+  const { table, id, title, description } = __p.data;
 
   if (!["modules", "lessons"].includes(table) || !id) {
     return NextResponse.json({ error: "Invalid table or id" }, { status: 400 });
   }
 
-  const supabase = getServiceSupabase();
+  const supabase = await getServerSupabase();
 
   const { data: courseRow } = await supabase
     .from("courses")

@@ -10,7 +10,7 @@
 // course. We use the request cookie to authenticate the Supabase client.
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServiceSupabase, requireUser } from "@/lib/supabase/server";
+import { getServerSupabase, requireUser } from "@/lib/supabase/server";
 import { renderSlidesToPptx, SlideJSON } from "@/lib/exporters/pptx";
 
 export const runtime = "nodejs"; // pptxgenjs needs Node, not Edge
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
   if (!courseId)
     return NextResponse.json({ error: "courseId is required" }, { status: 400 });
 
-  const supabase = getServiceSupabase();
+  const supabase = await getServerSupabase();
 
   // Ownership check: collapse "not found" and "not yours" into 404 to avoid
   // leaking which course IDs exist in other orgs.

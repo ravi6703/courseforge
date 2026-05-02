@@ -6,7 +6,7 @@
 // Requires an authenticated user. The course must belong to the user's org.
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServiceSupabase, requireUser } from "@/lib/supabase/server";
+import { getServerSupabase, requireUser } from "@/lib/supabase/server";
 import { lintCourse } from "@/lib/lint/pedagogy";
 import type { Course, Module } from "@/types";
 
@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
   if (!courseId)
     return NextResponse.json({ error: "courseId required" }, { status: 400 });
 
-  const supabase = getServiceSupabase();
+  const supabase = await getServerSupabase();
 
   // Ownership check: the course must exist AND belong to the caller's org.
   // We collapse "not found" and "not yours" into a single 404 so the API

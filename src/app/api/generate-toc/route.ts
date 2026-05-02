@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireUser } from "@/lib/supabase/server";
 import { aiHeaders, aiMode } from "@/lib/ai/fallback";
+import { research } from "@/lib/research";
+import { checkRateLimit, rateLimitResponse } from "@/lib/ratelimit";
 import { GeneratedTOC, Module, Lesson, Video, LearningObjective, CourseResearch, ContentType } from "@/types";
 
 interface GenerateTOCRequest {
@@ -28,7 +31,7 @@ interface GenerateTOCResponse {
     competitors: Array<{
       name: string;
       url: string;
-      rating: number;
+      rating?: number;
       strengths: string[];
       weaknesses: string[];
     }>;
@@ -157,72 +160,7 @@ function generateFallbackTOC(input: GenerateTOCRequest): Module[] {
   return modules;
 }
 
-function generateFallbackResearch(input: GenerateTOCRequest): GenerateTOCResponse["research"] {
-  const domains = input.domain.toLowerCase().split(" ");
-  const keyword = domains[0];
-  const capitalizedKeyword = keyword.charAt(0).toUpperCase() + keyword.slice(1);
-
-  const competitors = [
-    {
-      name: `${capitalizedKeyword} Fundamentals on Coursera`,
-      url: "https://www.coursera.org",
-      rating: 4.6,
-      strengths: ["Large community", "Recognized credentials", "Structured learning path"],
-      weaknesses: ["Limited hands-on projects", "Slower paced", "Higher cost"],
-    },
-    {
-      name: `Complete ${input.domain} Masterclass on Udemy`,
-      url: "https://www.udemy.com",
-      rating: 4.7,
-      strengths: ["Comprehensive content", "Lifetime access", "Affordable pricing"],
-      weaknesses: ["Inconsistent teaching quality", "Limited student support", "No certification"],
-    },
-    {
-      name: `${capitalizedKeyword} Professional Certificate`,
-      url: "https://www.coursera.org",
-      rating: 4.5,
-      strengths: ["Job-focused curriculum", "Industry partnerships", "Career support"],
-      weaknesses: ["Requires subscription", "Long duration", "Less interactive content"],
-    },
-  ];
-
-  const sources = [
-    `LinkedIn Job Market - ${input.domain} roles`,
-    "Industry trend reports from Gartner and IDC",
-    "Competitor course reviews and ratings",
-    "Skills gap analysis from leading tech companies",
-  ];
-
-  const researchSteps = [
-    {
-      label: "Job Market Analysis",
-      description: `Analyzed ${input.target_job_roles.length} target job roles and required skills`,
-      status: "completed" as const,
-    },
-    {
-      label: "Competitive Landscape Review",
-      description: "Evaluated 15+ existing courses in the market",
-      status: "completed" as const,
-    },
-    {
-      label: "Industry Trends",
-      description: "Researched emerging technologies and methodologies",
-      status: "completed" as const,
-    },
-    {
-      label: "Curriculum Alignment",
-      description: "Aligned content with certification goals and prerequisites",
-      status: "completed" as const,
-    },
-  ];
-
-  return {
-    sources,
-    competitors,
-    research_steps: researchSteps,
-  };
-}
-
+// generateFallbackResearch removed — provider-aware research lives in src/lib/research.
 async function generateWithAI(input: GenerateTOCRequest): Promise<Module[]> {
   const systemPrompt = `You are an expert curriculum designer specializing in creating comprehensive online courses. Your task is to generate a detailed Table of Contents for a course with specific requirements.
 
@@ -387,8 +325,15 @@ IMPORTANT:
   }
 }
 
-export async function POST(request: NextRequest): Promise<NextResponse<GenerateTOCResponse | { error: string }>> {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
+  const auth = await requireUser();
+  if (auth instanceof NextResponse) return auth;
+
+  // SEC-4: per-org rate limit
+  const __rl = await checkRateLimit(auth.orgId, "generate-toc");
+  if (!__rl.ok) return rateLimitResponse(__rl);
+
     const body = (await request.json()) as GenerateTOCRequest;
 
     // Validate required fields
@@ -400,12 +345,21 @@ export async function POST(request: NextRequest): Promise<NextResponse<GenerateT
       ? await generateWithAI(body)
       : generateFallbackTOC(body);
 
-    const research = generateFallbackResearch(body);
+    const researchResult = await research({
+      domain: body.domain,
+      title: body.title,
+      target_job_roles: body.target_job_roles ?? [],
+      audience_level: body.audience_level,
+    });
 
     const response: GenerateTOCResponse = {
       success: true,
       modules,
-      research,
+      research: {
+        sources: researchResult.sources.map((s) => `${s.title} — ${s.url}`),
+        competitors: researchResult.competitors,
+        research_steps: researchResult.research_steps,
+      },
     };
 
     return NextResponse.json(response, { headers: aiHeaders(aiMode()) });

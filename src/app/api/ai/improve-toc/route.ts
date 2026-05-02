@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { aiHeaders, aiMode } from "@/lib/ai/fallback";
-import { getServiceSupabase, requireUser } from "@/lib/supabase/server";
+import { checkRateLimit, rateLimitResponse } from "@/lib/ratelimit";
+import { getServerSupabase, requireUser } from "@/lib/supabase/server";
+import { recordActivity } from "@/lib/activity";
 import { Module } from "@/types";
 
 interface ImproveTOCRequest {
@@ -105,11 +107,16 @@ export async function POST(request: NextRequest) {
   const auth = await requireUser();
   if (auth instanceof NextResponse) return auth;
 
+  // SEC-4: per-org rate limit
+  const __rl = await checkRateLimit(auth.orgId, "improve-toc");
+  if (!__rl.ok) return rateLimitResponse(__rl);
+
+
   try {
     const body = (await request.json()) as ImproveTOCRequest;
 
     if (body.courseId) {
-      const supabase = getServiceSupabase();
+      const supabase = await getServerSupabase();
       const { data: courseRow } = await supabase
         .from("courses")
         .select("org_id")
@@ -123,6 +130,78 @@ export async function POST(request: NextRequest) {
     const modules = process.env.ANTHROPIC_API_KEY
       ? await improveWithAI(body)
       : generateFallbackImprovement(body.modules);
+
+    // CORRECT-1: persist the improved TOC server-side so the client doesn't
+    // have to remember to save. We do this by overwriting the existing
+    // modules / lessons / videos for the course in a single transaction-ish
+    // sequence (PG doesn't give us multi-statement transactions over PostgREST,
+    // so we do delete-then-bulk-insert and let RLS protect the org boundary).
+    if (body.courseId) {
+      const supabase = await getServerSupabase();
+      // Cascade delete via FK ON DELETE CASCADE on modules.course_id
+      // ─── this also cleans up lessons + videos in one shot.
+      await supabase.from("modules").delete().eq("course_id", body.courseId);
+
+      const moduleRows: Array<Record<string, unknown>> = [];
+      const lessonRows: Array<Record<string, unknown>> = [];
+      const videoRows: Array<Record<string, unknown>> = [];
+
+      for (const m of modules) {
+        const modId = (m.id && /^[0-9a-f-]{36}$/i.test(m.id)) ? m.id : crypto.randomUUID();
+        moduleRows.push({
+          id: modId,
+          org_id: auth.orgId,
+          course_id: body.courseId,
+          title: m.title,
+          description: m.description ?? "",
+          order: m.order ?? 0,
+          learning_objectives: m.learning_objectives ?? [],
+        });
+
+        for (const l of m.lessons ?? []) {
+          const lessonId = (l.id && /^[0-9a-f-]{36}$/i.test(l.id)) ? l.id : crypto.randomUUID();
+          lessonRows.push({
+            id: lessonId,
+            org_id: auth.orgId,
+            course_id: body.courseId,
+            module_id: modId,
+            title: l.title,
+            description: l.description ?? "",
+            order: l.order ?? 0,
+            content_types: l.content_types ?? [],
+            learning_objectives: l.learning_objectives ?? [],
+          });
+          for (const v of (l.videos ?? [])) {
+            videoRows.push({
+              id: (v.id && /^[0-9a-f-]{36}$/i.test(v.id)) ? v.id : crypto.randomUUID(),
+              org_id: auth.orgId,
+              course_id: body.courseId,
+              lesson_id: lessonId,
+              title: v.title,
+              duration_minutes: v.duration_minutes ?? 10,
+              order: v.order ?? 0,
+              status: v.status ?? "pending",
+            });
+          }
+        }
+      }
+
+      if (moduleRows.length) await supabase.from("modules").insert(moduleRows);
+      if (lessonRows.length) await supabase.from("lessons").insert(lessonRows);
+      if (videoRows.length)  await supabase.from("videos").insert(videoRows);
+
+      await recordActivity(supabase, {
+        orgId: auth.orgId,
+        userId: auth.profileId,
+        userName: auth.email ?? undefined,
+        userRole: auth.role,
+        courseId: body.courseId,
+        action: "toc.improved",
+        targetType: "course",
+        targetId: body.courseId,
+        details: { commentsAddressed: body.comments?.length ?? 0, modulesCount: modules.length },
+      });
+    }
 
     return NextResponse.json({ success: true, modules }, { headers: aiHeaders(aiMode()) });
   } catch (error) {

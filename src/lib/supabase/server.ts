@@ -7,10 +7,14 @@
 //     route is responsible for proving who is making the call.
 //   • getServerSupabase() returns a session-bound client (RLS enforced).
 //     Use this for all reads/writes that should be scoped to the caller.
+//     This is the DEFAULT for route handlers — the v2 RLS policies do the
+//     org_id filtering for you, so you don't have to remember it on every query.
 //   • getServiceSupabase() returns a service-role client that BYPASSES RLS.
-//     Only use it when you have already authenticated the user and need
-//     elevated access (e.g. cross-org admin tasks). Never expose its results
-//     to a caller without an org_id check first.
+//     Reserved for two cases:
+//       1. The auth bootstrap inside readUser() that needs to read profiles
+//          before the caller is established.
+//       2. Genuine cross-org admin tasks (none today; will live in /api/admin/*).
+//     New routes should not import this directly. See eslintrc no-restricted-imports.
 //
 // NEVER import this file from client components.
 
@@ -42,6 +46,9 @@ export async function getServerSupabase(): Promise<SupabaseClient> {
 /**
  * Service-role client. BYPASSES RLS. Only use after you've authenticated
  * the caller and confirmed they're allowed to do the thing you're about to do.
+ *
+ * NOTE: lint config restricts importing this symbol from new files. Prefer
+ * getServerSupabase() so RLS does the org_id check for you.
  */
 export function getServiceSupabase(): SupabaseClient {
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -79,6 +86,7 @@ export async function readUser(): Promise<AuthedUser | null> {
 
   // Service-role read: we need profiles even if its RLS would otherwise
   // hide it, because we're using it to *establish* the caller's identity.
+  // This is the ONLY legitimate use of service role outside admin routes.
   const service = getServiceSupabase();
   const { data: profile } = await service
     .from("profiles")
@@ -112,7 +120,3 @@ export async function requireUser(): Promise<AuthedUser | NextResponse> {
   }
   return user;
 }
-
-// Kept temporarily for any code still importing it. New code should use
-// the authenticated user's orgId instead.
-export const DEMO_ORG_ID = "00000000-0000-0000-0000-0000000000aa";
