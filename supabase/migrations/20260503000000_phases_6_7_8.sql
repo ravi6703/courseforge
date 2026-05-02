@@ -124,3 +124,21 @@ CREATE INDEX IF NOT EXISTS idx_zoom_webhook_events_unprocessed ON zoom_webhook_e
 
 -- No RLS — internal table, only service role writes.
 ALTER TABLE zoom_webhook_events ENABLE ROW LEVEL SECURITY;
+
+-- ════════════════════════════════════════════════════════════════════════════
+-- RECORDINGS — allow unassigned recordings (Zoom inbox flow)
+-- ════════════════════════════════════════════════════════════════════════════
+-- The Zoom webhook drops recordings into a per-org inbox before the PM
+-- links them to a course/lesson/video. So course_id, lesson_id, video_id
+-- need to allow NULL on the recordings table. They were NOT NULL in the
+-- original schema. We backfill PM associations via the recording dashboard.
+ALTER TABLE recordings
+  ALTER COLUMN course_id DROP NOT NULL,
+  ALTER COLUMN lesson_id DROP NOT NULL,
+  ALTER COLUMN video_id  DROP NOT NULL;
+
+-- Backfill org_id on existing rows (defensive — they should already have it).
+UPDATE recordings r SET org_id = c.org_id
+  FROM courses c WHERE r.course_id = c.id AND r.org_id IS NULL;
+
+-- A linking endpoint will set these when PM associates an inbox recording.
