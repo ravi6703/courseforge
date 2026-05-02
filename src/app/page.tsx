@@ -33,7 +33,7 @@ const PHASES = [
   { num: 4, name: "Content Briefs", who: "Coach + AI", note: "Coach Input form per video → AI generates talking points, visuals, script outline." },
   { num: 5, name: "Slide Generation", who: "AI + Coach", note: "Slide count adapts to hands-on ratio; coach edits inline or with AI assist." },
   { num: 6, name: "Slide Upload + Edit", who: "Coach + AI", note: "Drop your existing .pptx — AI reformats, restructures, adds speaker notes." },
-  { num: 7, name: "Recording", who: "Coach", note: "Zoom session, direct upload, or ElevenLabs voice for drafts." },
+  { num: 7, name: "Recording", who: "Coach", note: "Direct upload (.mp4/.m4a) or ElevenLabs voice. Zoom integration in beta." },
   { num: 8, name: "Transcribe + Generate", who: "AI", note: "Whisper transcription → readings, quizzes, case studies, discussion prompts." },
   { num: 9, name: "Final Review + Publish", who: "PM", note: "Quality checklist, authority approval, ship to Coursera / Udemy / Canvas / your LMS." },
 ];
@@ -171,9 +171,9 @@ export default function Landing() {
       <section className="bg-slate-50 border-y border-slate-200">
         <div className="max-w-6xl mx-auto px-6 py-12">
           <div className="grid md:grid-cols-3 gap-6">
-            <Stat label="Avg course timeline before" value="6–8 weeks" sub="emails + spreadsheets + Loom + Zoom" />
-            <Stat label="With CourseForge" value="2–3 weeks" sub="single pipeline, AI at every gate" />
-            <Stat label="PM ↔ Coach handoff time" value="-70%" sub="structured inputs, no more chase emails" />
+            <Stat label="Avg course timeline today" value="6–8 weeks" sub="emails + spreadsheets + Loom + Zoom" />
+            <Stat label="Target with CourseForge" value="2–3 weeks" sub="single pipeline, AI at every gate (target — not yet measured at scale)" />
+            <Stat label="PM ↔ Coach handoff" value="structured" sub="structured inputs replace chase emails" />
           </div>
         </div>
       </section>
@@ -271,13 +271,13 @@ export default function Landing() {
           />
           <Capability
             icon={<Mic size={18} />}
-            title="Recording, three ways"
-            desc="Zoom integration, direct upload, or ElevenLabs voice for prototype narration."
+            title="Recording: upload or AI voice"
+            desc="Direct upload of .mp4 / .m4a, or ElevenLabs voice for prototype narration. Zoom integration in beta."
           />
           <Capability
             icon={<Languages size={18} />}
             title="Multi-platform export"
-            desc="One click → Coursera lecture pack, Udemy upload pack, SCORM 1.2 / xAPI zip, YouTube cut."
+            desc="One click → Coursera lecture pack, PPTX, or SCORM 1.2 zip. Udemy + YouTube exports on the roadmap."
           />
           <Capability
             icon={<Users size={18} />}
@@ -286,8 +286,8 @@ export default function Landing() {
           />
           <Capability
             icon={<ShieldCheck size={18} />}
-            title="Pedagogy linting"
-            desc="Bloom's progression checks, time-budget compliance, assessment-objective alignment, accessibility flags."
+            title="Course Health Score"
+            desc="Pedagogy linter scores every course 0-100 across Bloom progression, time budget, theory/hands-on ratio, and assessment-objective alignment. The thing competitors can't match."
           />
           <Capability
             icon={<Sparkles size={18} />}
