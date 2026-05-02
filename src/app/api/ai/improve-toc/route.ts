@@ -130,6 +130,66 @@ export async function POST(request: NextRequest) {
       ? await improveWithAI(body)
       : generateFallbackImprovement(body.modules);
 
+    // CORRECT-1: persist the improved TOC server-side so the client doesn't
+    // have to remember to save. We do this by overwriting the existing
+    // modules / lessons / videos for the course in a single transaction-ish
+    // sequence (PG doesn't give us multi-statement transactions over PostgREST,
+    // so we do delete-then-bulk-insert and let RLS protect the org boundary).
+    if (body.courseId) {
+      const supabase = await getServerSupabase();
+      // Cascade delete via FK ON DELETE CASCADE on modules.course_id
+      // ─── this also cleans up lessons + videos in one shot.
+      await supabase.from("modules").delete().eq("course_id", body.courseId);
+
+      const moduleRows: Array<Record<string, unknown>> = [];
+      const lessonRows: Array<Record<string, unknown>> = [];
+      const videoRows: Array<Record<string, unknown>> = [];
+
+      for (const m of modules) {
+        const modId = (m.id && /^[0-9a-f-]{36}$/i.test(m.id)) ? m.id : crypto.randomUUID();
+        moduleRows.push({
+          id: modId,
+          org_id: auth.orgId,
+          course_id: body.courseId,
+          title: m.title,
+          description: m.description ?? "",
+          order: m.order ?? 0,
+          learning_objectives: m.learning_objectives ?? [],
+        });
+
+        for (const l of m.lessons ?? []) {
+          const lessonId = (l.id && /^[0-9a-f-]{36}$/i.test(l.id)) ? l.id : crypto.randomUUID();
+          lessonRows.push({
+            id: lessonId,
+            org_id: auth.orgId,
+            course_id: body.courseId,
+            module_id: modId,
+            title: l.title,
+            description: l.description ?? "",
+            order: l.order ?? 0,
+            content_types: l.content_types ?? [],
+            learning_objectives: l.learning_objectives ?? [],
+          });
+          for (const v of (l.videos ?? [])) {
+            videoRows.push({
+              id: (v.id && /^[0-9a-f-]{36}$/i.test(v.id)) ? v.id : crypto.randomUUID(),
+              org_id: auth.orgId,
+              course_id: body.courseId,
+              lesson_id: lessonId,
+              title: v.title,
+              duration_minutes: v.duration_minutes ?? 10,
+              order: v.order ?? 0,
+              status: v.status ?? "pending",
+            });
+          }
+        }
+      }
+
+      if (moduleRows.length) await supabase.from("modules").insert(moduleRows);
+      if (lessonRows.length) await supabase.from("lessons").insert(lessonRows);
+      if (videoRows.length)  await supabase.from("videos").insert(videoRows);
+    }
+
     return NextResponse.json({ success: true, modules }, { headers: aiHeaders(aiMode()) });
   } catch (error) {
     console.error("Error in /api/ai/improve-toc:", error);
