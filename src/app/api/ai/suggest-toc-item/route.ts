@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { aiHeaders, aiMode } from "@/lib/ai/fallback";
+import { checkRateLimit, rateLimitResponse } from "@/lib/ratelimit";
 import { getServerSupabase, requireUser } from "@/lib/supabase/server";
 
 interface SuggestRequest {
@@ -78,6 +79,11 @@ Return ONLY valid JSON:
 export async function POST(request: NextRequest) {
   const auth = await requireUser();
   if (auth instanceof NextResponse) return auth;
+
+  // SEC-4: per-org rate limit
+  const __rl = await checkRateLimit(auth.orgId, "suggest-toc-item");
+  if (!__rl.ok) return rateLimitResponse(__rl);
+
 
   try {
     const body = (await request.json()) as SuggestRequest;

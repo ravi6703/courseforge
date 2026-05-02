@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireUser } from "@/lib/supabase/server";
 import { aiHeaders, aiMode } from "@/lib/ai/fallback";
+import { checkRateLimit, rateLimitResponse } from "@/lib/ratelimit";
 import { GeneratedTOC, Module, Lesson, Video, LearningObjective, CourseResearch, ContentType } from "@/types";
 
 interface GenerateTOCRequest {
@@ -389,6 +391,13 @@ IMPORTANT:
 
 export async function POST(request: NextRequest): Promise<NextResponse<GenerateTOCResponse | { error: string }>> {
   try {
+  const auth = await requireUser();
+  if (auth instanceof NextResponse) return auth;
+
+  // SEC-4: per-org rate limit
+  const __rl = await checkRateLimit(auth.orgId, "generate-toc");
+  if (!__rl.ok) return rateLimitResponse(__rl);
+
     const body = (await request.json()) as GenerateTOCRequest;
 
     // Validate required fields

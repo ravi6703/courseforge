@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireUser } from "@/lib/supabase/server";
 import { aiHeaders, aiMode } from "@/lib/ai/fallback";
+import { checkRateLimit, rateLimitResponse } from "@/lib/ratelimit";
 
 interface ContentBrief {
   talking_points: string;
@@ -152,6 +154,13 @@ Return ONLY a JSON array of 6 slide objects.`;
 
 export async function POST(request: NextRequest) {
   try {
+  const auth = await requireUser();
+  if (auth instanceof NextResponse) return auth;
+
+  // SEC-4: per-org rate limit
+  const __rl = await checkRateLimit(auth.orgId, "generate-slides");
+  if (!__rl.ok) return rateLimitResponse(__rl);
+
     const body = (await request.json()) as GenerateSlidesRequest;
 
     const slides = process.env.ANTHROPIC_API_KEY
