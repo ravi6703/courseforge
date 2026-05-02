@@ -14,6 +14,7 @@
 //   { upload_id, slide_count, slides: ParsedSlide[] }
 
 import { NextRequest, NextResponse } from "next/server";
+// eslint-disable-next-line no-restricted-syntax -- legit: needs service role to write to Storage (RLS via storage.foldername protects reads)
 import { getServerSupabase, requireUser, getServiceSupabase } from "@/lib/supabase/server";
 import { parsePptx } from "@/lib/pptx/parse";
 import { recordActivity } from "@/lib/activity";

@@ -9,6 +9,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { verifyWebhook, validationChallengeResponse, downloadRecordingFile, refreshTokens } from "@/lib/zoom";
+// eslint-disable-next-line no-restricted-syntax -- legit: webhook has no user session; payload is HMAC-verified by verifyWebhook()
 import { getServiceSupabase } from "@/lib/supabase/server";
 import { logger, requestId } from "@/lib/log";
 

@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { exchangeCodeForTokens, getMe } from "@/lib/zoom";
+// eslint-disable-next-line no-restricted-syntax -- legit: state HMAC verifies the user; we upsert into a shared org table
 import { getServiceSupabase } from "@/lib/supabase/server";
 import crypto from "crypto";
 

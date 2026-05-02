@@ -1,5 +1,6 @@
 // GET /api/ppt/[id]/url — short-lived signed URL to download the original .pptx
 import { NextResponse } from "next/server";
+// eslint-disable-next-line no-restricted-syntax -- legit: storage.createSignedUrl requires service role; ownership checked above via RLS-bound read
 import { getServerSupabase, requireUser, getServiceSupabase } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";

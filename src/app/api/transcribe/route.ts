@@ -8,6 +8,7 @@
 // Response:     { job_id, transcript_id, text_length, segments? }
 
 import { NextRequest, NextResponse } from "next/server";
+// eslint-disable-next-line no-restricted-syntax -- legit: storage.createSignedUrl in resolveAudioUrl needs service role
 import { getServerSupabase, requireUser, getServiceSupabase } from "@/lib/supabase/server";
 import { transcribe, transcribeProvider } from "@/lib/transcribe";
 import { recordActivity } from "@/lib/activity";
