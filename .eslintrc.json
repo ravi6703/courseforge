@@ -4,5 +4,23 @@
     "@typescript-eslint/no-explicit-any": "off",
     "@typescript-eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
     "react/no-unescaped-entities": "off"
-  }
+  },
+  "overrides": [
+    {
+      "files": ["src/app/api/**/route.ts", "src/app/**/page.tsx"],
+      "excludedFiles": [
+        "src/app/api/admin/**",
+        "src/lib/supabase/server.ts"
+      ],
+      "rules": {
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "ImportSpecifier[imported.name='getServiceSupabase']",
+            "message": "Do not import getServiceSupabase in route handlers or pages. Use getServerSupabase() so RLS does the org_id check for you. Service role is reserved for /api/admin/* and the auth bootstrap inside readUser()."
+          }
+        ]
+      }
+    }
+  ]
 }
