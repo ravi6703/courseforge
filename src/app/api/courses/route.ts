@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { CourseUpsertSchema, parseBody } from "@/lib/validation/schemas";
 import { getServerSupabase, requireUser } from "@/lib/supabase/server";
+import { recordActivity } from "@/lib/activity";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -80,6 +81,20 @@ export async function POST(req: NextRequest) {
 
   const { error: cErr } = await supabase.from("courses").upsert(courseRow, { onConflict: "id" });
   if (cErr) return NextResponse.json({ error: cErr.message }, { status: 500 });
+
+  // PROD-2: surface this in the PM dashboard activity feed.
+  await recordActivity(supabase, {
+    orgId: auth.orgId,
+    userId: auth.profileId,
+    userName: auth.email ?? undefined,
+    userRole: auth.role,
+    courseId: id,
+    action: body.id ? "course.updated" : "course.created",
+    targetType: "course",
+    targetId: id,
+    details: { title: courseRow.title, status: courseRow.status },
+  });
+
 
   // Optional modules + lessons. Bulk insert (PERF-1 fix) lives in
   // /api/courses/[id]/sync-toc; this path is for callers that pass the tree

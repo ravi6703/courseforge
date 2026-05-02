@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { aiHeaders, aiMode } from "@/lib/ai/fallback";
 import { checkRateLimit, rateLimitResponse } from "@/lib/ratelimit";
 import { getServerSupabase, requireUser } from "@/lib/supabase/server";
+import { recordActivity } from "@/lib/activity";
 import { Module } from "@/types";
 
 interface ImproveTOCRequest {
@@ -188,6 +189,18 @@ export async function POST(request: NextRequest) {
       if (moduleRows.length) await supabase.from("modules").insert(moduleRows);
       if (lessonRows.length) await supabase.from("lessons").insert(lessonRows);
       if (videoRows.length)  await supabase.from("videos").insert(videoRows);
+
+      await recordActivity(supabase, {
+        orgId: auth.orgId,
+        userId: auth.profileId,
+        userName: auth.email ?? undefined,
+        userRole: auth.role,
+        courseId: body.courseId,
+        action: "toc.improved",
+        targetType: "course",
+        targetId: body.courseId,
+        details: { commentsAddressed: body.comments?.length ?? 0, modulesCount: modules.length },
+      });
     }
 
     return NextResponse.json({ success: true, modules }, { headers: aiHeaders(aiMode()) });
