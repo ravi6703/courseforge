@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/Sidebar";
 import { User, Platform, ContentType, Course } from "@/types";
-import { addCourse, addModules } from "@/lib/store";
 import { createClient } from "@/lib/supabase/client";
 import {
   BookOpen,
@@ -277,25 +276,29 @@ export default function CreateCoursePage() {
         updated_at: now,
       };
 
-      addCourse(course);
-      try {
-        await fetch("/api/courses", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(course),
-        });
-      } catch (e) {
-        console.error("Course sync awaited failed:", e);
+      // SEC-7 / CORRECT-1: Supabase is the single source of truth. We
+      // await the upsert so the user can't navigate to /course/[id] before
+      // the row exists, and we await sync-toc so the TOC tab has rows.
+      const courseRes = await fetch("/api/courses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(course),
+      });
+      if (!courseRes.ok) {
+        const err = await courseRes.json().catch(() => ({}));
+        throw new Error(err.error || `Course create failed (${courseRes.status})`);
       }
-      const modulesWithCourseId = generatedModules.map((m) => ({ ...m, course_id: courseId }));
-      addModules(courseId, modulesWithCourseId);
 
-      // Persist modules/lessons/videos to Supabase
-      fetch(`/api/courses/${courseId}/sync-toc`, {
+      const modulesWithCourseId = generatedModules.map((m) => ({ ...m, course_id: courseId }));
+      const syncRes = await fetch(`/api/courses/${courseId}/sync-toc`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ modules: modulesWithCourseId }),
-      }).catch((e) => console.error("sync-toc failed:", e));
+      });
+      if (!syncRes.ok) {
+        const err = await syncRes.json().catch(() => ({}));
+        throw new Error(err.error || `TOC sync failed (${syncRes.status})`);
+      }
 
       router.push(`/course/${courseId}`);
     } catch (err) {
