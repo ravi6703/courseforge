@@ -31,7 +31,7 @@ interface GenerateTOCResponse {
     competitors: Array<{
       name: string;
       url: string;
-      rating: number;
+      rating?: number;
       strengths: string[];
       weaknesses: string[];
     }>;
@@ -325,7 +325,7 @@ IMPORTANT:
   }
 }
 
-export async function POST(request: NextRequest): Promise<NextResponse<GenerateTOCResponse | { error: string }>> {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
   const auth = await requireUser();
   if (auth instanceof NextResponse) return auth;
