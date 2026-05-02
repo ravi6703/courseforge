@@ -32,9 +32,9 @@ const PHASES = [
   { num: 3, name: "TOC Review", who: "Coach + AI + PM", note: "Comments, Ask-PM threads, AI auto-improvement loop, validate & approve." },
   { num: 4, name: "Content Briefs", who: "Coach + AI", note: "Coach Input form per video → AI generates talking points, visuals, script outline." },
   { num: 5, name: "Slide Generation", who: "AI + Coach", note: "Slide count adapts to hands-on ratio; coach edits inline or with AI assist." },
-  { num: 6, name: "Slide Upload + Edit", who: "Coach + AI", note: "Drop your existing .pptx — AI reformats, restructures, adds speaker notes." },
-  { num: 7, name: "Recording", who: "Coach", note: "Direct upload (.mp4/.m4a) or ElevenLabs voice. Zoom integration in beta." },
-  { num: 8, name: "Transcribe + Generate", who: "AI", note: "Whisper transcription → readings, quizzes, case studies, discussion prompts." },
+  { num: 6, name: "Slide Upload + Edit", who: "Coach + AI", note: "Drop your existing .pptx — parsed, AI rewrites titles + bullets + speaker notes." },
+  { num: 7, name: "Recording", who: "Coach", note: "Zoom OAuth + auto-imported recordings, direct upload, or ElevenLabs voice." },
+  { num: 8, name: "Transcribe + Generate", who: "AI", note: "OpenAI Whisper transcription → readings, quizzes, case studies, discussion prompts." },
   { num: 9, name: "Final Review + Publish", who: "PM", note: "Quality checklist, authority approval, ship to Coursera / Udemy / Canvas / your LMS." },
 ];
 
@@ -271,8 +271,8 @@ export default function Landing() {
           />
           <Capability
             icon={<Mic size={18} />}
-            title="Recording: upload or AI voice"
-            desc="Direct upload of .mp4 / .m4a, or ElevenLabs voice for prototype narration. Zoom integration in beta."
+            title="Recording, three ways"
+            desc="Zoom integration with auto-import of recordings, direct upload of .mp4/.m4a, or ElevenLabs AI voice for drafts."
           />
           <Capability
             icon={<Languages size={18} />}
