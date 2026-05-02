@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { SyncTocSchema, parseBody } from "@/lib/validation/schemas";
 import { getServerSupabase, requireUser } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -36,7 +37,12 @@ export async function POST(
   if (auth instanceof NextResponse) return auth;
 
   const { id: courseId } = await params;
-  const { modules } = (await request.json()) as { modules: IncomingModule[] };
+  let __raw: unknown;
+  try { __raw = await request.json(); }
+  catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
+  const __p = parseBody(SyncTocSchema, __raw);
+  if (!__p.ok) return __p.res;
+  const { modules } = __p.data as { modules: IncomingModule[] };
 
   const supabase = await getServerSupabase();
 

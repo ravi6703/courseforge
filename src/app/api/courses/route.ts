@@ -7,6 +7,7 @@
 // alongside the explicit ownership check on upsert).
 
 import { NextRequest, NextResponse } from "next/server";
+import { CourseUpsertSchema, parseBody } from "@/lib/validation/schemas";
 import { getServerSupabase, requireUser } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -33,9 +34,12 @@ export async function POST(req: NextRequest) {
   const auth = await requireUser();
   if (auth instanceof NextResponse) return auth;
 
-  let body: Record<string, unknown>;
-  try { body = await req.json(); }
+  let raw: unknown;
+  try { raw = await req.json(); }
   catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
+  const __p = parseBody(CourseUpsertSchema, raw);
+  if (!__p.ok) return __p.res;
+  const body = __p.data as unknown as Record<string, unknown>;
 
   const supabase = await getServerSupabase();
   // Always server-generate the id for new courses. If the client sends an id
