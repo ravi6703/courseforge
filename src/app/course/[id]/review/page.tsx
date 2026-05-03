@@ -5,6 +5,7 @@
 // all critical findings are resolved (enforced server-side at publish time).
 
 import { CourseHealthPanel } from "@/components/CourseHealthPanel";
+import { ShareHealthScoreToggle } from "@/components/ShareHealthScoreToggle";
 import { getServerSupabase } from "@/lib/supabase/server";
 
 export default async function ReviewTab({
@@ -15,12 +16,13 @@ export default async function ReviewTab({
   const { id } = await params;
   const supabase = await getServerSupabase();
 
-  const [{ data: videos }, { data: transcripts }, { data: contentItems }, { data: pptSlides }] =
+  const [{ data: videos }, { data: transcripts }, { data: contentItems }, { data: pptSlides }, { data: courseRow }] =
     await Promise.all([
       supabase.from("videos").select("id, status").eq("course_id", id),
       supabase.from("transcripts").select("id, status").eq("course_id", id),
       supabase.from("content_items").select("id, status").eq("course_id", id),
       supabase.from("ppt_slides").select("id, status").eq("course_id", id),
+      supabase.from("courses").select("public_health_score").eq("id", id).maybeSingle(),
     ]);
 
   const checklist = [
@@ -61,6 +63,8 @@ export default async function ReviewTab({
   return (
     <div className="space-y-4">
       <CourseHealthPanel courseId={id} />
+
+      <ShareHealthScoreToggle courseId={id} initialPublic={Boolean(courseRow?.public_health_score)} />
 
       <section className="rounded-lg border border-bi-navy-200 bg-white">
         <header className="px-4 py-3 border-b border-bi-navy-200">
