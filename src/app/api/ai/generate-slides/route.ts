@@ -3,7 +3,7 @@
 // Generate slides for a lesson (one video per lesson today). Persists into
 // ppt_slides so the PPT tracker + exports immediately reflect the result.
 //
-// Request body: { lessonId: uuid, courseId: uuid }
+// Request body: { videoId: uuid, courseId: uuid }
 // Response:     { success, slides_count, slides }
 
 import { NextRequest, NextResponse } from "next/server";
@@ -25,7 +25,7 @@ interface SlideData {
 }
 
 interface GenInput {
-  lessonId: string;
+  videoId: string;
   courseId: string;
 }
 
@@ -39,8 +39,8 @@ export async function POST(req: NextRequest) {
   let body: GenInput;
   try { body = await req.json() as GenInput; }
   catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
-  if (!body.lessonId || !body.courseId) {
-    return NextResponse.json({ error: "lessonId and courseId required" }, { status: 400 });
+  if (!body.videoId || !body.courseId) {
+    return NextResponse.json({ error: "videoId and courseId required" }, { status: 400 });
   }
 
   const sb = await getServerSupabase();
@@ -50,15 +50,15 @@ export async function POST(req: NextRequest) {
   if (!course || course.org_id !== auth.orgId) {
     return NextResponse.json({ error: "course not found" }, { status: 404 });
   }
-  const { data: lesson } = await sb
-    .from("lessons")
-    .select("id, title, modules!inner(title)")
-    .eq("id", body.lessonId)
+  const { data: video } = await sb
+    .from("videos")
+    .select("id, title, lesson_id, lessons!inner(title, modules!inner(title))")
+    .eq("id", body.videoId)
     .maybeSingle();
-  if (!lesson) return NextResponse.json({ error: "lesson not found" }, { status: 404 });
+  if (!video) return NextResponse.json({ error: "video not found" }, { status: 404 });
 
-  const { data: video } = await sb.from("videos").select("id, title").eq("lesson_id", body.lessonId).maybeSingle();
-  if (!video) return NextResponse.json({ error: "no video for lesson" }, { status: 404 });
+  const lessonRel = (video as unknown as { lessons?: { title?: string; modules?: { title?: string } } | { title?: string; modules?: { title?: string } }[] }).lessons;
+  const lesson = Array.isArray(lessonRel) ? lessonRel[0] : lessonRel;
 
   const { data: brief } = await sb
     .from("content_briefs")
@@ -72,8 +72,8 @@ export async function POST(req: NextRequest) {
   if (process.env.ANTHROPIC_API_KEY) {
     const result = await generateWithClaude({
       courseTitle: course.title,
-      lessonTitle: lesson.title,
-      moduleTitle: ((lesson as { modules?: { title?: string } }).modules?.title) ?? "",
+      lessonTitle: lesson?.title ?? "",
+      moduleTitle: lesson?.modules?.title ?? "",
       videoTitle: video.title,
       brief: brief ?? null,
       coachSlideCount: brief?.coach_slide_count ?? undefined,
@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
   const rows = slides.map((s) => ({
     org_id: auth.orgId,
     course_id: body.courseId,
-    lesson_id: body.lessonId,
+    lesson_id: video.lesson_id,
     video_id: video.id,
     slide_number: s.order,
     title: (s.title || "").slice(0, 200),
@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
     action: "slides.generated",
     targetType: "video",
     targetId: video.id,
-    details: { slide_count: slides.length, lessonTitle: lesson.title },
+    details: { slide_count: slides.length, lessonTitle: lesson?.title ?? "" },
   });
 
   const headers = aiHeaders(aiMode());
