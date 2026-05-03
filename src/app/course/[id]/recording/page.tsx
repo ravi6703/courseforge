@@ -10,14 +10,21 @@ export default async function RecordingTab({
   const { id } = await params;
   const supabase = await getServerSupabase();
 
-  const [{ data: videos }, { data: recordings }] = await Promise.all([
+  const [{ data: videos }, { data: recordings }, { data: slides }] = await Promise.all([
     supabase
       .from("videos")
       .select("id, title, duration_minutes, lesson_id, lessons!inner(title)")
       .eq("course_id", id)
       .order("order", { ascending: true }),
     supabase.from("recordings").select("*").eq("course_id", id),
+    supabase.from("ppt_slides").select("video_id").eq("course_id", id),
   ]);
+
+  // Phase 2 R7 — only videos with slides generated should show as recordable
+  const slideReadyVideoIds = new Set((slides || []).map((s) => s.video_id));
+  const totalVideos = (videos || []).length;
+  const filteredVideos = (videos || []).filter((v) => slideReadyVideoIds.has(v.id));
+  const waitingOnSlides = totalVideos - filteredVideos.length;
 
   const recByVideo: Record<string, { type: string; status: string; duration_seconds?: number }> = {};
   (recordings || []).forEach(
@@ -29,12 +36,22 @@ export default async function RecordingTab({
       })
   );
 
-  const recorded = (videos || []).filter((v) => recByVideo[v.id]?.status === "ready").length;
-  const total = (videos || []).length;
+  const recorded = filteredVideos.filter((v) => recByVideo[v.id]?.status === "ready").length;
+  const total = filteredVideos.length;
   const pct = total ? Math.round((recorded / total) * 100) : 0;
 
   return (
     <div className="space-y-4">
+      {waitingOnSlides > 0 && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50/70 px-4 py-3 flex items-center justify-between">
+          <div className="text-sm text-amber-900">
+            <span className="font-semibold">{waitingOnSlides} of {totalVideos}</span> videos have no slides yet — generate slides before recording so the coach has the deck to work from.
+          </div>
+          <a href={`/course/${id}/ppts`} className="text-sm text-amber-900 hover:underline font-medium shrink-0">
+            Go to Presentations →
+          </a>
+        </div>
+      )}
       <div className="rounded-lg border border-slate-200 bg-white p-4 flex gap-6 items-center">
         <div>
           <div className="text-xs text-slate-500 uppercase tracking-wider">Recording progress</div>
@@ -61,7 +78,7 @@ export default async function RecordingTab({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {(videos || []).map((v) => {
+            {filteredVideos.map((v) => {
               const r = recByVideo[v.id];
               const lesson = (v as { lessons?: { title?: string } }).lessons;
               return (

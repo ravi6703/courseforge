@@ -21,11 +21,23 @@ export default async function ContentTab({
   const { id } = await params;
   const supabase = await getServerSupabase();
 
-  const { data: items } = await supabase
-    .from("content_items")
-    .select("id, type, title, status, lesson_id, lessons!inner(title, modules!inner(title))")
-    .eq("course_id", id)
-    .order("order", { ascending: true });
+  const [{ data: items }, { data: transcripts }, { data: lessons }] = await Promise.all([
+    supabase
+      .from("content_items")
+      .select("id, type, title, status, lesson_id, lessons!inner(title, modules!inner(title))")
+      .eq("course_id", id)
+      .order("order", { ascending: true }),
+    supabase.from("transcripts").select("lesson_id, status").eq("course_id", id),
+    supabase.from("lessons").select("id").eq("course_id", id),
+  ]);
+
+  // Phase 2 R7 — content generation requires transcripts to exist for each lesson.
+  // This is a soft gate (we still render existing items) but a banner tells the
+  // user how many lessons need transcription before content generation makes sense.
+  const transcribedLessonIds = new Set((transcripts || []).filter((t) => t.status === "ready").map((t) => t.lesson_id));
+  const totalLessons = (lessons || []).length;
+  const lessonsWithTranscript = (lessons || []).filter((l) => transcribedLessonIds.has(l.id)).length;
+  const lessonsWaitingTranscript = totalLessons - lessonsWithTranscript;
 
   const groups: Record<string, typeof items> = {};
   (items || []).forEach((it) => {
@@ -35,6 +47,16 @@ export default async function ContentTab({
 
   return (
     <div className="space-y-4">
+      {lessonsWaitingTranscript > 0 && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50/70 px-4 py-3 flex items-center justify-between">
+          <div className="text-sm text-amber-900">
+            <span className="font-semibold">{lessonsWaitingTranscript} of {totalLessons}</span> lessons have no transcript yet — content generation works best after transcripts are ready.
+          </div>
+          <a href={`/course/${id}/transcript`} className="text-sm text-amber-900 hover:underline font-medium shrink-0">
+            Go to Transcript →
+          </a>
+        </div>
+      )}
       {Object.keys(KIND_LABEL).map((kind) => {
         const list = groups[kind] || [];
         if (list.length === 0) return null;
