@@ -20,7 +20,7 @@ export default async function ContentTab({
         lessons(
           id, title, order,
           videos(
-            id, title, recording_duration, order,
+            id, title, duration_minutes, order,
             content_items(
               id, kind, status, payload, generated_at, approved_at,
               generation_error
