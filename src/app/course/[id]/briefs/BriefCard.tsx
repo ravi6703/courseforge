@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronUp, Sparkles, RefreshCw, ClipboardList, FileText } from "lucide-react";
+import { ChevronDown, ChevronUp, Sparkles, RefreshCw, ClipboardList, FileText, Wand2, Check, X } from "lucide-react";
 
 interface CoachInput {
   key_topics: string;
@@ -51,6 +51,11 @@ export function BriefCard({
   const [error, setError] = useState("");
   const [view, setView] = useState<"brief" | "input">(existingBrief ? "brief" : "input");
   const [coachInput, setCoachInput] = useState<CoachInput>(EMPTY_COACH);
+  const [suggestOpen, setSuggestOpen] = useState(false);
+  const [suggestFeedback, setSuggestFeedback] = useState("");
+  const [suggesting, setSuggesting] = useState(false);
+  const [suggestion, setSuggestion] = useState<{ talking_points: string[]; visual_cues: string[]; key_takeaways: string[]; script_outline: string; rationale: string } | null>(null);
+  const [applying, setApplying] = useState(false);
 
   const generate = async () => {
     setLoading(true);
@@ -81,6 +86,62 @@ export function BriefCard({
       setError("Network error");
     }
     setLoading(false);
+  };
+
+  const requestSuggestion = async () => {
+    if (!suggestFeedback.trim()) return;
+    setSuggesting(true);
+    setError("");
+    setSuggestion(null);
+    try {
+      const res = await fetch("/api/ai/suggest-brief", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lessonId, courseId, feedback: suggestFeedback }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || `HTTP ${res.status}`);
+      } else if (data.suggestion) {
+        setSuggestion({ ...data.suggestion, rationale: data.rationale ?? "" });
+      }
+    } catch (e) {
+      setError((e as Error).message);
+    }
+    setSuggesting(false);
+  };
+
+  const applySuggestion = async () => {
+    if (!suggestion) return;
+    setApplying(true);
+    try {
+      const res = await fetch("/api/ai/suggest-brief", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lessonId, courseId, suggestion: {
+          talking_points: suggestion.talking_points,
+          visual_cues: suggestion.visual_cues,
+          key_takeaways: suggestion.key_takeaways,
+          script_outline: suggestion.script_outline,
+        }}),
+      });
+      if (res.ok) {
+        // Update the visible brief in place so the user sees the change immediately
+        setBrief((prev) => prev ? {
+          ...prev,
+          talking_points: suggestion.talking_points,
+          visual_cues: suggestion.visual_cues,
+          key_takeaways: suggestion.key_takeaways,
+          script_outline: suggestion.script_outline,
+        } : prev);
+        setSuggestion(null);
+        setSuggestFeedback("");
+        setSuggestOpen(false);
+      }
+    } catch (e) {
+      setError((e as Error).message);
+    }
+    setApplying(false);
   };
 
   const toList = (val: unknown): string[] => {
@@ -125,6 +186,13 @@ export function BriefCard({
                 ) : (
                   <><ClipboardList className="w-3.5 h-3.5 inline mr-1" />Input</>
                 )}
+              </button>
+              <button
+                onClick={() => setSuggestOpen((v) => !v)}
+                title="Suggest improvements"
+                className="text-slate-400 hover:text-purple-600 px-2 py-0.5 rounded border border-slate-200 hover:border-purple-300 text-xs inline-flex items-center gap-1"
+              >
+                <Wand2 className="w-3.5 h-3.5" /> Suggest
               </button>
               <button
                 onClick={generate}
@@ -229,11 +297,77 @@ export function BriefCard({
             </div>
           )}
 
+          {/* AI Suggest panel */}
+          {suggestOpen && (
+            <div className="rounded-md border border-purple-200 bg-purple-50/40 p-3 space-y-2">
+              <div className="text-xs font-semibold text-purple-700 uppercase tracking-wider flex items-center gap-1">
+                <Wand2 className="w-3.5 h-3.5" /> AI Suggestion
+              </div>
+              {!suggestion && (
+                <>
+                  <textarea
+                    className="w-full text-xs border border-purple-200 rounded-md px-2.5 py-1.5 bg-white resize-none focus:outline-none focus:ring-1 focus:ring-purple-400"
+                    placeholder="What should the AI improve? e.g. 'shorten talking points to one line each, add a hands-on Notion example'"
+                    value={suggestFeedback}
+                    rows={2}
+                    onChange={(e) => setSuggestFeedback(e.target.value)}
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={requestSuggestion}
+                      disabled={!suggestFeedback.trim() || suggesting}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-purple-600 text-white text-xs hover:bg-purple-700 disabled:opacity-40"
+                    >
+                      <Sparkles className="w-3 h-3" />
+                      {suggesting ? "Thinking…" : "Get suggestion"}
+                    </button>
+                    <button
+                      onClick={() => { setSuggestOpen(false); setSuggestFeedback(""); }}
+                      className="px-3 py-1.5 rounded-md border border-slate-300 text-xs hover:bg-white"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </>
+              )}
+              {suggestion && (
+                <div className="space-y-3">
+                  {suggestion.rationale && (
+                    <p className="text-xs text-purple-700 italic">{suggestion.rationale}</p>
+                  )}
+                  <BriefSection title="Suggested Talking Points" items={suggestion.talking_points} />
+                  <BriefSection title="Suggested Visual Cues" items={suggestion.visual_cues} />
+                  <BriefSection title="Suggested Key Takeaways" items={suggestion.key_takeaways} />
+                  {suggestion.script_outline && (
+                    <pre className="text-xs font-mono text-slate-700 whitespace-pre-wrap bg-white rounded-md p-2 border border-purple-200">
+                      {suggestion.script_outline}
+                    </pre>
+                  )}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={applySuggestion}
+                      disabled={applying}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-emerald-600 text-white text-xs hover:bg-emerald-700 disabled:opacity-40"
+                    >
+                      <Check className="w-3 h-3" /> {applying ? "Applying…" : "Apply"}
+                    </button>
+                    <button
+                      onClick={() => setSuggestion(null)}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-slate-300 text-xs hover:bg-white"
+                    >
+                      <X className="w-3 h-3" /> Discard
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* PPT Export hint */}
           <div className="rounded-md border border-dashed border-slate-300 p-3 flex items-center justify-between">
             <p className="text-xs text-slate-500">Ready to create slides from this brief?</p>
             <a
-              href={`../ppts`}
+              href={`/course/${courseId}/ppts`}
               className="text-xs text-blue-600 hover:underline font-medium"
             >
               Go to PPT tab →
