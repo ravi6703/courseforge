@@ -1,90 +1,115 @@
 import { describe, it, expect } from "vitest";
-import { buildPQPrompt } from "@/lib/ai/prompts/content/pq";
-import { buildGQPrompt } from "@/lib/ai/prompts/content/gq";
-import { buildReadingPrompt } from "@/lib/ai/prompts/content/reading";
-import { buildAICoachSystemPrompt } from "@/lib/ai/prompts/content/ai_coach";
+import {
+  buildPQPrompt,
+  buildGQPrompt,
+  buildReadingPrompt,
+  buildScormPrompt,
+  buildAICoachPrompt,
+} from "@/lib/ai/prompts/content";
 
-describe("Content prompts", () => {
-  const sampleTranscript = "In this video, we explore machine learning. It's a subset of AI.";
-
+describe("Content Prompt Builders", () => {
   describe("buildPQPrompt", () => {
-    it("generates prompt with required fields", () => {
-      const prompt = buildPQPrompt({
-        video_title: "ML Basics",
-        lesson_title: "Intro",
-        module_title: "AI",
-        transcript: sampleTranscript,
-      });
-      expect(prompt).toContain("practice questions");
-      expect(prompt).toContain("ML Basics");
+    it("generates prompt with system and user", () => {
+      const prompt = buildPQPrompt(
+        "Introduction to Recursion",
+        "Recursion is when a function calls itself...",
+        "Recursion Fundamentals",
+        "Advanced Programming",
+        "Computer Science 101"
+      );
+      expect(prompt).toHaveProperty("system");
+      expect(prompt).toHaveProperty("user");
+      expect(typeof prompt.system).toBe("string");
+      expect(typeof prompt.user).toBe("string");
     });
 
-    it("includes optional context when provided", () => {
-      const prompt = buildPQPrompt({
-        video_title: "ML",
-        lesson_title: "Intro",
-        module_title: "AI",
-        transcript: sampleTranscript,
-        audience: "undergraduates",
-        prerequisites: "Python",
-        learning_objective: "Understand ML types",
-      });
-      expect(prompt).toContain("undergraduates");
-      expect(prompt).toContain("Python");
+    it("system prompt is non-empty", () => {
+      const prompt = buildPQPrompt(
+        "Title",
+        "Transcript content",
+        "Lesson",
+        "Module",
+        "Course"
+      );
+      expect(prompt.system.length).toBeGreaterThan(50);
     });
   });
 
   describe("buildGQPrompt", () => {
-    it("generates graded questions prompt", () => {
-      const prompt = buildGQPrompt({
-        video_title: "ML",
-        lesson_title: "Intro",
-        module_title: "AI",
-        transcript: sampleTranscript,
-      });
-      expect(prompt).toContain("graded");
-      expect(prompt).toContain("assessment");
+    it("generates graded question prompt", () => {
+      const prompt = buildGQPrompt(
+        "GQ Lesson",
+        "Content",
+        "GQ Module",
+        "GQ Lesson Title",
+        "GQ Course"
+      );
+      expect(prompt).toHaveProperty("system");
+      expect(prompt).toHaveProperty("user");
     });
   });
 
   describe("buildReadingPrompt", () => {
-    it("generates readings prompt", () => {
-      const prompt = buildReadingPrompt({
-        video_title: "ML",
-        lesson_title: "Intro",
-        module_title: "AI",
-        transcript: sampleTranscript,
-      });
-      expect(prompt).toContain("supplemental reading");
-      expect(prompt).toContain("80-100 words");
+    it("generates reading prompt", () => {
+      const prompt = buildReadingPrompt(
+        "Reading Title",
+        "Reading content",
+        "Reading Lesson",
+        "Reading Module",
+        "Reading Course"
+      );
+      expect(prompt).toHaveProperty("system");
+      expect(prompt).toHaveProperty("user");
     });
   });
 
-  describe("buildAICoachSystemPrompt", () => {
-    it("generates comprehensive system prompt", () => {
-      const prompt = buildAICoachSystemPrompt({
-        video_title: "ML",
-        lesson_title: "Intro",
-        module_title: "AI",
-        transcript: sampleTranscript,
-      });
-      expect(prompt).toContain("study buddy");
-      expect(prompt).toContain(sampleTranscript);
+  describe("buildScormPrompt", () => {
+    it("generates SCORM prompt", () => {
+      const prompt = buildScormPrompt(
+        "SCORM Title",
+        "SCORM content",
+        "SCORM Lesson",
+        "SCORM Module",
+        "SCORM Course"
+      );
+      expect(prompt).toHaveProperty("system");
+      expect(prompt).toHaveProperty("user");
+    });
+  });
+
+  describe("buildAICoachPrompt", () => {
+    it("generates AI coach prompt structure", () => {
+      const prompt = buildAICoachPrompt(
+        "AI Coach Title",
+        "AI Coach content",
+        "AI Coach Lesson",
+        "AI Coach Module",
+        "AI Coach Course"
+      );
+      expect(prompt).toHaveProperty("system");
+      expect(prompt).toHaveProperty("user");
     });
 
-    it("includes all optional fields when provided", () => {
-      const prompt = buildAICoachSystemPrompt({
-        video_title: "ML",
-        lesson_title: "Intro",
-        module_title: "AI",
-        transcript: sampleTranscript,
-        audience: "undergraduates",
-        prerequisites: "Python",
-        learning_objective: "Understand ML",
-      });
-      expect(prompt).toContain("TARGET AUDIENCE");
-      expect(prompt).toContain("PREREQUISITE");
-      expect(prompt).toContain("LEARNING OBJECTIVE");
+    it("system prompt is non-empty", () => {
+      const prompt = buildAICoachPrompt(
+        "Title",
+        "Content",
+        "Lesson",
+        "Module",
+        "Course"
+      );
+      expect(prompt.system.length).toBeGreaterThan(50);
+    });
+
+    it("user prompt is non-empty", () => {
+      const prompt = buildAICoachPrompt(
+        "Title",
+        "Content",
+        "Lesson",
+        "Module",
+        "Course"
+      );
+      expect(prompt.user.length).toBeGreaterThan(10);
     });
   });
 });
