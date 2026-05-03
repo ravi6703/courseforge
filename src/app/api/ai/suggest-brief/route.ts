@@ -1,14 +1,7 @@
 // POST /api/ai/suggest-brief
+// PATCH /api/ai/suggest-brief
 //
-// Per-brief AI suggestion. Coach types feedback like "shorten talking
-// points to one line each, add a Slack-thread example", AI returns an
-// improved brief structure + rationale. The UI shows it as a diff and
-// the coach clicks Apply (which PATCHes the brief in the DB).
-//
-// Mirrors /api/ai/suggest-toc-item.
-//
-// Request: { lessonId, courseId, feedback }
-// Response: { suggestion: { talking_points, visual_cues, key_takeaways, script_outline }, rationale }
+// Phase 1 — keyed on videoId (was lessonId).
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSupabase, requireUser } from "@/lib/supabase/server";
@@ -20,7 +13,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 interface ReqBody {
-  lessonId: string;
+  videoId: string;
   courseId: string;
   feedback: string;
 }
@@ -43,8 +36,8 @@ export async function POST(req: NextRequest) {
   try { body = await req.json() as ReqBody; }
   catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
 
-  if (!body.lessonId || !body.courseId || !body.feedback?.trim()) {
-    return NextResponse.json({ error: "lessonId, courseId, feedback required" }, { status: 400 });
+  if (!body.videoId || !body.courseId || !body.feedback?.trim()) {
+    return NextResponse.json({ error: "videoId, courseId, feedback required" }, { status: 400 });
   }
 
   const sb = await getServerSupabase();
@@ -53,17 +46,21 @@ export async function POST(req: NextRequest) {
   if (!course || course.org_id !== auth.orgId) {
     return NextResponse.json({ error: "course not found" }, { status: 404 });
   }
-  const { data: lesson } = await sb
-    .from("lessons")
-    .select("title, modules!inner(title)")
-    .eq("id", body.lessonId)
+  const { data: video } = await sb
+    .from("videos")
+    .select("title, lessons!inner(title, modules!inner(title))")
+    .eq("id", body.videoId)
     .maybeSingle();
-  if (!lesson) return NextResponse.json({ error: "lesson not found" }, { status: 404 });
+  if (!video) return NextResponse.json({ error: "video not found" }, { status: 404 });
+
+  // Supabase returns nested 1:1 joins as objects in TS; cast defensively
+  const lessonRel = (video as unknown as { lessons?: { title?: string; modules?: { title?: string } } | { title?: string; modules?: { title?: string } }[] }).lessons;
+  const lesson = Array.isArray(lessonRel) ? lessonRel[0] : lessonRel;
 
   const { data: brief } = await sb
     .from("content_briefs")
     .select("talking_points, visual_cues, key_takeaways, script_outline")
-    .eq("lesson_id", body.lessonId)
+    .eq("video_id", body.videoId)
     .maybeSingle();
   if (!brief) return NextResponse.json({ error: "no brief to improve" }, { status: 404 });
 
@@ -74,8 +71,9 @@ export async function POST(req: NextRequest) {
   const prompt = `You are an expert instructional designer. Improve the following content brief based on the coach's feedback.
 
 Course: ${course.title}
-Module: ${(lesson as { modules?: { title?: string } }).modules?.title ?? ""}
-Lesson: ${lesson.title}
+Module: ${lesson?.modules?.title ?? ""}
+Lesson: ${lesson?.title ?? ""}
+Video: ${video.title}
 
 CURRENT BRIEF:
 ${JSON.stringify(brief, null, 2)}
@@ -127,15 +125,13 @@ Return ONLY a JSON object with this exact shape:
   return NextResponse.json(parsed.value, { headers: aiHeaders(aiMode()) });
 }
 
-// PATCH /api/ai/suggest-brief — apply a suggestion (separate verb so the
-// UI can call this when the coach clicks Apply).
-//
-// Request: { lessonId, courseId, suggestion: Suggestion }
+// PATCH — apply a suggestion. Edits also revert status to 'draft' so the
+// PM has to re-approve (Phase 1 R3).
 export async function PATCH(req: NextRequest) {
   const auth = await requireUser();
   if (auth instanceof NextResponse) return auth;
 
-  let body: { lessonId: string; courseId: string; suggestion: Suggestion };
+  let body: { videoId: string; courseId: string; suggestion: Suggestion };
   try { body = await req.json(); }
   catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
 
@@ -152,8 +148,11 @@ export async function PATCH(req: NextRequest) {
       visual_cues: body.suggestion.visual_cues,
       key_takeaways: body.suggestion.key_takeaways,
       script_outline: body.suggestion.script_outline,
+      status: "draft",        // Phase 1 R3 — edits revert approval
+      approved_at: null,
+      approved_by: null,
     })
-    .eq("lesson_id", body.lessonId);
+    .eq("video_id", body.videoId);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
