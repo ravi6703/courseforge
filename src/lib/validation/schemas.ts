@@ -213,3 +213,80 @@ export function parseBody<T>(
     res: NextResponse.json({ error: "Invalid request body", issues }, { status: 400 }),
   };
 }
+
+// Content Item Schemas (for practice questions, graded questions, reading materials, SCORM, AI coach)
+
+export const ContentKindSchema = z.enum(["pq", "gq", "reading", "scorm", "ai_coach"]);
+export type ContentKind = z.infer<typeof ContentKindSchema>;
+
+// Practice Questions (PQ) Schema
+export const PQQuestionSchema = z.object({
+  id: z.string().min(1),
+  type: z.enum(["mcq", "short"]),
+  stem: z.string().min(1).max(1000),
+  options: z.array(z.string().min(1).max(500)).optional(),
+  correct: z.string().min(1),
+  explanation: z.string().min(1).max(2000),
+  difficulty: z.enum(["easy", "medium", "hard"]),
+  bloom: z.enum(["recall", "understand", "apply", "analyze"]),
+});
+
+export const PQPayloadSchema = z.object({
+  questions: z.array(PQQuestionSchema).min(5).max(10),
+});
+export type PQPayload = z.infer<typeof PQPayloadSchema>;
+
+// Graded Questions (GQ) Schema
+export const GQQuestionSchema = PQQuestionSchema.extend({
+  points: z.number().int().min(1).max(100),
+  rubric_text: z.string().min(1).max(2000),
+  graded: z.literal(true),
+});
+
+export const GQPayloadSchema = z.object({
+  questions: z.array(GQQuestionSchema).min(3).max(5),
+});
+export type GQPayload = z.infer<typeof GQPayloadSchema>;
+
+// Reading Materials Schema
+export const ReadingItemSchema = z.object({
+  title: z.string().min(1).max(300),
+  summary: z.string().min(1).max(500),
+  url: z.string().url(),
+  why_it_matters: z.string().min(1).max(500),
+  reading_time_min: z.number().int().min(1).max(180),
+});
+
+export const ReadingPayloadSchema = z.object({
+  items: z.array(ReadingItemSchema).min(3).max(6),
+});
+export type ReadingPayload = z.infer<typeof ReadingPayloadSchema>;
+
+// SCORM Package Schema
+export const ScormPayloadSchema = z.object({
+  url: z.string().url(),
+  filename: z.string().min(1).max(200),
+  size_bytes: z.number().int().min(1),
+  built_at: z.string().datetime(),
+});
+export type ScormPayload = z.infer<typeof ScormPayloadSchema>;
+
+// AI Coach System Prompt Schema
+export const AICoachPayloadSchema = z.object({
+  system: z.string().min(100).max(50000),
+});
+export type AICoachPayload = z.infer<typeof AICoachPayloadSchema>;
+
+// Generate Content Item Request Schema
+export const GenerateContentItemSchema = z.object({
+  video_id: uuid,
+  kind: ContentKindSchema,
+});
+export type GenerateContentItemInput = z.infer<typeof GenerateContentItemSchema>;
+
+// Patch Content Item Schema
+export const PatchContentSchema = z.object({
+  payload: z.unknown().optional(),
+  status: z.enum(["draft", "approved"]).optional(),
+});
+export type PatchContentInput = z.infer<typeof PatchContentSchema>;
