@@ -6,7 +6,7 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const db = getServerSupabase();
+  const db = await getServerSupabase();
   const body = await request.json();
 
   // Validate request
