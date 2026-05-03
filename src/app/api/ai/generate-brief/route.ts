@@ -26,6 +26,8 @@ interface ReqBody {
     visual_requirements?: string;
     difficulty_notes?: string;
     references?: string;
+    slide_count?: number;
+    estimated_minutes?: number;
   };
 }
 
@@ -95,6 +97,9 @@ export async function POST(req: NextRequest) {
     visual_cues: brief.visual_cues,
     key_takeaways: brief.key_takeaways,
     script_outline: brief.script_outline,
+    estimated_duration: brief.estimated_duration,
+    coach_slide_count: body.coachInput?.slide_count ?? null,
+    coach_estimated_minutes: body.coachInput?.estimated_minutes ?? null,
     status: "draft" as const,
     approved_at: null,
     approved_by: null,
@@ -136,8 +141,9 @@ interface ClaudeIn {
 }
 
 async function generateWithClaude(input: ClaudeIn): Promise<{ ok: true; brief: BriefShape } | { ok: false; error: string }> {
-  const coach = input.coachInput && Object.values(input.coachInput).some((v) => v?.trim())
-    ? `\n\nCOACH INPUT:\n${JSON.stringify(input.coachInput, null, 2)}`
+  const ci = input.coachInput;
+  const coach = ci && Object.values(ci).some((v) => (typeof v === "string" ? v.trim() : v != null))
+    ? `\n\nCOACH INPUT:\n${JSON.stringify(ci, null, 2)}\n\nCONSTRAINTS: ${ci.slide_count ? `target ${ci.slide_count} slides` : "slide count not specified"}, ${ci.estimated_minutes ? `target ${ci.estimated_minutes} minutes` : "duration not specified"}.`
     : "";
 
   const prompt = `You are an expert instructional designer. Generate a content brief for a single video lesson.
