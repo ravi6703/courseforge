@@ -1,17 +1,3 @@
-// src/app/page.tsx — drop-in replacement for the marketing landing page.
-//
-// Why this file replaces the old one:
-//   - Old page sold a generic "AI-Powered Course Creation" tool. That story
-//     loses to Coursebox at $30/mo. The actual product is a PM↔SME production
-//     OS, which is a much sharper wedge — so the page now leads with that.
-//   - Shows the 9-phase pipeline as the headline mechanism (the moat).
-//   - Embeds a real sample TOC (artifact-first conversion).
-//   - Calls out target ICP (ed-tech course factories, university online-learning
-//     teams, course agencies) instead of "for Coursera, Udemy, and university
-//     platforms" generic.
-//
-// Style: Tailwind 4 (already in deps), no extra libs. lucide-react icons.
-
 import Link from "next/link";
 import {
   ArrowRight,
@@ -25,6 +11,8 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
+import { Button } from "@/components/Button";
+import { Card } from "@/components/Card";
 
 const PHASES = [
   { num: 1, name: "Setup", who: "PM", note: "Wizard: platform, audience, hours, theory/hands-on, project & capstone toggles." },
@@ -38,395 +26,158 @@ const PHASES = [
   { num: 9, name: "Final Review + Publish", who: "PM", note: "Quality checklist, authority approval, ship to Coursera / Udemy / Canvas / your LMS." },
 ];
 
-const SAMPLE_TOC = {
-  title: "Applied Generative AI for Business",
-  modules: [
-    { title: "Foundations of Generative AI", lessons: 3, hours: 12 },
-    { title: "Prompt Engineering for Professionals", lessons: 3, hours: 14 },
-    { title: "AI Workflow Automation", lessons: 3, hours: 16 },
-    { title: "Responsible AI & Future Trends", lessons: 3, hours: 10 },
-  ],
-};
-
 export default function Landing() {
   return (
-    <div className="min-h-screen bg-white text-slate-900">
+    <div className="min-h-screen bg-bi-navy-50 text-bi-navy-700">
       {/* Header */}
-      <header className="border-b border-slate-200/70 sticky top-0 bg-white/80 backdrop-blur z-10">
-        <div className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
+      <header className="border-b border-bi-navy-200 sticky top-0 bg-white/95 backdrop-blur z-10 shadow-bi-sm">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-md bg-slate-900 text-white flex items-center justify-center font-bold">
+            <div className="w-8 h-8 rounded-md bg-bi-navy-700 text-white flex items-center justify-center font-bold">
               CF
             </div>
-            <span className="font-semibold tracking-tight">CourseForge</span>
-            <span className="hidden sm:inline text-xs text-slate-500 ml-2">
+            <span className="font-bold tracking-tight text-bi-navy-700">CourseForge</span>
+            <span className="hidden sm:inline text-xs text-bi-navy-600 ml-2">
               by Board Infinity
             </span>
           </div>
           <nav className="flex items-center gap-3 text-sm">
-            <Link href="#workflow" className="text-slate-600 hover:text-slate-900">
+            <Link href="#workflow" className="text-bi-navy-600 hover:text-bi-navy-700">
               How it works
             </Link>
-            <Link href="#built-for" className="text-slate-600 hover:text-slate-900">
+            <Link href="#built-for" className="text-bi-navy-600 hover:text-bi-navy-700">
               Built for
             </Link>
-            <Link
-              href="/login"
-              className="px-3 py-1.5 rounded-md border border-slate-300 hover:bg-slate-50"
-            >
-              Sign in
+            <Link href="/login">
+              <Button variant="secondary" size="sm">
+                Sign in
+              </Button>
             </Link>
-            <Link
-              href="/signup"
-              className="px-3 py-1.5 rounded-md bg-slate-900 text-white hover:bg-slate-800"
-            >
-              Book a demo
+            <Link href="/signup">
+              <Button variant="primary" size="sm">
+                Book a demo
+              </Button>
             </Link>
           </nav>
         </div>
       </header>
 
       {/* Hero */}
-      <section className="max-w-6xl mx-auto px-6 pt-16 pb-12">
-        <div className="grid md:grid-cols-2 gap-10 items-center">
+      <section className="max-w-6xl mx-auto px-6 pt-20 pb-16">
+        <div className="grid md:grid-cols-2 gap-12 items-center">
           <div>
-            <div className="inline-flex items-center gap-2 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-3 py-1 mb-5">
+            <div className="inline-flex items-center gap-2 text-xs font-semibold text-bi-blue-700 bg-bi-blue-50 border border-bi-blue-200 rounded-full px-4 py-2 mb-6">
               <Sparkles size={14} />
-              Production OS for course creation teams
+              Production OS for course creators
             </div>
-            <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-[1.1]">
-              The end-to-end pipeline
+            <h1 className="text-5xl sm:text-6xl font-bold tracking-tight leading-[1.1] text-bi-navy-700 mb-6">
+              The 9-phase pipeline
               <br />
-              <span className="text-slate-500">from idea to published course.</span>
+              <span className="text-bi-blue-600">from idea to published course.</span>
             </h1>
-            <p className="mt-5 text-lg text-slate-600 max-w-xl">
-              CourseForge is a 9-phase production workflow purpose-built for{" "}
-              <strong className="text-slate-900">Project Managers</strong> and{" "}
-              <strong className="text-slate-900">Subject-Matter Coaches</strong>{" "}
-              to ship Coursera, Udemy, university, and corporate L&D courses in
-              weeks, not quarters.
+            <p className="text-lg text-bi-navy-600 mb-8 max-w-lg">
+              Board Infinity's CourseForge is the production OS used by course creators to deliver world-class training for Coursera, Udemy, universities, and corporate learning teams.
             </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Link
-                href="/signup"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-slate-900 text-white font-medium hover:bg-slate-800"
-              >
-                Book a demo <ArrowRight size={16} />
+            <div className="flex gap-4">
+              <Link href="/signup">
+                <Button variant="primary" size="lg" className="gap-2">
+                  Get started <ArrowRight className="w-4 h-4" />
+                </Button>
               </Link>
-              <Link
-                href="/signup"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md border border-slate-300 font-medium hover:bg-slate-50"
-              >
-                Get started free
+              <Link href="#workflow">
+                <Button variant="secondary" size="lg">
+                  Learn more
+                </Button>
               </Link>
             </div>
-            <p className="mt-3 text-xs text-slate-500">
-              No credit card required.
-            </p>
           </div>
-
-          {/* Sample TOC artifact preview */}
-          <div className="rounded-xl border border-slate-200 shadow-sm bg-gradient-to-br from-slate-50 to-white p-5">
-            <div className="flex items-center justify-between mb-3 text-xs">
-              <span className="font-medium text-slate-500 uppercase tracking-wider">
-                Generated TOC preview
-              </span>
-              <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-                TOC Review · 3/13
-              </span>
+          <Card className="border-2 border-bi-blue-200 bg-gradient-to-br from-bi-blue-50 to-white">
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-bi-navy-700 mb-4">Sample Course</h3>
+              <p className="text-sm text-bi-navy-600 mb-6">Applied Generative AI for Business</p>
+              <div className="space-y-3">
+                {[
+                  { title: "Foundations of Generative AI", lessons: 3, hours: 12 },
+                  { title: "Prompt Engineering for Professionals", lessons: 3, hours: 14 },
+                  { title: "AI Workflow Automation", lessons: 3, hours: 16 },
+                ].map((m, i) => (
+                  <div key={i} className="text-sm text-bi-navy-600">
+                    <p className="font-medium">{m.title}</p>
+                    <p className="text-xs text-bi-navy-500">{m.lessons} lessons • {m.hours}h</p>
+                  </div>
+                ))}
+              </div>
             </div>
-            <h3 className="font-semibold text-slate-900 mb-1">
-              {SAMPLE_TOC.title}
-            </h3>
-            <p className="text-xs text-slate-500 mb-4">
-              infylearn · Generative AI · 4 modules · 12 lessons · 52 hours
-            </p>
-            <ul className="space-y-2">
-              {SAMPLE_TOC.modules.map((m, i) => (
-                <li
-                  key={i}
-                  className="flex items-center justify-between text-sm border border-slate-200 rounded-md px-3 py-2 bg-white"
-                >
-                  <span className="text-slate-800">
-                    Module {i + 1}: {m.title}
-                  </span>
-                  <span className="text-xs text-slate-500">
-                    {m.lessons} lessons · {m.hours}h
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <div className="mt-4 text-xs text-slate-500 flex items-center gap-2">
-              <Search size={12} />
-              <span>
-                Benchmarked against 7 competitor courses · Bloom&apos;s aligned · Job-market
-                validated
-              </span>
-            </div>
-          </div>
+          </Card>
         </div>
       </section>
 
-      {/* Why we exist */}
-      <section className="bg-slate-50 border-y border-slate-200">
-        <div className="max-w-6xl mx-auto px-6 py-12">
-          <div className="grid md:grid-cols-3 gap-6">
-            <Stat label="Avg course timeline today" value="6–8 weeks" sub="emails + spreadsheets + Loom + Zoom" />
-            <Stat label="Target with CourseForge" value="2–3 weeks" sub="single pipeline, AI at every gate (target — not yet measured at scale)" />
-            <Stat label="PM ↔ Coach handoff" value="structured" sub="structured inputs replace chase emails" />
-          </div>
-        </div>
-      </section>
-
-      {/* The 9-phase workflow */}
+      {/* Workflow */}
       <section id="workflow" className="max-w-6xl mx-auto px-6 py-16">
-        <div className="max-w-2xl mb-10">
-          <h2 className="text-3xl font-bold tracking-tight">
-            One pipeline. Nine gates. Two roles.
-          </h2>
-          <p className="mt-3 text-slate-600">
-            Every course moves through the same nine phases. AI does the heavy
-            lift; the PM owns quality gates; the Coach owns subject expertise.
-            Phase advancement requires explicit PM approval — no surprises in
-            week six.
+        <div className="text-center mb-12">
+          <h2 className="text-4xl font-bold text-bi-navy-700 mb-4">The 9-Phase Pipeline</h2>
+          <p className="text-lg text-bi-navy-600 max-w-2xl mx-auto">
+            Every course follows the same proven workflow, from ideation to publication.
           </p>
         </div>
-
-        <div className="grid md:grid-cols-3 gap-4">
-          {PHASES.map((p) => (
-            <div
-              key={p.num}
-              className="rounded-lg border border-slate-200 p-4 bg-white hover:shadow-sm transition"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-mono text-slate-400">
-                  PHASE {p.num.toString().padStart(2, "0")}
-                </span>
-                <span className="text-[10px] uppercase tracking-wider font-medium text-slate-500">
-                  {p.who}
-                </span>
+        <div className="grid md:grid-cols-3 gap-6">
+          {PHASES.map((phase) => (
+            <Card key={phase.num}>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-lg bg-bi-accent-100 text-bi-accent-700 flex items-center justify-center font-bold">
+                  {phase.num}
+                </div>
+                <h3 className="font-semibold text-bi-navy-700">{phase.name}</h3>
               </div>
-              <div className="font-semibold text-slate-900">{p.name}</div>
-              <div className="mt-1 text-sm text-slate-600 leading-snug">
-                {p.note}
-              </div>
-            </div>
+              <p className="text-sm text-bi-navy-600 mb-3">{phase.note}</p>
+              <p className="text-xs font-medium text-bi-blue-600 bg-bi-blue-50 px-2 py-1 rounded w-fit">
+                {phase.who}
+              </p>
+            </Card>
           ))}
         </div>
       </section>
 
-      {/* Two roles */}
-      <section className="bg-slate-900 text-slate-100">
-        <div className="max-w-6xl mx-auto px-6 py-16 grid md:grid-cols-2 gap-8">
-          <RoleCard
-            tag="PM"
-            title="Project Manager"
-            desc="Orchestrates the production. Sees every coach action live, owns quality gates, approves phase advancement, and ships."
-            bullets={[
-              "Live activity feed across every coach in every course",
-              "Phase tracker dashboards for briefs, slides, recordings",
-              "AI improvement loop on TOC comments",
-              "Final-review checklist before publish",
-            ]}
-          />
-          <RoleCard
-            tag="Coach"
-            title="Subject-Matter Expert"
-            desc="Brings the domain knowledge. Reviews TOCs, fills coach-input forms, edits slides, records via Zoom or upload, signs off on accuracy."
-            bullets={[
-              "Structured Coach Input form per video",
-              "Inline AI assist on every slide and brief",
-              "Zoom + direct upload + AI voice for recordings",
-              "Edit auto-transcripts before content generation",
-            ]}
-          />
-        </div>
-      </section>
-
-      {/* Capabilities grid */}
+      {/* Features */}
       <section className="max-w-6xl mx-auto px-6 py-16">
-        <h2 className="text-3xl font-bold tracking-tight mb-8">
-          Everything a course factory needs
-        </h2>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <Capability
-            icon={<Workflow size={18} />}
-            title="9-phase pipeline"
-            desc="Setup → TOC → Briefs → Slides → Recording → Transcribe → Generate → Review → Publish."
-          />
-          <Capability
-            icon={<Search size={18} />}
-            title="AI competitive research"
-            desc="Live scan of competing courses + job-market signal + curriculum gap analysis before TOC generation."
-          />
-          <Capability
-            icon={<FileText size={18} />}
-            title="Bloom's-aligned objectives"
-            desc="Every module gets learning objectives at the right cognitive level, automatically."
-          />
-          <Capability
-            icon={<Presentation size={18} />}
-            title="Slides with speaker notes"
-            desc="AI-generated decks plus drag-and-drop .pptx upload + AI reformatting."
-          />
-          <Capability
-            icon={<Mic size={18} />}
-            title="Recording, three ways"
-            desc="Zoom integration with auto-import of recordings, direct upload of .mp4/.m4a, or ElevenLabs AI voice for drafts."
-          />
-          <Capability
-            icon={<Languages size={18} />}
-            title="Multi-platform export"
-            desc="One click → Coursera lecture pack, PPTX, or SCORM 1.2 zip. Udemy + YouTube exports on the roadmap."
-          />
-          <Capability
-            icon={<Users size={18} />}
-            title="Comment-driven AI rewrite"
-            desc="Comments aggregate. PM clicks Send for AI Improvement. The TOC comes back fixed."
-          />
-          <Capability
-            icon={<ShieldCheck size={18} />}
-            title="Course Health Score"
-            desc="Pedagogy linter scores every course 0-100 across Bloom progression, time budget, theory/hands-on ratio, and assessment-objective alignment. The thing competitors can't match."
-          />
-          <Capability
-            icon={<Sparkles size={18} />}
-            title="Brand kits per client"
-            desc="Agencies serving multiple ed-tech brands keep each client's templates, voice, and palette isolated."
-          />
-        </div>
-      </section>
-
-      {/* Built for */}
-      <section id="built-for" className="bg-slate-50 border-y border-slate-200">
-        <div className="max-w-6xl mx-auto px-6 py-16">
-          <h2 className="text-3xl font-bold tracking-tight mb-8">
-            Built for course production teams
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            <BuiltFor
-              title="Ed-tech course factories"
-              desc="upGrad, Simplilearn, Scaler, Emeritus, Eruditus, Newton School, Great Learning — anyone running PM + SME production at MOOC scale."
-            />
-            <BuiltFor
-              title="University online-learning teams"
-              desc="Centers for online learning at top universities running structured course production for Coursera / edX partnerships and internal LMS."
-            />
-            <BuiltFor
-              title="Course agencies & studios"
-              desc="Production studios building branded courses for B2B clients who need brand kits, multi-platform export, and a clean handoff."
-            />
-          </div>
-          <p className="mt-8 text-sm text-slate-500 max-w-3xl">
-            We are <strong>not</strong> a marketplace, an LMS, or a course-hosting
-            platform. Coursera, Udemy, Canvas, and your internal LMS already do
-            that well. CourseForge is the production layer that feeds them.
-          </p>
+        <h2 className="text-4xl font-bold text-bi-navy-700 mb-12 text-center">Why CourseForge</h2>
+        <div className="grid md:grid-cols-2 gap-6">
+          {[
+            { icon: Workflow, title: "End-to-End Pipeline", desc: "From ideation to publication, manage every phase in one place." },
+            { icon: Users, title: "Built for Teams", desc: "PM, coach, and AI work in seamless collaboration." },
+            { icon: FileText, title: "AI-Powered Generation", desc: "Auto-generate briefs, slides, quizzes, and more." },
+            { icon: ShieldCheck, title: "Quality Assured", desc: "Built-in checklists and peer review at every stage." },
+          ].map((feature, i) => (
+            <Card key={i} className="flex gap-4">
+              <feature.icon className="w-8 h-8 text-bi-blue-600 flex-shrink-0 mt-1" />
+              <div>
+                <h3 className="font-semibold text-bi-navy-700 mb-2">{feature.title}</h3>
+                <p className="text-sm text-bi-navy-600">{feature.desc}</p>
+              </div>
+            </Card>
+          ))}
         </div>
       </section>
 
       {/* CTA */}
-      <section className="max-w-6xl mx-auto px-6 py-20 text-center">
-        <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
-          Stop chasing coaches in spreadsheets.
-        </h2>
-        <p className="mt-3 text-lg text-slate-600 max-w-2xl mx-auto">
-          Run your next course through the pipeline. See the dashboards, the AI
-          handoffs, the quality gates — on your real subject matter.
-        </p>
-        <div className="mt-7 flex justify-center gap-3">
-          <Link
-            href="/signup"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-slate-900 text-white font-medium hover:bg-slate-800"
-          >
-            Book a demo <ArrowRight size={16} />
+      <section className="max-w-6xl mx-auto px-6 py-16 text-center">
+        <Card className="bg-gradient-to-r from-bi-navy-700 to-bi-blue-600 text-white border-0 p-12">
+          <h2 className="text-3xl font-bold mb-4">Ready to build your course?</h2>
+          <p className="text-lg mb-8 opacity-90">Join the world-class course creation teams using CourseForge.</p>
+          <Link href="/signup">
+            <Button variant="primary" size="lg" className="bg-bi-accent-600 hover:bg-bi-accent-700 text-bi-navy-700 gap-2">
+              Get started free <ArrowRight className="w-4 h-4" />
+            </Button>
           </Link>
-          <Link
-            href="/signup"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md border border-slate-300 font-medium hover:bg-slate-50"
-          >
-            Get started free
-          </Link>
-        </div>
+        </Card>
       </section>
 
-      <footer className="border-t border-slate-200 text-sm text-slate-500">
-        <div className="max-w-6xl mx-auto px-6 py-6 flex flex-wrap items-center justify-between gap-2">
-          <span>© {new Date().getFullYear()} CourseForge · Board Infinity</span>
-          <span>Powered by Claude · Whisper · ElevenLabs</span>
+      {/* Footer */}
+      <footer className="border-t border-bi-navy-200 bg-white">
+        <div className="max-w-6xl mx-auto px-6 py-8 text-center text-sm text-bi-navy-600">
+          <p>&copy; 2025 Board Infinity. All rights reserved.</p>
         </div>
       </footer>
-    </div>
-  );
-}
-
-function Stat({ label, value, sub }: { label: string; value: string; sub: string }) {
-  return (
-    <div>
-      <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-        {label}
-      </div>
-      <div className="mt-1 text-3xl font-bold text-slate-900">{value}</div>
-      <div className="text-sm text-slate-600">{sub}</div>
-    </div>
-  );
-}
-
-function RoleCard({
-  tag,
-  title,
-  desc,
-  bullets,
-}: {
-  tag: string;
-  title: string;
-  desc: string;
-  bullets: string[];
-}) {
-  return (
-    <div className="rounded-xl border border-slate-700 p-6">
-      <div className="inline-flex items-center justify-center w-9 h-9 rounded-md bg-white text-slate-900 font-bold mb-4">
-        {tag}
-      </div>
-      <h3 className="text-xl font-semibold">{title}</h3>
-      <p className="mt-2 text-slate-300">{desc}</p>
-      <ul className="mt-4 space-y-1.5 text-sm text-slate-300">
-        {bullets.map((b) => (
-          <li key={b} className="flex gap-2">
-            <span className="text-slate-500">›</span>
-            <span>{b}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function Capability({
-  icon,
-  title,
-  desc,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  desc: string;
-}) {
-  return (
-    <div className="rounded-lg border border-slate-200 p-4 bg-white">
-      <div className="w-9 h-9 rounded-md bg-slate-100 text-slate-700 flex items-center justify-center mb-3">
-        {icon}
-      </div>
-      <div className="font-semibold">{title}</div>
-      <div className="text-sm text-slate-600 mt-1">{desc}</div>
-    </div>
-  );
-}
-
-function BuiltFor({ title, desc }: { title: string; desc: string }) {
-  return (
-    <div className="rounded-lg border border-slate-200 bg-white p-5">
-      <div className="font-semibold text-slate-900">{title}</div>
-      <p className="text-sm text-slate-600 mt-2">{desc}</p>
     </div>
   );
 }
