@@ -59,21 +59,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get transcript
+    // Get transcript. Table is `transcripts`, column is `text_content`
+    // (not `transcriptions`/`text` — that was a stale reference).
+    // Use maybeSingle so a missing row returns null instead of throwing.
     const { data: transcriptData, error: transcriptError } = await db
-      .from("transcriptions")
-      .select("text")
+      .from("transcripts")
+      .select("text_content, status")
       .eq("video_id", video_id)
-      .single();
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    if (transcriptError || !transcriptData?.text) {
+    if (transcriptError) {
       return NextResponse.json(
-        { error: "No transcript available for this video" },
+        { error: `Transcript lookup failed: ${transcriptError.message}` },
+        { status: 500 }
+      );
+    }
+    if (!transcriptData?.text_content) {
+      return NextResponse.json(
+        { error: "No transcript available for this video. Generate a transcript first on the Transcript tab." },
         { status: 400 }
       );
     }
 
-    const transcript = transcriptData.text;
+    const transcript = transcriptData.text_content;
     const videoTitle = video.title;
     const lesson = Array.isArray(video.lesson) ? video.lesson[0] : video.lesson;
     const lessonTitle = lesson?.title || "Lesson";
@@ -125,7 +135,7 @@ export async function POST(request: NextRequest) {
           "anthropic-version": "2023-06-01",
         },
         body: JSON.stringify({
-          model: "claude-3-5-sonnet-20241022",
+          model: "claude-sonnet-4-6",
           max_tokens: 4096,
           system: prompt.system,
           messages: [
