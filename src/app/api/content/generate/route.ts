@@ -8,7 +8,7 @@ import {
   buildAICoachPrompt,
   buildScormPrompt,
 } from "@/lib/ai/prompts/content";
-import { Anthropic } from "@anthropic-ai/sdk";
+import { extractJson } from "@/lib/ai/extract/json";
 import {
   PQPayloadSchema,
   GQPayloadSchema,
@@ -17,7 +17,8 @@ import {
   ScormPayloadSchema,
 } from "@/lib/validation/schemas";
 
-const client = new Anthropic();
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   const db = getServerSupabase();
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
       .select(
         `
         id, title, duration_minutes,
-        lesson:lessons(id, title, 
+        lesson:lessons(id, title,
           moduleInfo:modules(id, title,
             course:courses(id, title)
           )
@@ -110,31 +111,54 @@ export async function POST(request: NextRequest) {
         );
     }
 
-    // Call Claude API
-    const message = await client.messages.create({
-      model: "claude-3-5-sonnet-20241022",
-      max_tokens: 4096,
-      system: prompt.system,
-      messages: [
-        {
-          role: "user",
-          content: prompt.user,
+    // Call Claude API via direct fetch (no SDK)
+    let resp: Response;
+    try {
+      resp = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.ANTHROPIC_API_KEY!,
+          "anthropic-version": "2023-06-01",
         },
-      ],
-    });
-
-    // Extract JSON from response
-    const responseText =
-      message.content[0].type === "text" ? message.content[0].text : "";
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
+        body: JSON.stringify({
+          model: "claude-3-5-sonnet-20241022",
+          max_tokens: 4096,
+          system: prompt.system,
+          messages: [
+            {
+              role: "user",
+              content: prompt.user,
+            },
+          ],
+        }),
+      });
+    } catch (e) {
       return NextResponse.json(
-        { error: "Failed to parse Claude response" },
-        { status: 500 }
+        { error: `network: ${(e as Error).message}` },
+        { status: 502 }
       );
     }
 
-    const payload = JSON.parse(jsonMatch[0]);
+    if (!resp.ok) {
+      const t = await resp.text().catch(() => "");
+      return NextResponse.json(
+        { error: `Claude ${resp.status}: ${t.slice(0, 200)}` },
+        { status: 502 }
+      );
+    }
+
+    const data = await resp.json();
+    const responseText: string = data.content?.[0]?.text ?? "";
+    const parsed = extractJson<Record<string, unknown>>(responseText, "object");
+    if (!parsed.ok) {
+      return NextResponse.json(
+        { error: `Failed to parse Claude response: ${parsed.error}` },
+        { status: 502 }
+      );
+    }
+
+    const payload = parsed.value;
 
     // Validate payload against schema
     const payloadValidation = schema.safeParse(payload);
