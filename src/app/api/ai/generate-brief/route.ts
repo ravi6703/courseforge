@@ -28,6 +28,7 @@ interface ReqBody {
     references?: string;
     slide_count?: number;
     estimated_minutes?: number;
+    objective_override?: string;
   };
 }
 
@@ -57,18 +58,22 @@ export async function POST(req: NextRequest) {
   const sb = await getServerSupabase();
 
   // Ownership + context fetch
-  const { data: course } = await sb.from("courses").select("title, org_id").eq("id", body.courseId).maybeSingle();
+  const { data: course } = await sb
+    .from("courses")
+    .select("title, org_id, audience_level, prerequisites, domain")
+    .eq("id", body.courseId)
+    .maybeSingle();
   if (!course || course.org_id !== auth.orgId) {
     return NextResponse.json({ error: "course not found" }, { status: 404 });
   }
   const { data: video } = await sb
     .from("videos")
-    .select("id, title, lesson_id, lessons!inner(title, modules!inner(title))")
+    .select("id, title, lesson_id, lessons!inner(title, learning_objectives, modules!inner(title))")
     .eq("id", body.videoId)
     .maybeSingle();
   if (!video) return NextResponse.json({ error: "video not found" }, { status: 404 });
 
-  const lesson = (video as { lessons?: { title?: string; modules?: { title?: string } } }).lessons;
+  const lesson = (video as { lessons?: { title?: string; learning_objectives?: unknown; modules?: { title?: string } } }).lessons;
 
   // Generate
   let brief: BriefShape;
@@ -79,6 +84,10 @@ export async function POST(req: NextRequest) {
       moduleTitle: lesson?.modules?.title ?? "",
       lessonTitle: lesson?.title ?? "",
       videoTitle: video.title,
+      audienceLevel: course.audience_level ?? null,
+      prerequisites: course.prerequisites ?? null,
+      domain: course.domain ?? null,
+      lessonObjectives: lesson?.learning_objectives ?? null,
       coachInput: body.coachInput,
     });
     if (r.ok) brief = r.brief;
@@ -100,6 +109,7 @@ export async function POST(req: NextRequest) {
     estimated_duration: brief.estimated_duration,
     coach_slide_count: body.coachInput?.slide_count ?? null,
     coach_estimated_minutes: body.coachInput?.estimated_minutes ?? null,
+    coach_objective_override: body.coachInput?.objective_override?.trim() || null,
     status: "draft" as const,
     approved_at: null,
     approved_by: null,
@@ -137,6 +147,10 @@ interface ClaudeIn {
   moduleTitle: string;
   lessonTitle: string;
   videoTitle: string;
+  audienceLevel?: string | null;
+  prerequisites?: string | null;
+  domain?: string | null;
+  lessonObjectives?: unknown;
   coachInput?: ReqBody["coachInput"];
 }
 
@@ -146,12 +160,22 @@ async function generateWithClaude(input: ClaudeIn): Promise<{ ok: true; brief: B
     ? `\n\nCOACH INPUT:\n${JSON.stringify(ci, null, 2)}\n\nCONSTRAINTS: ${ci.slide_count ? `target ${ci.slide_count} slides` : "slide count not specified"}, ${ci.estimated_minutes ? `target ${ci.estimated_minutes} minutes` : "duration not specified"}.`
     : "";
 
+  const audience = input.audienceLevel ? `\nAudience level: ${input.audienceLevel}` : "";
+  const prereq = input.prerequisites ? `\nPrerequisites: ${input.prerequisites}` : "";
+  const domain = input.domain ? `\nDomain: ${input.domain}` : "";
+  const objectives = input.lessonObjectives && Array.isArray(input.lessonObjectives) && input.lessonObjectives.length
+    ? `\nLesson learning objectives:\n${(input.lessonObjectives as Array<{text?: string; bloom_level?: string}>).map((o) => `  - ${o.text || ""} [${o.bloom_level || ""}]`).join("\n")}`
+    : "";
+  const override = ci?.objective_override?.trim()
+    ? `\nCOACH OBJECTIVE OVERRIDE (prioritise this over the lesson defaults): ${ci.objective_override.trim()}`
+    : "";
+
   const prompt = `You are an expert instructional designer. Generate a content brief for a single video lesson.
 
-Course: ${input.courseTitle}
+Course: ${input.courseTitle}${domain}${audience}${prereq}
 Module: ${input.moduleTitle}
 Lesson: ${input.lessonTitle}
-Video: ${input.videoTitle}${coach}
+Video: ${input.videoTitle}${objectives}${override}${coach}
 
 Return ONLY a JSON object with this shape:
 {

@@ -17,6 +17,7 @@ interface CoachInput {
   references: string;
   slide_count: string;          // string in form, parsed to int on submit
   estimated_minutes: string;    // string in form, parsed to int on submit
+  objective_override: string;   // optional override for the lesson's default LO
 }
 
 interface Brief {
@@ -36,16 +37,18 @@ interface Props {
   moduleTitle: string;
   courseId: string;
   courseTitle: string;
+  audienceLevel?: string | null;
+  prerequisites?: string | null;
   existingBrief: Brief | null;
 }
 
 const EMPTY_COACH: CoachInput = {
   key_topics: "", examples: "", visual_requirements: "", difficulty_notes: "", references: "",
-  slide_count: "", estimated_minutes: "",
+  slide_count: "", estimated_minutes: "", objective_override: "",
 };
 
 export function BriefCard({
-  videoId, videoTitle, lessonTitle, moduleTitle, courseId, existingBrief,
+  videoId, videoTitle, lessonTitle, moduleTitle, courseId, audienceLevel, prerequisites, existingBrief,
 }: Props) {
   const [brief, setBrief] = useState<Brief | null>(existingBrief);
   const [loading, setLoading] = useState(false);
@@ -83,6 +86,7 @@ export function BriefCard({
             references: coachInput.references,
             slide_count: coachInput.slide_count ? parseInt(coachInput.slide_count, 10) : undefined,
             estimated_minutes: coachInput.estimated_minutes ? parseInt(coachInput.estimated_minutes, 10) : undefined,
+            objective_override: coachInput.objective_override || undefined,
           } : undefined,
         }),
       });
@@ -262,6 +266,26 @@ export function BriefCard({
       {/* Coach Input Form */}
       {view === "input" && (
         <div className="border-t border-slate-100 px-4 py-4 bg-slate-50/50 space-y-3">
+          {/* Course context reminder */}
+          {(audienceLevel || prerequisites) && (
+            <div className="rounded-md border border-blue-200 bg-blue-50/60 p-3 text-xs space-y-1.5">
+              <div className="font-semibold text-blue-900 uppercase tracking-wider">Course Context</div>
+              {audienceLevel && (
+                <div className="flex gap-2">
+                  <span className="font-medium text-blue-700">Audience:</span>
+                  <span className="text-blue-900 capitalize">{audienceLevel}</span>
+                </div>
+              )}
+              {prerequisites && (
+                <div className="flex gap-2">
+                  <span className="font-medium text-blue-700 shrink-0">Prerequisites:</span>
+                  <span className="text-blue-900">{prerequisites}</span>
+                </div>
+              )}
+              <div className="text-blue-600/70 italic mt-1">The AI uses this context automatically — no need to repeat.</div>
+            </div>
+          )}
+
           <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Coach Input — Optional</p>
           <p className="text-xs text-slate-500">Fill in any guidance for the AI. Leave blank to use course context only.</p>
 
@@ -289,6 +313,15 @@ export function BriefCard({
               hint="1-180. Drives slide count + script pacing."
             />
           </div>
+
+          <InputField
+            label="Learning Objective Override"
+            placeholder="e.g. After this video, learner should be able to write a positioning statement for a SaaS product"
+            value={coachInput.objective_override}
+            onChange={(v) => updateCoach("objective_override", v)}
+            rows={2}
+          />
+          <p className="text-[10px] text-slate-400 -mt-1">Leave blank to use the lesson's default learning objectives. Use this to focus the brief on a specific outcome.</p>
 
           <button onClick={generate} disabled={loading} className="flex items-center gap-1.5 px-4 py-2 rounded-md bg-slate-900 text-white text-xs hover:bg-slate-800 disabled:opacity-50 transition-colors mt-1">
             <Sparkles className="w-3.5 h-3.5" />
