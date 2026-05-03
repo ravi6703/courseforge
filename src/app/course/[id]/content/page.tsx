@@ -61,10 +61,10 @@ export default async function ContentTab({
         const list = groups[kind] || [];
         if (list.length === 0) return null;
         return (
-          <section key={kind} className="rounded-lg border border-slate-200 bg-white">
-            <header className="px-4 py-2 border-b border-slate-200 flex justify-between text-sm">
+          <section key={kind} className="rounded-lg border border-bi-navy-200 bg-white">
+            <header className="px-4 py-2 border-b border-bi-navy-200 flex justify-between text-sm">
               <span className="font-semibold">{KIND_LABEL[kind]}</span>
-              <span className="text-xs text-slate-500">{list.length}</span>
+              <span className="text-xs text-bi-navy-500">{list.length}</span>
             </header>
             <ul className="divide-y divide-slate-100 text-sm">
               {list.map((it) => {
@@ -72,8 +72,8 @@ export default async function ContentTab({
                 return (
                   <li key={it.id} className="px-4 py-2.5 flex items-center justify-between">
                     <div className="min-w-0">
-                      <div className="text-slate-900 truncate">{it.title}</div>
-                      <div className="text-xs text-slate-500 truncate">
+                      <div className="text-bi-navy-900 truncate">{it.title}</div>
+                      <div className="text-xs text-bi-navy-500 truncate">
                         {lesson?.modules?.title} › {lesson?.title}
                       </div>
                     </div>
@@ -86,7 +86,7 @@ export default async function ContentTab({
         );
       })}
       {(items || []).length === 0 && (
-        <div className="rounded-lg border border-dashed border-slate-300 p-10 text-center text-sm text-slate-500">
+        <div className="rounded-lg border border-dashed border-bi-navy-300 p-10 text-center text-sm text-bi-navy-500">
           No supplemental content yet. Run content generation from the transcripts.
         </div>
       )}
@@ -96,10 +96,10 @@ export default async function ContentTab({
 
 function pillFor(s: string) {
   const map: Record<string, string> = {
-    pending: "bg-slate-100 text-slate-600",
+    pending: "bg-bi-navy-100 text-bi-navy-600",
     generating: "bg-blue-50 text-blue-700",
     generated: "bg-purple-50 text-purple-700",
     approved: "bg-emerald-50 text-emerald-700",
   };
-  return `text-xs px-2 py-0.5 rounded ${map[s] || "bg-slate-100 text-slate-600"}`;
+  return `text-xs px-2 py-0.5 rounded ${map[s] || "bg-bi-navy-100 text-bi-navy-600"}`;
 }

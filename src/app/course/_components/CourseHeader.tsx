@@ -1,10 +1,8 @@
-// src/app/course/_components/CourseHeader.tsx
-//
-// Header row shared across all course tabs. Pulls the course's status, phase,
-// and progress directly from Supabase so it's always fresh.
-
 import Link from "next/link";
 import { getServerSupabase } from "@/lib/supabase/server";
+import { ProgressBar } from "@/components/Progress";
+import { Badge } from "@/components/Badge";
+import { ChevronLeft } from "lucide-react";
 
 const PHASE_LABEL: Record<string, { label: string; n: number }> = {
   draft: { label: "Draft", n: 0 },
@@ -33,12 +31,16 @@ export async function CourseHeader({ courseId }: { courseId: string }) {
 
   if (!course)
     return (
-      <header className="bg-white border-b border-slate-200">
-        <div className="max-w-6xl mx-auto px-6 py-4">
-          <Link href="/dashboard" className="text-sm text-slate-500">
-            ← Back to dashboard
+      <header className="bg-white border-b border-bi-navy-200">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-1 text-sm text-bi-navy-600 hover:text-bi-navy-700"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Back to dashboard
           </Link>
-          <p className="mt-2 text-slate-500">Course not found.</p>
+          <p className="mt-2 text-bi-navy-600">Course not found.</p>
         </div>
       </header>
     );
@@ -47,45 +49,44 @@ export async function CourseHeader({ courseId }: { courseId: string }) {
   const pct = Math.round((phase.n / 12) * 100);
 
   return (
-    <header className="bg-white border-b border-slate-200">
-      <div className="max-w-6xl mx-auto px-6 py-4">
-        <Link href="/dashboard" className="text-xs text-slate-500 hover:text-slate-700">
-          ← Dashboard
+    <header className="bg-white border-b border-bi-navy-200 shadow-bi-sm">
+      <div className="max-w-7xl mx-auto px-6 py-6">
+        <Link
+          href="/dashboard"
+          className="inline-flex items-center gap-1 text-sm text-bi-navy-600 hover:text-bi-navy-700 mb-4"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          Dashboard
         </Link>
-        <div className="mt-2 flex flex-wrap items-start gap-4 justify-between">
-          <div className="flex-1 min-w-0">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 truncate">
-              {course.title}
-            </h1>
-            {course.description && (
-              <p className="mt-1 text-sm text-slate-600 line-clamp-2 max-w-3xl">
-                {course.description}
-              </p>
-            )}
-            <div className="mt-2 flex items-center gap-3 text-xs text-slate-500">
-              <span className="px-2 py-0.5 rounded bg-slate-100">
-                {course.platform}
-              </span>
-              {course.domain && (
-                <span className="px-2 py-0.5 rounded bg-slate-100">
-                  {course.domain}
-                </span>
+
+        <div className="flex flex-col gap-4">
+          <div className="flex items-start justify-between gap-6">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-3xl font-bold text-bi-navy-700 truncate">
+                {course.title}
+              </h1>
+              {course.description && (
+                <p className="mt-2 text-sm text-bi-navy-600 line-clamp-2 max-w-2xl">
+                  {course.description}
+                </p>
               )}
-              <span className="px-2 py-0.5 rounded bg-amber-50 border border-amber-200 text-amber-700">
-                {phase.label}
-              </span>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                {course.platform && (
+                  <Badge variant="status">{course.platform}</Badge>
+                )}
+                {course.domain && (
+                  <Badge variant="status">{course.domain}</Badge>
+                )}
+                <Badge variant="accent">{phase.label}</Badge>
+              </div>
             </div>
-          </div>
-          <div className="w-44 shrink-0">
-            <div className="text-xs text-slate-500 mb-1 flex justify-between">
-              <span>Progress</span>
-              <span>{pct}%</span>
-            </div>
-            <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-emerald-500"
-                style={{ width: `${pct}%` }}
-              />
+
+            <div className="w-56 shrink-0">
+              <div className="text-xs font-medium text-bi-navy-700 mb-2 flex justify-between">
+                <span>Progress</span>
+                <span className="text-bi-accent-600">{pct}%</span>
+              </div>
+              <ProgressBar value={pct} max={100} size="md" />
             </div>
           </div>
         </div>

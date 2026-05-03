@@ -53,13 +53,13 @@ export function Sidebar() {
 
   return (
     <aside
-      className={`fixed left-0 top-0 h-screen bg-gradient-to-b from-slate-900 to-slate-950 border-r border-slate-800 flex flex-col transition-all duration-300 z-50 ${
+      className={`fixed left-0 top-0 h-screen bg-gradient-to-b from-bi-navy-700 to-bi-navy-800 border-r border-bi-navy-600 flex flex-col transition-all duration-300 z-50 ${
         isExpanded ? "w-60" : "w-16"
       }`}
     >
       {/* Logo */}
-      <div className="flex items-center h-16 px-4 border-b border-slate-800">
-        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+      <div className="flex items-center h-16 px-4 border-b border-bi-navy-600">
+        <div className="w-8 h-8 bg-bi-accent-600 rounded-lg flex items-center justify-center text-bi-navy-700 font-bold text-sm flex-shrink-0">
           CF
         </div>
         {isExpanded && (
@@ -78,8 +78,8 @@ export function Sidebar() {
                 <div
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
                     active
-                      ? "bg-blue-600 text-white"
-                      : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                      ? "bg-bi-accent-600 text-bi-navy-700 font-semibold"
+                      : "text-bi-navy-300 hover:bg-bi-navy-600 hover:text-white"
                   }`}
                 >
                   <Icon className="w-5 h-5 flex-shrink-0" />
@@ -94,16 +94,16 @@ export function Sidebar() {
       </nav>
 
       {/* User + Logout */}
-      <div className="border-t border-slate-800 p-3 space-y-2">
+      <div className="border-t border-bi-navy-600 p-3 space-y-2">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
+          <div className="w-8 h-8 rounded-full bg-bi-accent-600 flex items-center justify-center text-bi-navy-700 font-bold text-xs flex-shrink-0">
             {getInitials(user.name)}
           </div>
           {isExpanded && (
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-white truncate">{user.name}</p>
               <span className={`text-xs px-2 py-0.5 rounded-full ${
-                user.role === "pm" ? "bg-blue-600 text-white" : "bg-emerald-600 text-white"
+                user.role === "pm" ? "bg-bi-blue-600 text-white" : "bg-green-600 text-white"
               }`}>
                 {user.role === "pm" ? "PM" : "Coach"}
               </span>
@@ -112,7 +112,7 @@ export function Sidebar() {
         </div>
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:bg-red-900/30 hover:text-red-400 transition-all w-full"
+          className="flex items-center gap-3 px-3 py-2 rounded-lg text-bi-navy-300 hover:bg-red-900/30 hover:text-red-300 transition-all w-full"
         >
           <LogOut className="w-5 h-5 flex-shrink-0" />
           {isExpanded && <span className="text-sm">Logout</span>}
@@ -122,7 +122,7 @@ export function Sidebar() {
       {/* Toggle */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="h-10 flex items-center justify-center border-t border-slate-800 text-slate-500 hover:text-white transition-colors"
+        className="h-10 flex items-center justify-center border-t border-bi-navy-600 text-bi-navy-400 hover:text-white transition-colors"
       >
         {isExpanded ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
       </button>

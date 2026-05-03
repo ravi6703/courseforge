@@ -367,7 +367,7 @@ export default function CreateCoursePage() {
                       step < currentStep
                         ? "bg-green-600 text-white"
                         : step === currentStep
-                          ? "bg-blue-600 text-white"
+                          ? "bg-bi-blue-600 text-white"
                           : "bg-gray-200 text-gray-500"
                     }`}
                   >
@@ -408,7 +408,7 @@ export default function CreateCoursePage() {
                         <div
                           className={`p-2 rounded-lg transition-colors ${
                             formState.platform === platform.id
-                              ? "bg-blue-600 text-white"
+                              ? "bg-bi-blue-600 text-white"
                               : "bg-gray-100 text-gray-600"
                           }`}
                         >
@@ -498,7 +498,7 @@ export default function CreateCoursePage() {
                               value={level}
                               checked={formState.audienceLevel === level}
                               onChange={(e) => updateFormField("audienceLevel", e.target.value as typeof level)}
-                              className="w-4 h-4 text-blue-600"
+                              className="w-4 h-4 text-bi-blue-600"
                             />
                             <span className="text-sm text-gray-700 capitalize">{level}</span>
                           </label>
@@ -584,7 +584,7 @@ export default function CreateCoursePage() {
                           />
                           <button
                             onClick={handleAddJobRole}
-                            className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+                            className="px-4 py-2.5 bg-bi-blue-600 text-white rounded-lg hover:bg-bi-blue-700 transition-colors font-medium text-sm"
                           >
                             Add
                           </button>
@@ -596,7 +596,7 @@ export default function CreateCoursePage() {
                                 {role}
                                 <button
                                   onClick={() => handleRemoveJobRole(idx)}
-                                  className="text-blue-600 hover:text-blue-900 font-bold"
+                                  className="text-bi-blue-600 hover:text-blue-900 font-bold"
                                 >
                                   ×
                                 </button>
@@ -675,7 +675,7 @@ export default function CreateCoursePage() {
                           type="checkbox"
                           checked={formState.contentTypes.includes(type.id)}
                           onChange={() => toggleContentType(type.id)}
-                          className="w-5 h-5 text-blue-600 rounded"
+                          className="w-5 h-5 text-bi-blue-600 rounded"
                         />
                         <span className="ml-3 font-medium text-gray-900 text-sm">{type.label}</span>
                       </label>
@@ -690,7 +690,7 @@ export default function CreateCoursePage() {
                     <div>
                       <div className="flex items-center justify-between mb-3">
                         <label className="text-sm font-medium text-gray-700">Theory vs Hands-on Ratio</label>
-                        <span className="text-sm font-semibold text-blue-600">
+                        <span className="text-sm font-semibold text-bi-blue-600">
                           Theory: {formState.theoryRatio}% / Hands-on: {100 - formState.theoryRatio}%
                         </span>
                       </div>
@@ -723,7 +723,7 @@ export default function CreateCoursePage() {
                       <button
                         onClick={() => updateFormField("projectBased", !formState.projectBased)}
                         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                          formState.projectBased ? "bg-blue-600" : "bg-gray-300"
+                          formState.projectBased ? "bg-bi-blue-600" : "bg-gray-300"
                         }`}
                       >
                         <span
@@ -745,7 +745,7 @@ export default function CreateCoursePage() {
                       <button
                         onClick={() => updateFormField("capstone", !formState.capstone)}
                         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                          formState.capstone ? "bg-blue-600" : "bg-gray-300"
+                          formState.capstone ? "bg-bi-blue-600" : "bg-gray-300"
                         }`}
                       >
                         <span
@@ -762,7 +762,7 @@ export default function CreateCoursePage() {
                 {formState.projectBased && (
                   <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200 p-6 mb-6">
                     <div className="flex items-start gap-3 mb-4">
-                      <Code className="w-5 h-5 text-blue-600 flex-shrink-0 mt-1" />
+                      <Code className="w-5 h-5 text-bi-blue-600 flex-shrink-0 mt-1" />
                       <div className="flex-1">
                         <h3 className="font-semibold text-gray-900">AI-Suggested Projects</h3>
                         <p className="text-sm text-gray-600 mt-1">Consider these project ideas for your course</p>
@@ -795,7 +795,7 @@ export default function CreateCoursePage() {
                       <div key={moduleIdx}>
                         <div className="flex items-center justify-between mb-2">
                           <label className="text-sm font-medium text-gray-700">Module {moduleIdx + 1}</label>
-                          <span className="text-sm font-semibold text-blue-600">{formState.moduleHours[moduleIdx] || 0} hours</span>
+                          <span className="text-sm font-semibold text-bi-blue-600">{formState.moduleHours[moduleIdx] || 0} hours</span>
                         </div>
                         <input
                           type="range"
@@ -842,7 +842,7 @@ export default function CreateCoursePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                   <div className="bg-white rounded-xl border border-gray-200 p-6">
                     <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                      <BookOpen className="w-5 h-5 text-blue-600" /> Course Info
+                      <BookOpen className="w-5 h-5 text-bi-blue-600" /> Course Info
                     </h4>
                     <div className="space-y-2 text-sm">
                       <p>
@@ -872,7 +872,7 @@ export default function CreateCoursePage() {
 
                   <div className="bg-white rounded-xl border border-gray-200 p-6">
                     <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                      <Layers className="w-5 h-5 text-blue-600" /> Curriculum
+                      <Layers className="w-5 h-5 text-bi-blue-600" /> Curriculum
                     </h4>
                     <div className="space-y-2 text-sm">
                       <p>
@@ -918,7 +918,7 @@ export default function CreateCoursePage() {
                         <button
                           onClick={handleGenerateTOC}
                           disabled={isGenerating}
-                          className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:opacity-50 inline-flex items-center gap-2"
+                          className="px-8 py-3 bg-bi-blue-600 text-white rounded-lg hover:bg-bi-blue-700 transition-colors font-semibold disabled:opacity-50 inline-flex items-center gap-2"
                         >
                           Generate with AI
                           <ArrowRight className="w-4 h-4" />
@@ -964,7 +964,7 @@ export default function CreateCoursePage() {
                       <button
                         onClick={handleGenerateTOC}
                         disabled={isGenerating}
-                        className="w-full py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors font-medium text-sm disabled:opacity-50"
+                        className="w-full py-2 text-bi-blue-600 hover:bg-bi-blue-50 rounded-lg transition-colors font-medium text-sm disabled:opacity-50"
                       >
                         {isGenerating ? "Regenerating..." : "Regenerate"}
                       </button>
@@ -1007,7 +1007,7 @@ export default function CreateCoursePage() {
                 <button
                   onClick={handleNext}
                   disabled={!canProceed[currentStep]}
-                  className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="px-6 py-2.5 bg-bi-blue-600 text-white rounded-lg hover:bg-bi-blue-700 font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   Next
                   <ChevronRight className="w-4 h-4" />

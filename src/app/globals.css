@@ -1,22 +1,134 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
 @theme {
-  --color-primary: #2563EB;
-  --color-primary-dark: #1D4ED8;
+  /* Board Infinity Brand Colors */
+  /* Primary Navy */
+  --color-bi-navy-50: #F8FAFC;
+  --color-bi-navy-100: #EFF1F5;
+  --color-bi-navy-200: #D9DFE8;
+  --color-bi-navy-300: #B3C0D6;
+  --color-bi-navy-400: #7B8FB3;
+  --color-bi-navy-500: #4A5C7F;
+  --color-bi-navy-600: #2B3E5F;
+  --color-bi-navy-700: #0B1F4D;
+  --color-bi-navy-800: #0A2540;
+  --color-bi-navy-900: #06192A;
+
+  /* Secondary Blue */
+  --color-bi-blue-50: #F0F5FF;
+  --color-bi-blue-100: #E0EBFF;
+  --color-bi-blue-200: #C1D7FE;
+  --color-bi-blue-300: #A1C3FE;
+  --color-bi-blue-400: #6BA3FD;
+  --color-bi-blue-500: #4084FC;
+  --color-bi-blue-600: #2B6FED;
+  --color-bi-blue-700: #1C5AE0;
+  --color-bi-blue-800: #144BC4;
+  --color-bi-blue-900: #0D3BA8;
+
+  /* Accent Golden Yellow */
+  --color-bi-accent-50: #FFFBF0;
+  --color-bi-accent-100: #FFF5E0;
+  --color-bi-accent-200: #FFE8C1;
+  --color-bi-accent-300: #FFDAA2;
+  --color-bi-accent-400: #FFC764;
+  --color-bi-accent-500: #FFB42B;
+  --color-bi-accent-600: #FFB800;
+  --color-bi-accent-700: #F5A700;
+  --color-bi-accent-800: #E09200;
+  --color-bi-accent-900: #B87400;
+
+  /* Neutrals */
+  --color-surface: #FFFFFF;
+  --color-bg: #F8F9FB;
+  --color-border: #E5E7EB;
+  --color-border-muted: #D1D5DB;
+  --color-text: #1F2937;
+  --color-text-muted: #6B7280;
+  --color-text-light: #9CA3AF;
+
+  /* Semantic */
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-danger: #EF4444;
+  --color-info: #3B82F6;
+
+  /* Legacy aliases for backward compatibility */
+  --color-primary: #0B1F4D;
+  --color-primary-dark: #0A2540;
   --color-primary-light: #DBEAFE;
-  --color-secondary: #1E293B;
-  --color-accent: #059669;
-  --color-warning: #D97706;
-  --color-danger: #DC2626;
-  --color-surface: #F8FAFC;
-  --color-border: #E2E8F0;
-  --color-muted: #64748B;
+  --color-secondary: #1F2937;
+  --color-accent: #FFB800;
+  --color-muted: #6B7280;
+}
+
+:root {
+  /* CSS Variables for dynamic theming */
+  --bi-primary: #0B1F4D;
+  --bi-primary-dark: #0A2540;
+  --bi-accent: #FFB800;
+  --bi-accent-alt: #FF6B00;
+  --bi-bg: #F8F9FB;
+  --bi-surface: #FFFFFF;
+  --bi-border: #E5E7EB;
+  --bi-text: #1F2937;
+  --bi-text-muted: #6B7280;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background-color: var(--color-surface);
-  color: var(--color-secondary);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+  font-weight: 600;
+}
+
+h1 {
+  font-size: 32px;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+h2 {
+  font-size: 24px;
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+h3 {
+  font-size: 18px;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+h4 {
+  font-size: 16px;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+small, .text-sm {
+  font-size: 12px;
+}
+
+.text-xs {
+  font-size: 11px;
+}
+
+/* Focus ring for accessibility */
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(43, 111, 237, 0.1), 0 0 0 3px #2B6FED;
 }
 
 /* Custom scrollbar */
@@ -24,3 +136,80 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+
+/* Utility classes for shadows */
+.shadow-bi-sm {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.shadow-bi-md {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+}
+
+.shadow-bi-lg {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+}
+
+.shadow-bi-xl {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+}
+
+/* Rounded border radius tokens */
+.rounded-bi {
+  border-radius: 12px;
+}
+
+/* Link styling */
+a {
+  color: var(--color-bi-blue-600);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--color-bi-navy-700);
+  text-decoration: underline;
+}
+
+/* Input styling */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+textarea,
+select {
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="number"]:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--color-bi-blue-600);
+  box-shadow: 0 0 0 3px rgba(43, 111, 237, 0.1);
+}
+
+input[type="text"]:disabled,
+input[type="email"]:disabled,
+input[type="password"]:disabled,
+input[type="number"]:disabled,
+textarea:disabled,
+select:disabled {
+  background-color: #F3F4F6;
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+/* Placeholder styling */
+::placeholder {
+  color: var(--color-text-light);
+}

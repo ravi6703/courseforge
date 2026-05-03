@@ -128,6 +128,76 @@ export const GenerateContentSchema = z.object({
   courseId: optionalUuid,
 });
 
+// Content item schemas for practice questions, graded questions, readings, SCORM, and AI coach
+const mcqOption = z.object({
+  id: z.string().min(1),
+  text: z.string().min(1).max(1000),
+});
+
+const pqQuestion = z.object({
+  id: z.string().min(1),
+  type: z.enum(["mcq", "short_answer"]),
+  stem: z.string().min(5).max(2000),
+  options: z.array(mcqOption).optional(),
+  correct_answer: z.string().min(1).max(2000),
+  explanation: z.string().min(5).max(2000),
+  difficulty: z.enum(["easy", "medium", "hard"]),
+  bloom_level: z.enum(["recall", "understand", "apply", "analyze"]),
+});
+
+export const ContentPQPayloadSchema = z.object({
+  questions: z.array(pqQuestion).min(1).max(10),
+  generated_at: z.string().optional(),
+});
+
+const gqQuestion = pqQuestion.extend({
+  points: z.number().int().min(1).max(100),
+  rubric_text: z.string().min(5).max(5000),
+  graded: z.literal(true),
+});
+
+export const ContentGQPayloadSchema = z.object({
+  questions: z.array(gqQuestion).min(1).max(5),
+  total_points: z.number().int().min(1),
+  generated_at: z.string().optional(),
+});
+
+const readingItem = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1).max(200),
+  summary: z.string().min(10).max(500),
+  suggested_url: z.string().url().optional(),
+  why_it_matters: z.string().min(10).max(500),
+  reading_time_minutes: z.number().int().min(1).max(120),
+});
+
+export const ContentReadingPayloadSchema = z.object({
+  items: z.array(readingItem).min(1).max(6),
+  generated_at: z.string().optional(),
+});
+
+export const ContentSCORMPayloadSchema = z.object({
+  scorm_url: z.string().url(),
+  filename: z.string().min(1).max(200),
+  size_bytes: z.number().int().min(1),
+  generated_at: z.string().optional(),
+});
+
+export const ContentAICoachPayloadSchema = z.object({
+  system_prompt: z.string().min(100).max(50000),
+  generated_at: z.string().optional(),
+});
+
+export const GenerateContentItemSchema = z.object({
+  video_id: uuid,
+  kind: z.enum(["pq", "gq", "reading", "scorm", "ai_coach"]),
+});
+
+export const PatchContentItemSchema = z.object({
+  payload: z.unknown().optional(),
+  status: z.enum(["draft", "approved"]).optional(),
+});
+
 export function parseBody<T>(
   schema: z.ZodSchema<T>,
   body: unknown
