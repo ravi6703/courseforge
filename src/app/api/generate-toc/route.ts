@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/supabase/server";
 import { aiHeaders, aiMode } from "@/lib/ai/fallback";
 import { research } from "@/lib/research";
+import { fewShotBlock } from "@/lib/ai/prompts/toc-fewshot";
+import { extractJson } from "@/lib/ai/extract/json";
 import { checkRateLimit, rateLimitResponse } from "@/lib/ratelimit";
 import { GeneratedTOC, Module, Lesson, Video, LearningObjective, CourseResearch, ContentType } from "@/types";
 
@@ -161,100 +163,78 @@ function generateFallbackTOC(input: GenerateTOCRequest): Module[] {
 }
 
 // generateFallbackResearch removed — provider-aware research lives in src/lib/research.
-async function generateWithAI(input: GenerateTOCRequest): Promise<Module[]> {
-  const systemPrompt = `You are an expert curriculum designer specializing in creating comprehensive online courses. Your task is to generate a detailed Table of Contents for a course with specific requirements.
+async function generateWithAI(input: GenerateTOCRequest): Promise<{ ok: true; modules: Module[] } | { ok: false; error: string; raw?: string }> {
+  const fewShot = fewShotBlock();
+
+  const systemPrompt = `You are an expert curriculum designer for Board Infinity. Your task is to generate a detailed, production-ready Table of Contents for an online course.
 
 COURSE SPECIFICATIONS:
 - Title: ${input.title}
 - Description: ${input.description}
 - Platform: ${input.platform}
 - Domain: ${input.domain}
-- Duration: ${input.duration_weeks} weeks, ${input.hours_per_week} hours per week
-- Total Duration: ${input.duration_weeks * input.hours_per_week} hours
+- Duration: ${input.duration_weeks} weeks, ${input.hours_per_week} hours per week (total ${input.duration_weeks * input.hours_per_week} hours)
 - Audience Level: ${input.audience_level}
 - Prerequisites: ${input.prerequisites || "None specified"}
-- Target Job Roles: ${input.target_job_roles.join(", ")}
+- Target Job Roles: ${input.target_job_roles.length ? input.target_job_roles.join(", ") : "general practitioners in the field"}
 - Certification Goal: ${input.certification_goal || "Professional competency"}
-- Theory/Hands-on Ratio: ${input.theory_handson_ratio}% theory, ${100 - input.theory_handson_ratio}% hands-on
-- Project-Based Learning: ${input.project_based ? "Yes" : "No"}
-- Include Capstone Project: ${input.capstone ? "Yes" : "No"}
-- Supported Content Types: ${input.content_types.join(", ")}
-${input.reference_course_url ? `- Reference Course: ${input.reference_course_url}` : ""}
+- Theory/Hands-on Ratio: ${input.theory_handson_ratio}% theory / ${100 - input.theory_handson_ratio}% hands-on
+- Project-Based: ${input.project_based ? "Yes — weave milestone projects into modules" : "No"}
+- Capstone: ${input.capstone ? "Yes — final module is a capstone with deliverables + rubric" : "No"}
+- Content Types Allowed: ${input.content_types.join(", ")}
+${input.reference_course_url ? `- Reference Course (use as inspiration, do NOT copy): ${input.reference_course_url}` : ""}
 
-CURRICULUM DESIGN REQUIREMENTS:
-1. Create 4-6 modules that build progressively in complexity
-2. Each module should have 2-4 lessons based on the course duration
-3. Each lesson must include 2-3 videos or content items
-4. Align all learning objectives to Bloom's Taxonomy (remember, understand, apply, analyze, evaluate, create)
-5. Incorporate the theory/hands-on ratio throughout the course
-6. Include project milestones every 1-2 modules if project_based is true
-7. Include a capstone module at the end if capstone is true
-8. Ensure hands-on content matches the specified ratio
-9. Design lessons to fit the ${input.hours_per_week} hours per week pace
-10. Make content relevant to the target job roles: ${input.target_job_roles.join(", ")}
+CURRICULUM DESIGN RULES:
+1. Generate 4–6 modules that build progressively in complexity.
+2. Each module: 2–4 lessons, distinctive titles, ${input.hours_per_week * 2}–${input.hours_per_week * 3} duration_hours total per module on average.
+3. Each lesson: 2–3 videos (10–25 min each) + 1–2 content_items chosen ONLY from the allowed types above.
+4. Learning objectives align to Bloom's Taxonomy. First module skews remember/understand; last module skews analyze/evaluate/create.
+5. Hands-on videos (is_handson=true) match the configured ratio.
+6. Module + lesson titles MUST be specific to "${input.domain}" — never generic placeholders like "Foundations" or "Advanced Techniques". Use the actual concepts, tools, frameworks, and job tasks of the domain.
+7. Module + lesson DESCRIPTIONS are 1–3 concrete sentences. Never reuse a description across modules.
 
-RESPONSE FORMAT:
-Return ONLY a valid JSON array of modules. Each module must follow this exact structure:
+REFERENCE EXAMPLES (style + density to match — do NOT copy content):
+
+${fewShot}
+
+OUTPUT FORMAT:
+Return ONLY a valid JSON array of modules — no markdown, no commentary. Each module exactly:
 [
   {
-    "id": "module-{number}",
+    "id": "module-{n}",
     "course_id": "temp-course-id",
-    "title": "Module Title",
-    "description": "Detailed module description",
-    "duration_hours": {calculated based on weekly hours},
-    "order": {0-indexed},
-    "is_capstone": {boolean},
-    "is_project_milestone": {boolean},
+    "title": "Specific Module Title",
+    "description": "Concrete 1-3 sentence description.",
+    "duration_hours": ${Math.max(2, Math.round(input.hours_per_week * 2))},
+    "order": 0,
+    "is_capstone": false,
+    "is_project_milestone": false,
     "learning_objectives": [
-      {
-        "id": "lo-{unique-id}",
-        "text": "Specific learning outcome using action verb",
-        "bloom_level": "remember|understand|apply|analyze|evaluate|create"
-      }
+      { "id": "lo-{unique}", "text": "Action-verb objective", "bloom_level": "understand" }
     ],
     "lessons": [
       {
-        "id": "lesson-{unique-id}",
-        "module_id": "module-{number}",
-        "title": "Lesson Title",
-        "description": "Lesson description",
-        "order": {0-indexed},
+        "id": "lesson-{unique}",
+        "module_id": "module-{n}",
+        "title": "Specific Lesson Title",
+        "description": "What learners will be able to do after this lesson.",
+        "order": 0,
         "content_items": [
-          {
-            "id": "content-{unique-id}",
-            "lesson_id": "lesson-{unique-id}",
-            "type": "${input.content_types[0] || "video"}",
-            "title": "Content Item Title",
-            "description": "What students will learn",
-            "duration": {minutes},
-            "order": {0-indexed}
-          }
+          { "id": "content-{unique}", "lesson_id": "lesson-{unique}", "type": "${input.content_types[0] || "reading"}", "title": "Specific item title", "description": "Brief", "duration": 15, "order": 0 }
         ],
         "videos": [
-          {
-            "id": "video-{unique-id}",
-            "lesson_id": "lesson-{unique-id}",
-            "title": "Video Title",
-            "duration_minutes": {15-30},
-            "order": {0-indexed},
-            "is_handson": ${input.theory_handson_ratio < 50 ? "true or false based on ratio" : "false"},
-            "status": "pending"
-          }
+          { "id": "video-{unique}", "lesson_id": "lesson-{unique}", "title": "Specific Video Title", "duration_minutes": 12, "order": 0, "is_handson": false, "status": "pending" }
         ]
       }
     ]
   }
 ]
 
-IMPORTANT:
-- Make all IDs unique and properly formatted
-- Ensure the structure matches exactly - no extra or missing fields
-- Return ONLY the JSON array, no markdown, no explanation
-- Duration should realistically fit the ${input.duration_weeks} week schedule
-- For videos with is_handson=true, ensure duration_minutes reflects hands-on exercises`;
+ABSOLUTE: Output starts with [ and ends with ]. No prose, no fences, no comments.`;
 
+  let response: Response;
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -263,67 +243,60 @@ IMPORTANT:
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
-        max_tokens: 8000,
-        messages: [
-          {
-            role: "user",
-            content: systemPrompt,
-          },
-        ],
+        max_tokens: 16000,                     // bumped from 8000 — TOCs got truncated
+        messages: [{ role: "user", content: systemPrompt }],
       }),
     });
+  } catch (e) {
+    return { ok: false, error: `network error: ${(e as Error).message}` };
+  }
 
-    if (!response.ok) {
-      console.error("Claude API error:", response.status, response.statusText);
-      return generateFallbackTOC(input);
-    }
+  if (!response.ok) {
+    const errText = await response.text().catch(() => "");
+    console.error("[generate-toc] Claude HTTP", response.status, errText.slice(0, 500));
+    return { ok: false, error: `Claude returned ${response.status}: ${errText.slice(0, 200)}` };
+  }
 
-    const data = await response.json();
-    const content = data.content[0].text;
+  const data = await response.json();
+  const content: string = data.content?.[0]?.text ?? "";
 
-    // Extract JSON from response (handle markdown code blocks)
-    const jsonMatch = content.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) {
-      console.warn("Could not extract JSON array from Claude response");
-      return generateFallbackTOC(input);
-    }
+  // Robust JSON extraction (handles ```json fences, trailing prose, etc.)
+  const parsed = extractJson<Module[]>(content, "array");
+  if (!parsed.ok) {
+    console.error("[generate-toc] JSON extract failed:", parsed.error);
+    console.error("[generate-toc] Claude raw response (first 500 chars):", content.slice(0, 500));
+    return { ok: false, error: `Could not parse Claude's response as JSON: ${parsed.error}`, raw: content.slice(0, 1000) };
+  }
 
-    const parsed = JSON.parse(jsonMatch[0]) as Module[];
-
-    // Ensure all objects have required IDs and fields
-    parsed.forEach((module) => {
-      module.course_id ||= "temp-course-id";
-      module.id ||= `module-${Math.random().toString(36).substr(2, 9)}`;
-      module.learning_objectives ||= generateLearningObjectives(module.title, 3);
-
-      module.lessons ||= [];
-      module.lessons.forEach((lesson) => {
-        lesson.module_id ||= module.id;
-        lesson.id ||= `lesson-${Math.random().toString(36).substr(2, 9)}`;
-        lesson.learning_objectives ||= generateLearningObjectives(lesson.title, 2);
-
-        const lessonAny = lesson as unknown as { content_items?: Array<{ id?: string; lesson_id?: string }> };
-        lessonAny.content_items ||= [];
-        lessonAny.content_items.forEach((item) => {
-          item.lesson_id ||= lesson.id;
-          item.id ||= `content-${Math.random().toString(36).substr(2, 9)}`;
-        });
-
-        lesson.videos ||= [];
-        lesson.videos.forEach((video) => {
-          video.lesson_id ||= lesson.id;
-          video.id ||= `video-${Math.random().toString(36).substr(2, 9)}`;
-          video.status ||= "pending";
-        });
+  // Backfill any missing IDs Claude omitted, defensively.
+  const modules = parsed.value;
+  modules.forEach((module, mi) => {
+    module.course_id ||= "temp-course-id";
+    module.id ||= `module-${mi}-${Math.random().toString(36).slice(2, 9)}`;
+    module.learning_objectives ||= generateLearningObjectives(module.title, 3);
+    module.lessons ||= [];
+    module.lessons.forEach((lesson, li) => {
+      lesson.module_id ||= module.id;
+      lesson.id ||= `lesson-${mi}-${li}-${Math.random().toString(36).slice(2, 9)}`;
+      lesson.learning_objectives ||= generateLearningObjectives(lesson.title, 2);
+      const lessonAny = lesson as unknown as { content_items?: Array<{ id?: string; lesson_id?: string }> };
+      lessonAny.content_items ||= [];
+      lessonAny.content_items.forEach((item, ii) => {
+        item.lesson_id ||= lesson.id;
+        item.id ||= `content-${mi}-${li}-${ii}-${Math.random().toString(36).slice(2, 6)}`;
+      });
+      lesson.videos ||= [];
+      lesson.videos.forEach((video, vi) => {
+        video.lesson_id ||= lesson.id;
+        video.id ||= `video-${mi}-${li}-${vi}-${Math.random().toString(36).slice(2, 6)}`;
+        video.status ||= "pending";
       });
     });
+  });
 
-    return parsed;
-  } catch (error) {
-    console.error("Error calling Claude API:", error);
-    return generateFallbackTOC(input);
-  }
+  return { ok: true, modules };
 }
+
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
@@ -341,9 +314,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "Missing required fields: title, description, domain" }, { status: 400, headers: aiHeaders(aiMode()) });
     }
 
-    const modules = process.env.ANTHROPIC_API_KEY
-      ? await generateWithAI(body)
-      : generateFallbackTOC(body);
+    let modules;
+    let aiError: string | null = null;
+    if (process.env.ANTHROPIC_API_KEY) {
+      const result = await generateWithAI(body);
+      if (result.ok) {
+        modules = result.modules;
+      } else {
+        // No more silent fallback — return the AI error so the UI can show it.
+        // The user explicitly opted into live generation by setting the key;
+        // if Claude breaks, they need to know, not see canned templates.
+        aiError = result.error;
+        modules = generateFallbackTOC(body);
+      }
+    } else {
+      modules = generateFallbackTOC(body);
+    }
 
     const researchResult = await research({
       domain: body.domain,
@@ -352,7 +338,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       audience_level: body.audience_level,
     });
 
-    const response: GenerateTOCResponse = {
+    const response: GenerateTOCResponse & { ai_error?: string } = {
       success: true,
       modules,
       research: {
@@ -361,8 +347,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         research_steps: researchResult.research_steps,
       },
     };
+    if (aiError) response.ai_error = aiError;
 
-    return NextResponse.json(response, { headers: aiHeaders(aiMode()) });
+    const headers = aiHeaders(aiMode());
+    if (aiError) headers["x-cf-ai-mode"] = "fallback-after-error";
+
+    return NextResponse.json(response, { headers });
   } catch (error) {
     console.error("Error in /api/generate-toc:", error);
     return NextResponse.json({ error: "Failed to generate table of contents" }, { status: 500, headers: aiHeaders(aiMode()) });
