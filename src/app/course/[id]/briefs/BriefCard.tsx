@@ -3,7 +3,7 @@
 // Phase 1 — BriefCard is now keyed on videoId. Adds Approve / Unapprove
 // gating button (PM-only). Suggest UI is unchanged from previous PR.
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ChevronDown, ChevronUp, Sparkles, RefreshCw, ClipboardList, FileText,
   Wand2, Check, X, CheckCircle2, RotateCcw,
@@ -40,6 +40,12 @@ interface Props {
   audienceLevel?: string | null;
   prerequisites?: string | null;
   existingBrief: Brief | null;
+  /**
+   * When true, BriefCard renders without its outer card border + header
+   * (breadcrumb + title) because the parent (BriefsView) is already showing
+   * those. Pass embedded={true} from BriefsView's expanded accordion row.
+   */
+  embedded?: boolean;
 }
 
 const EMPTY_COACH: CoachInput = {
@@ -48,7 +54,7 @@ const EMPTY_COACH: CoachInput = {
 };
 
 export function BriefCard({
-  videoId, videoTitle, lessonTitle, moduleTitle, courseId, audienceLevel, prerequisites, existingBrief,
+  videoId, videoTitle, lessonTitle, moduleTitle, courseId, audienceLevel, prerequisites, existingBrief, embedded = false,
 }: Props) {
   const [brief, setBrief] = useState<Brief | null>(existingBrief);
   const [loading, setLoading] = useState(false);
@@ -56,7 +62,27 @@ export function BriefCard({
   const [expanded, setExpanded] = useState(false);
   const [error, setError] = useState("");
   const [view, setView] = useState<"brief" | "input">(existingBrief ? "brief" : "input");
-  const [coachInput, setCoachInput] = useState<CoachInput>(EMPTY_COACH);
+  const localKey = `cf:brief-coach-input:${videoId}`;
+  const [coachInput, setCoachInput] = useState<CoachInput>(() => {
+    if (typeof window === "undefined") return EMPTY_COACH;
+    try {
+      const raw = window.localStorage.getItem(localKey);
+      if (raw) return { ...EMPTY_COACH, ...JSON.parse(raw) } as CoachInput;
+    } catch { /* ignore corruption */ }
+    return EMPTY_COACH;
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const t = setTimeout(() => {
+      try {
+        const hasContent = Object.values(coachInput).some((v) => v && String(v).trim());
+        if (hasContent) window.localStorage.setItem(localKey, JSON.stringify(coachInput));
+        else window.localStorage.removeItem(localKey);
+      } catch { /* quota — ignore */ }
+    }, 500);
+    return () => clearTimeout(t);
+  }, [coachInput, localKey]);
 
   // Suggest panel state
   const [suggestOpen, setSuggestOpen] = useState(false);
@@ -95,6 +121,7 @@ export function BriefCard({
         setBrief(data.brief);
         setView("brief");
         setExpanded(true);
+        try { window.localStorage.removeItem(localKey); } catch { /* ignore */ }
       } else {
         setError(data.error || "Generation failed");
       }
@@ -189,8 +216,11 @@ export function BriefCard({
     setCoachInput((prev) => ({ ...prev, [field]: value }));
 
   return (
-    <div className={`rounded-lg border bg-white overflow-hidden ${isApproved ? "border-emerald-300" : "border-slate-200"}`}>
-      {/* Header */}
+    <div className={embedded
+      ? "bg-transparent"
+      : `rounded-lg border bg-white overflow-hidden ${isApproved ? "border-emerald-300" : "border-slate-200"}`}>
+      {/* Header — hidden in embedded mode (BriefsView shows it) */}
+      {!embedded && (
       <div className="px-4 py-3 flex items-center justify-between gap-4">
         <div className="min-w-0 flex-1">
           <div className="text-xs text-slate-500 truncate">
@@ -262,6 +292,37 @@ export function BriefCard({
           )}
         </div>
       </div>
+      )}
+
+      {/* Compact embedded action bar (only when embedded) */}
+      {embedded && (
+        <div className="flex items-center justify-end gap-2 px-2 pb-2">
+          {error && <span className="text-xs text-red-500 mr-auto">{error}</span>}
+          {brief && (
+            <>
+              <button onClick={toggleApproval} disabled={approving} className={`text-xs px-2 py-1 rounded border inline-flex items-center gap-1 disabled:opacity-40 ${isApproved ? "border-slate-300 text-slate-700 hover:bg-slate-50" : "border-emerald-400 text-emerald-700 bg-emerald-50 hover:bg-emerald-100"}`} title={isApproved ? "Revoke approval" : "Approve for slide generation"}>
+                {isApproved ? <RotateCcw className="w-3 h-3" /> : <Check className="w-3 h-3" />}
+                {approving ? "…" : (isApproved ? "Unapprove" : "Approve")}
+              </button>
+              <button onClick={() => setSuggestOpen((v) => !v)} title="Suggest improvements" className="text-slate-400 hover:text-purple-600 px-2 py-0.5 rounded border border-slate-200 hover:border-purple-300 text-xs inline-flex items-center gap-1">
+                <Wand2 className="w-3.5 h-3.5" /> Suggest
+              </button>
+              <button onClick={() => setView(view === "input" ? "brief" : "input")} className="text-slate-400 hover:text-slate-600 text-xs px-2 py-0.5 rounded border border-slate-200 hover:border-slate-300" title={view === "input" ? "View brief" : "Edit coach input"}>
+                {view === "input" ? <FileText className="w-3.5 h-3.5" /> : <ClipboardList className="w-3.5 h-3.5" />}
+              </button>
+              <button onClick={generate} disabled={loading} title="Regenerate" className="text-slate-400 hover:text-slate-600 disabled:opacity-40">
+                <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+              </button>
+            </>
+          )}
+          {!brief && (
+            <button onClick={() => setView(view === "input" ? "brief" : "input")} className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-100 text-slate-700 text-xs hover:bg-slate-200">
+              <ClipboardList className="w-3.5 h-3.5" />
+              {view === "input" ? "Hide form" : "Coach input"}
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Coach Input Form */}
       {view === "input" && (
