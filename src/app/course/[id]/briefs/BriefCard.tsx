@@ -15,6 +15,8 @@ interface CoachInput {
   visual_requirements: string;
   difficulty_notes: string;
   references: string;
+  slide_count: string;          // string in form, parsed to int on submit
+  estimated_minutes: string;    // string in form, parsed to int on submit
 }
 
 interface Brief {
@@ -39,6 +41,7 @@ interface Props {
 
 const EMPTY_COACH: CoachInput = {
   key_topics: "", examples: "", visual_requirements: "", difficulty_notes: "", references: "",
+  slide_count: "", estimated_minutes: "",
 };
 
 export function BriefCard({
@@ -72,7 +75,15 @@ export function BriefCard({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           videoId, courseId,
-          coachInput: hasCoachInput(coachInput) ? coachInput : undefined,
+          coachInput: hasCoachInput(coachInput) ? {
+            key_topics: coachInput.key_topics,
+            examples: coachInput.examples,
+            visual_requirements: coachInput.visual_requirements,
+            difficulty_notes: coachInput.difficulty_notes,
+            references: coachInput.references,
+            slide_count: coachInput.slide_count ? parseInt(coachInput.slide_count, 10) : undefined,
+            estimated_minutes: coachInput.estimated_minutes ? parseInt(coachInput.estimated_minutes, 10) : undefined,
+          } : undefined,
         }),
       });
       const data = await res.json();
@@ -262,6 +273,23 @@ export function BriefCard({
           </div>
           <InputField label="References & Resources" placeholder="e.g. Building a StoryBrand (Donald Miller, 2017)" value={coachInput.references} onChange={(v) => updateCoach("references", v)} rows={1} />
 
+          <div className="grid grid-cols-2 gap-3">
+            <NumberField
+              label="Number of Slides"
+              placeholder="e.g. 8"
+              value={coachInput.slide_count}
+              onChange={(v) => updateCoach("slide_count", v)}
+              hint="1-60. Leave blank for AI to choose."
+            />
+            <NumberField
+              label="Target Duration (minutes)"
+              placeholder="e.g. 12"
+              value={coachInput.estimated_minutes}
+              onChange={(v) => updateCoach("estimated_minutes", v)}
+              hint="1-180. Drives slide count + script pacing."
+            />
+          </div>
+
           <button onClick={generate} disabled={loading} className="flex items-center gap-1.5 px-4 py-2 rounded-md bg-slate-900 text-white text-xs hover:bg-slate-800 disabled:opacity-50 transition-colors mt-1">
             <Sparkles className="w-3.5 h-3.5" />
             {loading ? "Generating…" : brief ? "Regenerate brief" : "Generate brief"}
@@ -352,6 +380,24 @@ function InputField({ label, placeholder, value, onChange, rows = 2 }: { label: 
         className="w-full text-xs border border-slate-200 rounded-md px-2.5 py-1.5 bg-white resize-none focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400 placeholder:text-slate-300"
         placeholder={placeholder} value={value} rows={rows} onChange={(e) => onChange(e.target.value)}
       />
+    </div>
+  );
+}
+
+function NumberField({ label, placeholder, value, onChange, hint }: { label: string; placeholder: string; value: string; onChange: (v: string) => void; hint?: string }) {
+  return (
+    <div>
+      <label className="block text-xs font-medium text-slate-600 mb-1">{label}</label>
+      <input
+        type="number"
+        min={1}
+        max={180}
+        className="w-full text-xs border border-slate-200 rounded-md px-2.5 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400 placeholder:text-slate-300"
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+      {hint && <p className="text-[10px] text-slate-400 mt-0.5">{hint}</p>}
     </div>
   );
 }

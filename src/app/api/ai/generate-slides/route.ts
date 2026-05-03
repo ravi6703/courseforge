@@ -62,8 +62,8 @@ export async function POST(req: NextRequest) {
 
   const { data: brief } = await sb
     .from("content_briefs")
-    .select("talking_points, visual_cues, key_takeaways, script_outline")
-    .eq("lesson_id", body.lessonId)
+    .select("talking_points, visual_cues, key_takeaways, script_outline, coach_slide_count, coach_estimated_minutes")
+    .eq("video_id", video.id)
     .maybeSingle();
 
   // Generate slides — Claude if key set, otherwise canned fallback
@@ -76,6 +76,8 @@ export async function POST(req: NextRequest) {
       moduleTitle: ((lesson as { modules?: { title?: string } }).modules?.title) ?? "",
       videoTitle: video.title,
       brief: brief ?? null,
+      coachSlideCount: brief?.coach_slide_count ?? undefined,
+      coachEstimatedMinutes: brief?.coach_estimated_minutes ?? undefined,
     });
     if (result.ok) slides = result.slides;
     else { aiError = result.error; slides = canned(video.title); }
@@ -127,6 +129,8 @@ interface ClaudeIn {
   moduleTitle: string;
   videoTitle: string;
   brief: { talking_points?: unknown; visual_cues?: unknown; key_takeaways?: unknown; script_outline?: string } | null;
+  coachSlideCount?: number;
+  coachEstimatedMinutes?: number;
 }
 
 async function generateWithClaude(input: ClaudeIn): Promise<{ ok: true; slides: SlideData[] } | { ok: false; error: string }> {
@@ -140,7 +144,7 @@ Video: ${input.videoTitle}
 ${input.brief ? `Content Brief (use as the source of truth for what to cover):
 ${JSON.stringify(input.brief, null, 2)}` : "(No brief available; generate from the lesson title alone.)"}
 
-OUTPUT: a JSON array of exactly 6 slide objects. Each slide:
+OUTPUT: a JSON array of exactly ${input.coachSlideCount ?? 6} slide objects${input.coachEstimatedMinutes ? ` for a ~${input.coachEstimatedMinutes}-minute video` : ""}. Each slide:
 {
   "title": string (5-12 words, no terminal period),
   "content": string[] (2-5 bullet points, 5-15 words each),
