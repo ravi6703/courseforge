@@ -231,6 +231,11 @@ export default function CreateCoursePage() {
       const data = await response.json();
       if (data.success && data.modules) {
         setGeneratedModules(data.modules);
+        // SEC/UX: when AI errored mid-generation we got fallback modules + an
+        // ai_error field. Surface it so the user knows the TOC is templated.
+        if (data.ai_error) {
+          setGenerationError(`AI generation degraded: ${data.ai_error}. Showing template TOC — try Regenerate, or contact support if this persists.`);
+        }
       } else {
         setGenerationError(data.error || "Failed to generate course structure");
       }
