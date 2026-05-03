@@ -197,11 +197,13 @@ export function TocTree({
   modules,
   lessons,
   comments,
+  videoCountByModule,
 }: {
   courseId: string;
   modules: Module[];
   lessons: Lesson[];
   comments: Comment[];
+  videoCountByModule?: Record<string, number>;
 }) {
   const [localModules, setLocalModules] = useState<Module[]>(modules);
   const [localLessons, setLocalLessons] = useState<Lesson[]>(lessons);
@@ -295,7 +297,9 @@ export function TocTree({
                     <span className="text-xs font-mono text-slate-400">
                       {String(idx + 1).padStart(2, "0")}
                     </span>
-                    <span className="font-medium text-slate-900 truncate">{m.title}</span>
+                    <span className="font-medium text-slate-900 truncate">{m.title}{videoCountByModule && videoCountByModule[m.id] !== undefined && (
+                  <span className="ml-2 text-xs text-slate-400 font-normal">({videoCountByModule[m.id]} video{videoCountByModule[m.id] === 1 ? "" : "s"})</span>
+                )}</span>
                     {m.description && (
                       <span className="text-xs text-slate-400 truncate hidden sm:block max-w-xs">
                         — {m.description}

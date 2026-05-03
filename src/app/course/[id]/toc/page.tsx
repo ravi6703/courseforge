@@ -20,7 +20,7 @@ export default async function TocTab({
   const { id } = await params;
   const supabase = await getServerSupabase();
 
-  const [{ data: modules }, { data: lessons }, { data: comments }, { data: research }] =
+  const [{ data: modules }, { data: lessons }, { data: videos }, { data: comments }, { data: research }] =
     await Promise.all([
       supabase
         .from("modules")
@@ -32,6 +32,10 @@ export default async function TocTab({
         .select("id, module_id, title, description, order, content_types")
         .eq("course_id", id)
         .order("order", { ascending: true }),
+      supabase
+        .from("videos")
+        .select("id, lesson_id")
+        .eq("course_id", id),
       supabase
         .from("comments")
         .select("id, target_type, target_id, text, author_name, author_role, resolved, is_ai_flag, created_at")
@@ -45,14 +49,32 @@ export default async function TocTab({
         .single(),
     ]);
 
+  const moduleCount = (modules || []).length;
+  const lessonCount = (lessons || []).length;
+  const videoCount = (videos || []).length;
+
+  // Per-module video count for downstream surfaces
+  const videosByModule: Record<string, number> = {};
+  (lessons || []).forEach((l) => {
+    const lessonVideoCount = (videos || []).filter((v) => v.lesson_id === l.id).length;
+    videosByModule[l.module_id] = (videosByModule[l.module_id] || 0) + lessonVideoCount;
+  });
+
   return (
     <div className="space-y-6">
       <ResearchPanel research={research} />
+      <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 flex items-center gap-6 flex-wrap">
+        <div><span className="font-semibold">{moduleCount}</span> <span className="text-slate-500">modules</span></div>
+        <div><span className="font-semibold">{lessonCount}</span> <span className="text-slate-500">lessons</span></div>
+        <div><span className="font-semibold">{videoCount}</span> <span className="text-slate-500">videos</span></div>
+        <div className="text-xs text-slate-500 ml-auto">Briefs, slides, recordings and content all default to 1 per video.</div>
+      </div>
       <TocTree
         courseId={id}
         modules={modules || []}
         lessons={lessons || []}
         comments={comments || []}
+        videoCountByModule={videosByModule}
       />
     </div>
   );

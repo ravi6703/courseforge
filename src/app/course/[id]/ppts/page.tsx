@@ -15,7 +15,7 @@ export default async function PresentationsTab({
   const { id } = await params;
   const supabase = await getServerSupabase();
 
-  const [{ data: videos }, { data: slides }, { data: uploads }] = await Promise.all([
+  const [{ data: videos }, { data: slides }, { data: uploads }, { data: briefs }] = await Promise.all([
     supabase
       .from("videos")
       .select("id, title, lesson_id, status, order, lessons!inner(id, title, modules!inner(title, order))")
@@ -23,7 +23,16 @@ export default async function PresentationsTab({
       .order("order", { ascending: true }),
     supabase.from("ppt_slides").select("id, video_id, status").eq("course_id", id),
     supabase.from("ppt_uploads").select("id, video_id, original_filename, slide_count, status").eq("course_id", id),
+    supabase.from("content_briefs").select("video_id, status").eq("course_id", id),
   ]);
+
+  // Phase 1 — only videos with an approved brief get a PPT slot
+  const approvedVideoIds = new Set(
+    (briefs || []).filter((b) => b.status === "approved").map((b) => b.video_id)
+  );
+  const totalVideos = (videos || []).length;
+  const waitingOnApproval = totalVideos - approvedVideoIds.size;
+  const filteredVideos = (videos || []).filter((v) => approvedVideoIds.has(v.id));
 
   const slideCountByVideo: Record<string, { total: number; approved: number }> = {};
   (slides || []).forEach((s) => {
@@ -34,7 +43,7 @@ export default async function PresentationsTab({
   const uploadByVideo: Record<string, { filename: string; status: string }> = {};
   (uploads || []).forEach((u) => (uploadByVideo[u.video_id] = { filename: u.original_filename, status: u.status }));
 
-  const rows: TrackerRow[] = (videos || []).map((v) => {
+  const rows: TrackerRow[] = filteredVideos.map((v) => {
     const lesson = (v as { lessons?: { id?: string; title?: string; modules?: { title?: string } } }).lessons;
     return {
       videoId: v.id,
@@ -49,5 +58,5 @@ export default async function PresentationsTab({
     };
   });
 
-  return <PptTrackerClient courseId={id} initialRows={rows} />;
+  return <PptTrackerClient courseId={id} courseHref={`/course/${id}`} initialRows={rows} waitingOnApproval={waitingOnApproval} totalVideos={totalVideos} />;
 }

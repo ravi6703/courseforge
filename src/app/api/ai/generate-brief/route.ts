@@ -1,16 +1,25 @@
+// POST /api/ai/generate-brief
+//
+// Phase 1 of the Phase Unit Consistency spec: briefs are per VIDEO.
+// Lessons map to multiple videos; previously we had 1 brief per lesson which
+// caused the brief count ≠ PPT count discrepancy users hit in pilot.
+//
+// Request: { videoId: uuid, courseId: uuid, coachInput?: {…} }
+// Response: { success, brief: { …, status: "draft" } }
+
 import { NextRequest, NextResponse } from "next/server";
 import { aiHeaders, aiMode } from "@/lib/ai/fallback";
 import { checkRateLimit, rateLimitResponse } from "@/lib/ratelimit";
 import { getServerSupabase, requireUser } from "@/lib/supabase/server";
+import { extractJson } from "@/lib/ai/extract/json";
+import { recordActivity } from "@/lib/activity";
 
-interface GenerateBriefRequest {
-  videoId?: string;
-  lessonId?: string;
-  courseId?: string;
-  videoTitle: string;
-  lessonTitle: string;
-  moduleTitle: string;
-  courseTitle: string;
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+interface ReqBody {
+  videoId: string;
+  courseId: string;
   coachInput?: {
     key_topics?: string;
     examples?: string;
@@ -20,84 +29,138 @@ interface GenerateBriefRequest {
   };
 }
 
-interface ContentBrief {
-  talking_points: string;
-  visual_cues: string;
-  key_takeaways: string;
+interface BriefShape {
+  talking_points: string[];
+  visual_cues: string[];
+  key_takeaways: string[];
   script_outline: string;
   estimated_duration: string;
-  status: string;
 }
 
-function generateFallbackBrief(request: GenerateBriefRequest): ContentBrief {
-  const withCoachInput = request.coachInput
-    ? `\n\nCoach guidance: ${request.coachInput.key_topics || ""}`
-    : "";
+export async function POST(req: NextRequest) {
+  const auth = await requireUser();
+  if (auth instanceof NextResponse) return auth;
 
-  return {
-    talking_points: `Overview of ${request.videoTitle}
-- Core concepts and definitions
-- Key principles and theories
-- Practical applications${withCoachInput}`,
-    visual_cues: `- Animated diagrams showing concept flow
-- Code snippets with syntax highlighting
-- Before/after comparison visuals
-- Interactive whiteboard demonstrations
-- Key terms highlighted in bold`,
-    key_takeaways: `By the end of this video, learners will:
-- Understand the core concepts of ${request.lessonTitle}
-- Apply learned principles to practical scenarios
-- Identify common mistakes and how to avoid them
-- Connect this lesson to broader ${request.moduleTitle} concepts`,
-    script_outline: `[0:00-0:30] Introduction & Learning Goals
-[0:30-3:00] Core Concept Explanation
-[3:00-5:00] First Example & Walkthrough
-[5:00-7:00] Second Example & Application
-[7:00-8:00] Common Mistakes & Best Practices
-[8:00-8:30] Summary & Next Steps`,
-    estimated_duration: "8-10 minutes",
-    status: "generated",
+  const __rl = await checkRateLimit(auth.orgId, "generate-brief");
+  if (!__rl.ok) return rateLimitResponse(__rl);
+
+  let body: ReqBody;
+  try { body = (await req.json()) as ReqBody; }
+  catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
+
+  if (!body.videoId || !body.courseId) {
+    return NextResponse.json({ error: "videoId and courseId required" }, { status: 400 });
+  }
+
+  const sb = await getServerSupabase();
+
+  // Ownership + context fetch
+  const { data: course } = await sb.from("courses").select("title, org_id").eq("id", body.courseId).maybeSingle();
+  if (!course || course.org_id !== auth.orgId) {
+    return NextResponse.json({ error: "course not found" }, { status: 404 });
+  }
+  const { data: video } = await sb
+    .from("videos")
+    .select("id, title, lesson_id, lessons!inner(title, modules!inner(title))")
+    .eq("id", body.videoId)
+    .maybeSingle();
+  if (!video) return NextResponse.json({ error: "video not found" }, { status: 404 });
+
+  const lesson = (video as { lessons?: { title?: string; modules?: { title?: string } } }).lessons;
+
+  // Generate
+  let brief: BriefShape;
+  let aiError: string | null = null;
+  if (process.env.ANTHROPIC_API_KEY) {
+    const r = await generateWithClaude({
+      courseTitle: course.title,
+      moduleTitle: lesson?.modules?.title ?? "",
+      lessonTitle: lesson?.title ?? "",
+      videoTitle: video.title,
+      coachInput: body.coachInput,
+    });
+    if (r.ok) brief = r.brief;
+    else { aiError = r.error; brief = canned(video.title); }
+  } else {
+    brief = canned(video.title);
+  }
+
+  // Upsert (video_id UNIQUE → 1 brief per video)
+  const row = {
+    video_id: video.id,
+    lesson_id: video.lesson_id,
+    course_id: body.courseId,
+    org_id: auth.orgId,
+    talking_points: brief.talking_points,
+    visual_cues: brief.visual_cues,
+    key_takeaways: brief.key_takeaways,
+    script_outline: brief.script_outline,
+    status: "draft" as const,
+    approved_at: null,
+    approved_by: null,
   };
+  const { data: saved, error: upErr } = await sb
+    .from("content_briefs")
+    .upsert(row, { onConflict: "video_id" })
+    .select("id, status")
+    .single();
+  if (upErr) {
+    return NextResponse.json({ error: upErr.message }, { status: 500 });
+  }
+
+  await recordActivity(sb, {
+    orgId: auth.orgId, userId: auth.profileId, userName: auth.email ?? undefined, userRole: auth.role,
+    courseId: body.courseId,
+    action: "brief.generated",
+    targetType: "video",
+    targetId: video.id,
+    details: { videoTitle: video.title },
+  });
+
+  const headers = aiHeaders(aiMode());
+  if (aiError) headers["x-cf-ai-mode"] = "fallback-after-error";
+
+  return NextResponse.json({
+    success: true,
+    brief: { ...brief, status: saved.status, id: saved.id },
+    ai_error: aiError ?? undefined,
+  }, { headers });
 }
 
-async function generateWithAI(
-  request: GenerateBriefRequest
-): Promise<ContentBrief> {
-  const coachInputText = request.coachInput
-    ? `\nCoach-provided input:
-    - Key Topics: ${request.coachInput.key_topics || "N/A"}
-    - Examples: ${request.coachInput.examples || "N/A"}
-    - Visual Requirements: ${request.coachInput.visual_requirements || "N/A"}
-    - Difficulty Notes: ${request.coachInput.difficulty_notes || "N/A"}
-    - References: ${request.coachInput.references || "N/A"}`
+interface ClaudeIn {
+  courseTitle: string;
+  moduleTitle: string;
+  lessonTitle: string;
+  videoTitle: string;
+  coachInput?: ReqBody["coachInput"];
+}
+
+async function generateWithClaude(input: ClaudeIn): Promise<{ ok: true; brief: BriefShape } | { ok: false; error: string }> {
+  const coach = input.coachInput && Object.values(input.coachInput).some((v) => v?.trim())
+    ? `\n\nCOACH INPUT:\n${JSON.stringify(input.coachInput, null, 2)}`
     : "";
 
-  const prompt = `You are an expert instructional designer. Generate a comprehensive content brief for a video lesson.
+  const prompt = `You are an expert instructional designer. Generate a content brief for a single video lesson.
 
-Course: ${request.courseTitle}
-Module: ${request.moduleTitle}
-Lesson: ${request.lessonTitle}
-Video Title: ${request.videoTitle}${coachInputText}
+Course: ${input.courseTitle}
+Module: ${input.moduleTitle}
+Lesson: ${input.lessonTitle}
+Video: ${input.videoTitle}${coach}
 
-Create a detailed brief in JSON format with these fields:
+Return ONLY a JSON object with this shape:
 {
-  "talking_points": "Main topics and key points to cover (bullet points or numbered list)",
-  "visual_cues": "Visual aids and design elements needed (bullet points)",
-  "key_takeaways": "Learning outcomes and key takeaways (bullet points)",
-  "script_outline": "Time-coded script outline with sections",
-  "estimated_duration": "Estimated video length",
-  "status": "generated"
+  "talking_points": string[]   (5-10 specific points, action-verbs)
+  "visual_cues": string[]      (3-6 concrete visual ideas — diagrams, code, animations)
+  "key_takeaways": string[]    (3-5 outcomes the learner walks away with)
+  "script_outline": string     (timestamp-style 6-8 lines, e.g. "[0:00-0:30] Hook")
+  "estimated_duration": string (e.g. "8-10 minutes")
 }
 
-The brief should be:
-- Practical and implementation-focused
-- Aligned with learner outcomes
-- Include 3-4 concrete examples
-- Specify visual requirements clearly
-- Provide a realistic timing breakdown`;
+No prose, no markdown fences.`;
 
+  let resp: Response;
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    resp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -106,81 +169,43 @@ The brief should be:
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
-        max_tokens: 2048,
+        max_tokens: 2000,
         messages: [{ role: "user", content: prompt }],
       }),
     });
-
-    if (!response.ok) {
-      console.error("Claude API error:", response.status);
-      return generateFallbackBrief(request);
-    }
-
-    const data = await response.json();
-    const content = data.content[0].text;
-
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      return generateFallbackBrief(request);
-    }
-
-    const brief = JSON.parse(jsonMatch[0]) as ContentBrief;
-    return brief;
-  } catch (error) {
-    console.error("Error calling Claude API:", error);
-    return generateFallbackBrief(request);
+  } catch (e) {
+    return { ok: false, error: `network: ${(e as Error).message}` };
   }
+  if (!resp.ok) {
+    const t = await resp.text().catch(() => "");
+    return { ok: false, error: `Claude ${resp.status}: ${t.slice(0, 200)}` };
+  }
+  const data = await resp.json();
+  const text: string = data.content?.[0]?.text ?? "";
+  const parsed = extractJson<BriefShape>(text, "object");
+  if (!parsed.ok) {
+    return { ok: false, error: parsed.error };
+  }
+  // Defensive defaults
+  const v = parsed.value;
+  return {
+    ok: true,
+    brief: {
+      talking_points: Array.isArray(v.talking_points) ? v.talking_points.map(String) : [],
+      visual_cues: Array.isArray(v.visual_cues) ? v.visual_cues.map(String) : [],
+      key_takeaways: Array.isArray(v.key_takeaways) ? v.key_takeaways.map(String) : [],
+      script_outline: String(v.script_outline ?? ""),
+      estimated_duration: String(v.estimated_duration ?? "8-10 minutes"),
+    },
+  };
 }
 
-export async function POST(request: NextRequest) {
-  const auth = await requireUser();
-  if (auth instanceof NextResponse) return auth;
-
-  // SEC-4: per-org rate limit
-  const __rl = await checkRateLimit(auth.orgId, "generate-brief");
-  if (!__rl.ok) return rateLimitResponse(__rl);
-
-
-  try {
-    const body = (await request.json()) as GenerateBriefRequest;
-
-    if (body.courseId) {
-      const ownership = await getServerSupabase();
-      const { data: courseRow } = await ownership
-        .from("courses")
-        .select("org_id")
-        .eq("id", body.courseId)
-        .maybeSingle();
-      if (!courseRow || courseRow.org_id !== auth.orgId) {
-        return NextResponse.json({ error: "course not found" }, { status: 404 });
-      }
-    }
-
-    const brief = process.env.ANTHROPIC_API_KEY
-      ? await generateWithAI(body)
-      : generateFallbackBrief(body);
-
-    // Persist to Supabase if courseId + lessonId provided
-    if (body.courseId && body.lessonId) {
-      const supabase = await getServerSupabase();
-      const toArr = (s: string) => s.split("\n").filter((l) => l.trim());
-      await supabase.from("content_briefs").insert({
-        lesson_id: body.lessonId,
-        course_id: body.courseId,
-        talking_points: toArr(brief.talking_points),
-        visual_cues: toArr(brief.visual_cues),
-        key_takeaways: toArr(brief.key_takeaways),
-        script_outline: brief.script_outline,
-        status: "generated",
-      });
-    }
-
-    return NextResponse.json({ success: true, brief }, { headers: aiHeaders(aiMode()) });
-  } catch (error) {
-    console.error("Error in /api/ai/generate-brief:", error);
-    return NextResponse.json(
-      { success: false, error: "Failed to generate brief" },
-      { status: 500, headers: aiHeaders(aiMode()) }
-    );
-  }
+function canned(videoTitle: string): BriefShape {
+  return {
+    talking_points: [`Overview of ${videoTitle}`, "Core concepts and definitions", "Key principles and theories", "Practical applications"],
+    visual_cues: ["Animated diagrams showing concept flow", "Code snippets with syntax highlighting", "Before/after comparison visuals", "Key terms highlighted in bold"],
+    key_takeaways: [`By the end, learners will understand the core concepts of ${videoTitle}`, "Apply learned principles to practical scenarios", "Identify common mistakes and how to avoid them"],
+    script_outline: "[0:00-0:30] Introduction & Learning Goals\n[0:30-3:00] Core Concept Explanation\n[3:00-5:00] First Example & Walkthrough\n[5:00-7:00] Second Example & Application\n[7:00-8:00] Common Mistakes & Best Practices\n[8:00-8:30] Summary & Next Steps",
+    estimated_duration: "8-10 minutes",
+  };
 }

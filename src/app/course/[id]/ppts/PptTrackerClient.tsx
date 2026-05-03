@@ -19,7 +19,7 @@ export interface TrackerRow {
   upload: { filename: string; status: string } | null;
 }
 
-export function PptTrackerClient({ courseId, initialRows }: { courseId: string; initialRows: TrackerRow[] }) {
+export function PptTrackerClient({ courseId, courseHref, initialRows, waitingOnApproval, totalVideos }: { courseId: string; courseHref: string; initialRows: TrackerRow[]; waitingOnApproval: number; totalVideos: number }) {
   const [rows, setRows] = useState(initialRows);
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -76,6 +76,16 @@ export function PptTrackerClient({ courseId, initialRows }: { courseId: string; 
 
   return (
     <div className="space-y-4">
+      {waitingOnApproval > 0 && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50/70 px-4 py-3 flex items-center justify-between">
+          <div className="text-sm text-amber-900">
+            <span className="font-semibold">{waitingOnApproval} of {totalVideos}</span> videos are waiting on brief approval — slides only generate after the brief is approved.
+          </div>
+          <a href={`${courseHref}/briefs`} className="text-sm text-amber-900 hover:underline font-medium shrink-0">
+            Go to Content Briefs →
+          </a>
+        </div>
+      )}
       <div className="rounded-lg border border-slate-200 bg-white">
         <header className="px-4 py-3 border-b border-slate-200 flex justify-between items-center gap-3 flex-wrap">
           <div>
@@ -168,7 +178,9 @@ export function PptTrackerClient({ courseId, initialRows }: { courseId: string; 
         </table>
         {rows.length === 0 && (
           <div className="p-8 text-center text-sm text-slate-500">
-            No videos yet — generate a TOC first to populate the PPT tracker.
+            {totalVideos === 0
+              ? "No videos yet — generate a TOC first to populate the PPT tracker."
+              : `No approved briefs yet. Approve briefs in the Content Briefs tab to populate this list (${totalVideos} videos waiting).`}
           </div>
         )}
       </div>
