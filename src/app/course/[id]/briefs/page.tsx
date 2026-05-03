@@ -15,7 +15,7 @@ export default async function BriefsTab({
   const supabase = await getServerSupabase();
 
   const [{ data: course }, { data: videos }, { data: briefs }] = await Promise.all([
-    supabase.from("courses").select("title").eq("id", id).single(),
+    supabase.from("courses").select("title, audience_level, prerequisites").eq("id", id).single(),
     supabase
       .from("videos")
       .select("id, title, order, lesson_id, lessons!inner(id, title, order, modules!inner(id, title, order))")
@@ -71,6 +71,8 @@ export default async function BriefsTab({
               moduleTitle={lesson?.modules?.title ?? ""}
               courseId={id}
               courseTitle={course?.title ?? ""}
+              audienceLevel={course?.audience_level ?? null}
+              prerequisites={course?.prerequisites ?? null}
               existingBrief={briefByVideo[v.id] ?? null}
             />
           );

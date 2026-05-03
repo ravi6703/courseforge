@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
 
   const sb = await getServerSupabase();
 
-  const { data: course } = await sb.from("courses").select("title, org_id").eq("id", body.courseId).maybeSingle();
+  const { data: course } = await sb.from("courses").select("title, org_id, audience_level, prerequisites").eq("id", body.courseId).maybeSingle();
   if (!course || course.org_id !== auth.orgId) {
     return NextResponse.json({ error: "course not found" }, { status: 404 });
   }
@@ -68,9 +68,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "ANTHROPIC_API_KEY not set on server" }, { status: 503 });
   }
 
+  const audience = course.audience_level ? `\nAudience level: ${course.audience_level}` : "";
+  const prereq = course.prerequisites ? `\nPrerequisites: ${course.prerequisites}` : "";
+
   const prompt = `You are an expert instructional designer. Improve the following content brief based on the coach's feedback.
 
-Course: ${course.title}
+Course: ${course.title}${audience}${prereq}
 Module: ${lesson?.modules?.title ?? ""}
 Lesson: ${lesson?.title ?? ""}
 Video: ${video.title}
