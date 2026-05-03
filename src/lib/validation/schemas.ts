@@ -188,15 +188,6 @@ export const ContentAICoachPayloadSchema = z.object({
   generated_at: z.string().optional(),
 });
 
-export const GenerateContentItemSchema = z.object({
-  video_id: uuid,
-  kind: z.enum(["pq", "gq", "reading", "scorm", "ai_coach"]),
-});
-
-export const PatchContentItemSchema = z.object({
-  payload: z.unknown().optional(),
-  status: z.enum(["draft", "approved"]).optional(),
-});
 
 export function parseBody<T>(
   schema: z.ZodSchema<T>,
