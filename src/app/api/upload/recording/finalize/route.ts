@@ -62,13 +62,8 @@ export async function POST(req: NextRequest) {
     details: { filename: body.filename ?? body.path, kind: isAudio ? "audio" : "video", path: body.path },
   });
 
-  // Fire transcription async — don't block the upload finalisation
-  const transcribeUrl = new URL("/api/transcribe", req.url).toString();
-  fetch(transcribeUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", cookie: req.headers.get("cookie") ?? "" },
-    body: JSON.stringify({ recording_id: rec.id }),
-  }).catch(() => { /* swallow background errors */ });
-
+  // Note: transcription is triggered by the client, not here.
+  // Vercel cancels in-flight fetches when a serverless function returns,
+  // so a background fetch from the server never actually runs.
   return NextResponse.json({ recording_id: rec.id, status: "uploaded" });
 }

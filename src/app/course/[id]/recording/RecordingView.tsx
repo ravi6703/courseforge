@@ -47,6 +47,7 @@ export function RecordingView({
 }) {
   const [localRows, setLocalRows] = useState(rows);
   const [uploading, setUploading] = useState<Record<string, boolean>>({});
+  const [transcribing, setTranscribing] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showInbox, setShowInbox] = useState(false);
   const [linkingId, setLinkingId] = useState<string | null>(null);
@@ -105,11 +106,35 @@ export function RecordingView({
       const finData = await finRes.json();
       if (!finRes.ok) {
         setErrors((er) => ({ ...er, [row.videoId]: finData.error || `Finalize HTTP ${finRes.status}` }));
-      } else {
-        setLocalRows((rs) => rs.map((rr) => rr.videoId === row.videoId ? {
-          ...rr, recording: { id: finData.recording_id, type: "upload", status: "uploaded", durationSeconds: null },
-        } : rr));
+        setUploading((u) => ({ ...u, [row.videoId]: false }));
+        return;
       }
+      // Optimistic state: uploaded
+      setLocalRows((rs) => rs.map((rr) => rr.videoId === row.videoId ? {
+        ...rr, recording: { id: finData.recording_id, type: "upload", status: "uploaded", durationSeconds: null },
+      } : rr));
+
+      // 4) Kick off transcription from the client (Vercel cancels server-side
+      //    background fetches; we have to fire it from the browser).
+      setTranscribing((t) => ({ ...t, [row.videoId]: true }));
+      try {
+        const tRes = await fetch("/api/transcribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ recording_id: finData.recording_id }),
+        });
+        const tData = await tRes.json();
+        if (tRes.ok) {
+          setLocalRows((rs) => rs.map((rr) => rr.videoId === row.videoId ? {
+            ...rr, recording: { ...rr.recording!, status: "ready" },
+          } : rr));
+        } else {
+          setErrors((er) => ({ ...er, [row.videoId]: `Transcribe: ${tData.error || tRes.status}` }));
+        }
+      } catch (e) {
+        setErrors((er) => ({ ...er, [row.videoId]: `Transcribe: ${(e as Error).message}` }));
+      }
+      setTranscribing((t) => ({ ...t, [row.videoId]: false }));
     } catch (e) {
       setErrors((er) => ({ ...er, [row.videoId]: (e as Error).message }));
     }
@@ -252,6 +277,10 @@ export function RecordingView({
                     ) : isUploading ? (
                       <span className="inline-flex items-center gap-1 text-xs text-blue-700">
                         <Loader2 className="w-3.5 h-3.5 animate-spin" /> uploading
+                      </span>
+                    ) : transcribing[row.videoId] ? (
+                      <span className="inline-flex items-center gap-1 text-xs text-cyan-700">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" /> transcribing…
                       </span>
                     ) : (
                       <StatusPill status={r?.status ?? "pending"} />
