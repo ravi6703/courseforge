@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSupabase } from "@/lib/supabase/server";
 
 export async function GET(request: NextRequest) {
-  const db = getServerSupabase();
+  const db = await getServerSupabase();
   const courseId = request.nextUrl.searchParams.get("course_id");
 
   if (!courseId) {

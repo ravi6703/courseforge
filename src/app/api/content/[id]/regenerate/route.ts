@@ -5,7 +5,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const db = getServerSupabase();
+  const db = await getServerSupabase();
 
   try {
     // Fetch existing content item

@@ -43,14 +43,14 @@ export default async function ContentTab({
 
   // Build rows array: video level with nested content items
   const rows: ContentVideoRow[] = [];
-  for (const module of course.modules) {
-    for (const lesson of module.lessons || []) {
+  for (const mod of course.modules) {
+    for (const lesson of mod.lessons || []) {
       for (const video of lesson.videos || []) {
         rows.push({
           videoId: video.id,
           videoTitle: video.title,
           lessonTitle: lesson.title,
-          moduleTitle: module.title,
+          moduleTitle: mod.title,
           contentItems: (video.content_items || []) as Array<{
             id: string;
             kind: string;

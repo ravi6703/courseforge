@@ -21,7 +21,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
-  const db = getServerSupabase();
+  const db = await getServerSupabase();
   const body = await request.json();
 
   // Validate request
@@ -75,9 +75,12 @@ export async function POST(request: NextRequest) {
 
     const transcript = transcriptData.text;
     const videoTitle = video.title;
-    const lessonTitle = video.lesson?.title || "Lesson";
-    const moduleTitle = video.lesson?.moduleInfo?.title || "Module";
-    const courseTitle = video.lesson?.moduleInfo?.course?.title || "Course";
+    const lesson = Array.isArray(video.lesson) ? video.lesson[0] : video.lesson;
+    const lessonTitle = lesson?.title || "Lesson";
+    const moduleInfo = Array.isArray(lesson?.moduleInfo) ? lesson.moduleInfo[0] : lesson?.moduleInfo;
+    const moduleTitle = moduleInfo?.title || "Module";
+    const course = Array.isArray(moduleInfo?.course) ? moduleInfo.course[0] : moduleInfo?.course;
+    const courseTitle = course?.title || "Course";
 
     // Build prompt based on content kind
     let prompt: { system: string; user: string };
