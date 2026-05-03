@@ -59,17 +59,55 @@ export function RecordingView({
     setUploading((u) => ({ ...u, [row.videoId]: true }));
     setErrors((e) => { const { [row.videoId]: _drop, ...rest } = e; void _drop; return rest; });
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("videoId", row.videoId);
-      fd.append("courseId", courseId);
-      const res = await fetch("/api/upload/recording", { method: "POST", body: fd });
-      const data = await res.json();
-      if (!res.ok) {
-        setErrors((er) => ({ ...er, [row.videoId]: data.error || `HTTP ${res.status}` }));
+      // 1) Get a signed upload URL from our server
+      const signRes = await fetch("/api/upload/recording/sign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          videoId: row.videoId,
+          courseId,
+          filename: file.name,
+          contentType: file.type,
+        }),
+      });
+      const signData = await signRes.json();
+      if (!signRes.ok) {
+        setErrors((er) => ({ ...er, [row.videoId]: signData.error || `Sign HTTP ${signRes.status}` }));
+        setUploading((u) => ({ ...u, [row.videoId]: false }));
+        return;
+      }
+
+      // 2) PUT directly to Supabase Storage — bypasses Vercel's 4.5MB body limit
+      const uploadRes = await fetch(signData.upload_url, {
+        method: "PUT",
+        headers: { "Content-Type": file.type || "application/octet-stream" },
+        body: file,
+      });
+      if (!uploadRes.ok) {
+        const t = await uploadRes.text().catch(() => "");
+        setErrors((er) => ({ ...er, [row.videoId]: `Storage HTTP ${uploadRes.status}: ${t.slice(0, 200)}` }));
+        setUploading((u) => ({ ...u, [row.videoId]: false }));
+        return;
+      }
+
+      // 3) Finalize: create the recordings row + kick off transcription
+      const finRes = await fetch("/api/upload/recording/finalize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          videoId: row.videoId,
+          courseId,
+          path: signData.path,
+          contentType: file.type,
+          filename: file.name,
+        }),
+      });
+      const finData = await finRes.json();
+      if (!finRes.ok) {
+        setErrors((er) => ({ ...er, [row.videoId]: finData.error || `Finalize HTTP ${finRes.status}` }));
       } else {
         setLocalRows((rs) => rs.map((rr) => rr.videoId === row.videoId ? {
-          ...rr, recording: { id: data.recording_id, type: "upload", status: "uploaded", durationSeconds: null },
+          ...rr, recording: { id: finData.recording_id, type: "upload", status: "uploaded", durationSeconds: null },
         } : rr));
       }
     } catch (e) {
