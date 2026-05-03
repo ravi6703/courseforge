@@ -31,14 +31,14 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-6">
+    <div className="min-h-screen bg-bi-navy-50 flex items-center justify-center px-6">
       <div className="max-w-md w-full">
-        <Link href="/" className="text-sm text-slate-500 hover:text-slate-700">
+        <Link href="/" className="text-sm text-bi-navy-500 hover:text-bi-navy-700">
           ← Back to home
         </Link>
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-8 mt-4">
+        <div className="bg-white rounded-xl border border-bi-navy-200 shadow-sm p-8 mt-4">
           <h1 className="text-2xl font-bold tracking-tight">Welcome to CourseForge</h1>
-          <p className="text-slate-600 mt-1">Sign in to your account</p>
+          <p className="text-bi-navy-600 mt-1">Sign in to your account</p>
 
           <form onSubmit={handleLogin} className="mt-6 space-y-4">
             {error && (
@@ -47,44 +47,44 @@ export default function LoginPage() {
               </div>
             )}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+              <label className="block text-sm font-medium text-bi-navy-700 mb-1">Email</label>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@boardinfinity.com"
-                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-bi-navy-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-bi-blue-500 focus:border-transparent"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+              <label className="block text-sm font-medium text-bi-navy-700 mb-1">Password</label>
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-bi-navy-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-bi-blue-500 focus:border-transparent"
               />
             </div>
             <button
               type="submit"
               disabled={loading}
-              className="w-full px-4 py-2.5 rounded-md bg-slate-900 text-white font-medium hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="w-full px-4 py-2.5 rounded-md bg-bi-navy-700 text-white font-medium hover:bg-bi-navy-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {loading ? "Signing in..." : "Sign in"}
             </button>
           </form>
 
-          <p className="text-sm text-slate-500 mt-6 text-center">
+          <p className="text-sm text-bi-navy-500 mt-6 text-center">
             No account?{" "}
-            <Link href="/signup" className="text-blue-600 hover:text-blue-800 font-medium">
+            <Link href="/signup" className="text-bi-blue-600 hover:text-blue-800 font-medium">
               Create one
             </Link>
           </p>
         </div>
-        <p className="text-xs text-slate-400 mt-4 text-center">Powered by Claude · Board Infinity</p>
+        <p className="text-xs text-bi-navy-400 mt-4 text-center">Powered by Claude · Board Infinity</p>
       </div>
     </div>
   );

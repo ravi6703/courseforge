@@ -33,7 +33,7 @@ export default async function CourseLayout({
   const { id } = await params;
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-bi-navy-50">
       <CourseHeader courseId={id} />
       <CourseTabs courseId={id} />
       <main className="max-w-6xl mx-auto px-6 py-6">{children}</main>
@@ -44,28 +44,28 @@ export default async function CourseLayout({
 
 function ExportBar({ courseId }: { courseId: string }) {
   return (
-    <div className="border-t border-slate-200 bg-white">
+    <div className="border-t border-bi-navy-200 bg-white">
       <div className="max-w-6xl mx-auto px-6 py-3 flex items-center gap-2 text-sm">
-        <span className="text-slate-500 mr-2">Export:</span>
+        <span className="text-bi-navy-500 mr-2">Export:</span>
         <Link
           href={`/api/export/pptx?courseId=${courseId}`}
-          className="px-3 py-1.5 rounded-md border border-slate-300 hover:bg-slate-50"
+          className="px-3 py-1.5 rounded-md border border-bi-navy-300 hover:bg-bi-navy-50"
         >
           .pptx
         </Link>
         <Link
           href={`/api/export/scorm?courseId=${courseId}`}
-          className="px-3 py-1.5 rounded-md border border-slate-300 hover:bg-slate-50"
+          className="px-3 py-1.5 rounded-md border border-bi-navy-300 hover:bg-bi-navy-50"
         >
           SCORM 1.2
         </Link>
         <Link
           href={`/api/export/coursera?courseId=${courseId}`}
-          className="px-3 py-1.5 rounded-md border border-slate-300 hover:bg-slate-50"
+          className="px-3 py-1.5 rounded-md border border-bi-navy-300 hover:bg-bi-navy-50"
         >
           Coursera pack
         </Link>
-        <span className="text-xs text-slate-400 ml-auto">
+        <span className="text-xs text-bi-navy-400 ml-auto">
           Udemy + xAPI exports coming next
         </span>
       </div>

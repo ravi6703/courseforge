@@ -36,10 +36,10 @@ export default function MetricsPage() {
 
   if (error) {
     return (
-      <div className="flex h-screen bg-gray-50">
+      <div className="flex h-screen bg-bi-navy-50">
         <Sidebar />
         <main className="flex-1 ml-16 p-8">
-          <h1 className="text-3xl font-bold text-gray-900">Metrics</h1>
+          <h1 className="text-3xl font-bold text-bi-navy-700">Metrics</h1>
           <p className="mt-4 text-red-700">Failed to load metrics: {error}</p>
         </main>
       </div>
@@ -48,8 +48,8 @@ export default function MetricsPage() {
 
   if (!data) {
     return (
-      <div className="flex h-screen bg-gray-50 items-center justify-center">
-        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      <div className="flex h-screen bg-bi-navy-50 items-center justify-center">
+        <div className="w-8 h-8 border-4 border-bi-blue-600 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -59,13 +59,13 @@ export default function MetricsPage() {
   const ai = data.ai_health_24h;
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-bi-navy-50">
       <Sidebar />
       <main className="flex-1 ml-16 overflow-auto">
         <div className="max-w-6xl mx-auto p-8">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Course Production Metrics</h1>
-            <p className="text-gray-500 mt-1 text-sm">
+            <h1 className="text-3xl font-bold text-bi-navy-700">Course Production Metrics</h1>
+            <p className="text-bi-navy-600 mt-1 text-sm">
               Updated {new Date(data.generated_at).toLocaleString()} · Org {data.org_id.slice(0, 8)}…
             </p>
           </div>
@@ -122,9 +122,9 @@ export default function MetricsPage() {
 
 function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-      <p className="text-sm text-gray-500">{label}</p>
-      <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
+    <div className="bg-white rounded-xl border border-bi-navy-200 p-5 shadow-sm">
+      <p className="text-sm text-bi-navy-600">{label}</p>
+      <p className="text-2xl font-bold text-bi-navy-700 mt-1">{value}</p>
     </div>
   );
 }
@@ -135,16 +135,16 @@ function ScoreCard({
   return (
     <div className={`bg-white rounded-xl border p-5 shadow-sm ${hit ? "border-emerald-200" : "border-amber-200"}`}>
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-gray-900">{title}</h3>
+        <h3 className="font-semibold text-bi-navy-700">{title}</h3>
         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${hit ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
           {hit ? "On target" : "Off target"}
         </span>
       </div>
       <div className="mt-3 flex items-baseline gap-3">
-        <span className="text-2xl font-bold text-gray-900">{currentLabel}</span>
-        <span className="text-sm text-gray-500">target {targetLabel}</span>
+        <span className="text-2xl font-bold text-bi-navy-700">{currentLabel}</span>
+        <span className="text-sm text-bi-navy-600">target {targetLabel}</span>
       </div>
-      <p className="mt-2 text-xs text-gray-500">{note}</p>
+      <p className="mt-2 text-xs text-bi-navy-600">{note}</p>
     </div>
   );
 }

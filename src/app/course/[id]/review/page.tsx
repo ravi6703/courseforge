@@ -62,8 +62,8 @@ export default async function ReviewTab({
     <div className="space-y-4">
       <CourseHealthPanel courseId={id} />
 
-      <section className="rounded-lg border border-slate-200 bg-white">
-        <header className="px-4 py-3 border-b border-slate-200">
+      <section className="rounded-lg border border-bi-navy-200 bg-white">
+        <header className="px-4 py-3 border-b border-bi-navy-200">
           <h2 className="font-semibold">Completion checklist</h2>
         </header>
         <ul className="divide-y divide-slate-100">
@@ -78,20 +78,20 @@ export default async function ReviewTab({
                     "inline-block w-5 h-5 rounded-full border-2 " +
                     (row.done
                       ? "border-emerald-500 bg-emerald-500"
-                      : "border-slate-300 bg-white")
+                      : "border-bi-navy-300 bg-white")
                   }
                   aria-hidden
                 />
-                <span className={row.done ? "text-slate-900" : "text-slate-600"}>
+                <span className={row.done ? "text-bi-navy-900" : "text-bi-navy-600"}>
                   {row.label}
                 </span>
               </div>
-              <span className="text-xs text-slate-500">{row.detail}</span>
+              <span className="text-xs text-bi-navy-500">{row.detail}</span>
             </li>
           ))}
         </ul>
-        <footer className="px-4 py-3 border-t border-slate-200 flex justify-end gap-2 text-sm">
-          <button className="px-3 py-1.5 rounded-md border border-slate-300 hover:bg-slate-50">
+        <footer className="px-4 py-3 border-t border-bi-navy-200 flex justify-end gap-2 text-sm">
+          <button className="px-3 py-1.5 rounded-md border border-bi-navy-300 hover:bg-bi-navy-50">
             Submit for authority approval
           </button>
           <button
