@@ -1,23 +1,3 @@
-// src/app/course/[id]/layout.tsx
-//
-// REPLACES src/app/course/[id]/page.tsx (1738 lines) as the entry. Each tab
-// becomes its own route. The current 7 tabs from the rust deployment:
-//
-//   /course/[id]              → header + redirect to /toc
-//   /course/[id]/toc          → Table of Contents (extracted in this PR)
-//   /course/[id]/briefs       → Content Briefs
-//   /course/[id]/ppts         → Slide Studio
-//   /course/[id]/recording    → Recording dashboard
-//   /course/[id]/transcript   → Transcripts
-//   /course/[id]/content      → Generated content (readings/quizzes/etc.)
-//   /course/[id]/review       → Final Review
-//
-// Benefits:
-//   - Each tab is now a small file (≤300 lines) and independently shippable
-//   - Server components fetch only what each tab needs (less bundle bloat)
-//   - URL-based tab state survives refresh and is shareable
-//   - Easier code review, fewer merge conflicts on the monolith
-
 import Link from "next/link";
 import { ReactNode } from "react";
 import { CourseHeader } from "../_components/CourseHeader";
@@ -36,7 +16,7 @@ export default async function CourseLayout({
     <div className="min-h-screen bg-bi-navy-50">
       <CourseHeader courseId={id} />
       <CourseTabs courseId={id} />
-      <main className="max-w-6xl mx-auto px-6 py-6">{children}</main>
+      <main className="max-w-7xl mx-auto px-6 py-6">{children}</main>
       <ExportBar courseId={id} />
     </div>
   );
@@ -44,29 +24,29 @@ export default async function CourseLayout({
 
 function ExportBar({ courseId }: { courseId: string }) {
   return (
-    <div className="border-t border-bi-navy-200 bg-white">
-      <div className="max-w-6xl mx-auto px-6 py-3 flex items-center gap-2 text-sm">
-        <span className="text-bi-navy-500 mr-2">Export:</span>
+    <div className="border-t border-bi-navy-200 bg-white shadow-bi-sm">
+      <div className="max-w-7xl mx-auto px-6 py-4 flex items-center gap-3 text-sm">
+        <span className="font-semibold text-bi-navy-700">Export:</span>
         <Link
           href={`/api/export/pptx?courseId=${courseId}`}
-          className="px-3 py-1.5 rounded-md border border-bi-navy-300 hover:bg-bi-navy-50"
+          className="px-4 py-2 rounded-md border border-bi-navy-300 text-bi-navy-700 hover:bg-bi-navy-50 font-medium transition-colors"
         >
-          .pptx
+          PowerPoint
         </Link>
         <Link
           href={`/api/export/scorm?courseId=${courseId}`}
-          className="px-3 py-1.5 rounded-md border border-bi-navy-300 hover:bg-bi-navy-50"
+          className="px-4 py-2 rounded-md border border-bi-navy-300 text-bi-navy-700 hover:bg-bi-navy-50 font-medium transition-colors"
         >
           SCORM 1.2
         </Link>
         <Link
           href={`/api/export/coursera?courseId=${courseId}`}
-          className="px-3 py-1.5 rounded-md border border-bi-navy-300 hover:bg-bi-navy-50"
+          className="px-4 py-2 rounded-md border border-bi-navy-300 text-bi-navy-700 hover:bg-bi-navy-50 font-medium transition-colors"
         >
-          Coursera pack
+          Coursera
         </Link>
-        <span className="text-xs text-bi-navy-400 ml-auto">
-          Udemy + xAPI exports coming next
+        <span className="text-xs text-bi-navy-600 ml-auto">
+          Udemy & xAPI exports coming soon
         </span>
       </div>
     </div>
