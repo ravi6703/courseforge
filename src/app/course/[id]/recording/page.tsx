@@ -1,6 +1,8 @@
-import { getServerSupabase } from "@/lib/supabase/server";
-// src/app/course/[id]/recording/page.tsx — recording dashboard.
+// Recording tab — server component fetches data + hands to client RecordingView
+// for the upload + Zoom inbox interactions.
 
+import { getServerSupabase } from "@/lib/supabase/server";
+import { RecordingView, RecordingRow } from "./RecordingView";
 
 export default async function RecordingTab({
   params,
@@ -10,7 +12,7 @@ export default async function RecordingTab({
   const { id } = await params;
   const supabase = await getServerSupabase();
 
-  const [{ data: videos }, { data: recordings }, { data: slides }] = await Promise.all([
+  const [{ data: videos }, { data: recordings }, { data: slides }, { data: zoomCreds }, { data: inbox }] = await Promise.all([
     supabase
       .from("videos")
       .select("id, title, duration_minutes, lesson_id, lessons!inner(title)")
@@ -18,104 +20,51 @@ export default async function RecordingTab({
       .order("order", { ascending: true }),
     supabase.from("recordings").select("*").eq("course_id", id),
     supabase.from("ppt_slides").select("video_id").eq("course_id", id),
+    supabase.from("zoom_credentials").select("id").limit(1),
+    supabase.from("recordings").select("id, audio_url, video_url, duration_seconds, recording_type, status, created_at").is("course_id", null).order("created_at", { ascending: false }),
   ]);
 
-  // Phase 2 R7 — only videos with slides generated should show as recordable
   const slideReadyVideoIds = new Set((slides || []).map((s) => s.video_id));
   const totalVideos = (videos || []).length;
   const filteredVideos = (videos || []).filter((v) => slideReadyVideoIds.has(v.id));
   const waitingOnSlides = totalVideos - filteredVideos.length;
 
-  const recByVideo: Record<string, { type: string; status: string; duration_seconds?: number }> = {};
-  (recordings || []).forEach(
-    (r) =>
-      (recByVideo[r.video_id] = {
-        type: r.recording_type,
-        status: r.status,
-        duration_seconds: r.duration_seconds,
-      })
-  );
+  const recByVideo: Record<string, { id: string; type: string; status: string; duration_seconds?: number }> = {};
+  (recordings || []).forEach((r) => (recByVideo[r.video_id] = {
+    id: r.id, type: r.recording_type, status: r.status, duration_seconds: r.duration_seconds,
+  }));
 
-  const recorded = filteredVideos.filter((v) => recByVideo[v.id]?.status === "ready").length;
-  const total = filteredVideos.length;
-  const pct = total ? Math.round((recorded / total) * 100) : 0;
+  const rows: RecordingRow[] = filteredVideos.map((v) => {
+    const lesson = (v as { lessons?: { title?: string } }).lessons;
+    const r = recByVideo[v.id];
+    return {
+      videoId: v.id,
+      videoTitle: v.title,
+      lessonTitle: lesson?.title ?? "",
+      durationMinutesPlanned: v.duration_minutes ?? null,
+      recording: r ? {
+        id: r.id, type: r.type, status: r.status,
+        durationSeconds: r.duration_seconds ?? null,
+      } : null,
+    };
+  });
 
   return (
-    <div className="space-y-4">
-      {waitingOnSlides > 0 && (
-        <div className="rounded-lg border border-amber-300 bg-amber-50/70 px-4 py-3 flex items-center justify-between">
-          <div className="text-sm text-amber-900">
-            <span className="font-semibold">{waitingOnSlides} of {totalVideos}</span> videos have no slides yet — generate slides before recording so the coach has the deck to work from.
-          </div>
-          <a href={`/course/${id}/ppts`} className="text-sm text-amber-900 hover:underline font-medium shrink-0">
-            Go to Presentations →
-          </a>
-        </div>
-      )}
-      <div className="rounded-lg border border-slate-200 bg-white p-4 flex gap-6 items-center">
-        <div>
-          <div className="text-xs text-slate-500 uppercase tracking-wider">Recording progress</div>
-          <div className="text-2xl font-bold mt-1">
-            {recorded}<span className="text-sm text-slate-500"> / {total}</span>
-          </div>
-        </div>
-        <div className="flex-1">
-          <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-            <div className="h-full bg-orange-500" style={{ width: `${pct}%` }} />
-          </div>
-          <div className="text-xs text-slate-500 mt-1">{pct}% complete</div>
-        </div>
-      </div>
-
-      <div className="rounded-lg border border-slate-200 bg-white">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500">
-            <tr>
-              <th className="text-left px-4 py-2">Lesson / Video</th>
-              <th className="text-left px-4 py-2">Source</th>
-              <th className="text-left px-4 py-2">Status</th>
-              <th className="text-right px-4 py-2">Duration</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {filteredVideos.map((v) => {
-              const r = recByVideo[v.id];
-              const lesson = (v as { lessons?: { title?: string } }).lessons;
-              return (
-                <tr key={v.id}>
-                  <td className="px-4 py-2">
-                    <div className="text-xs text-slate-500">{lesson?.title}</div>
-                    <div>{v.title}</div>
-                  </td>
-                  <td className="px-4 py-2 text-xs text-slate-600">{r?.type ?? "—"}</td>
-                  <td className="px-4 py-2">
-                    <span className={pillForStatus(r?.status ?? "pending")}>
-                      {r?.status ?? "pending"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2 text-right text-xs text-slate-600">
-                    {r?.duration_seconds
-                      ? `${Math.round(r.duration_seconds / 60)}m`
-                      : `${v.duration_minutes ?? "?"}m planned`}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <RecordingView
+      courseId={id}
+      courseHref={`/course/${id}`}
+      rows={rows}
+      waitingOnSlides={waitingOnSlides}
+      totalVideos={totalVideos}
+      zoomConnected={(zoomCreds ?? []).length > 0}
+      inboxCount={(inbox ?? []).length}
+      inbox={(inbox ?? []).map((r) => ({
+        id: r.id,
+        path: r.audio_url || r.video_url || "",
+        type: r.recording_type,
+        durationSeconds: r.duration_seconds ?? null,
+        createdAt: r.created_at,
+      }))}
+    />
   );
-}
-
-function pillForStatus(s: string) {
-  const map: Record<string, string> = {
-    pending: "bg-slate-100 text-slate-600",
-    scheduled: "bg-blue-50 text-blue-700",
-    recording: "bg-orange-50 text-orange-700",
-    uploaded: "bg-purple-50 text-purple-700",
-    processing: "bg-cyan-50 text-cyan-700",
-    ready: "bg-emerald-50 text-emerald-700",
-  };
-  return `text-xs px-2 py-0.5 rounded ${map[s] || "bg-slate-100 text-slate-600"}`;
 }
