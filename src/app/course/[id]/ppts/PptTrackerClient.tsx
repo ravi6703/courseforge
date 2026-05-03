@@ -33,7 +33,7 @@ export function PptTrackerClient({ courseId, courseHref, initialRows, waitingOnA
       const res = await fetch("/api/ai/generate-slides", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lessonId: row.lessonId, courseId }),
+        body: JSON.stringify({ videoId: row.videoId, courseId }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
