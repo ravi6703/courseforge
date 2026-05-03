@@ -39,7 +39,7 @@ export const CourseUpsertSchema = z.object({
   theory_handson_ratio: z.number().int().min(0).max(100).optional(),
   project_based: z.boolean().optional(),
   capstone: z.boolean().optional(),
-  reference_course_url: z.string().url().nullish(),
+  reference_course_url: z.union([z.string().url(), z.literal("")]).nullish(),
   content_types: z.array(contentTypeEnum).optional(),
   modules: z.array(z.unknown()).optional(),
 });
@@ -88,7 +88,7 @@ export const GenerateTocSchema = z.object({
   project_based: z.boolean(),
   capstone: z.boolean(),
   certification_goal: z.string().max(200).optional(),
-  reference_course_url: z.string().url().optional(),
+  reference_course_url: z.union([z.string().url(), z.literal("")]).optional(),
 });
 
 export const ImproveTocSchema = z.object({
