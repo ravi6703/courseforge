@@ -7,6 +7,12 @@ import { Sidebar } from "@/components/Sidebar";
 import { Course } from "@/types";
 import { createClient } from "@/lib/supabase/client";
 import { Plus, ArrowRight, BookOpen, Zap, Clock, CheckCircle } from "lucide-react";
+import { Button } from "@/components/Button";
+import { Card } from "@/components/Card";
+import { Badge } from "@/components/Badge";
+import { EmptyState } from "@/components/EmptyState";
+import { ProgressBar } from "@/components/Progress";
+import { Skeleton } from "@/components/Skeleton";
 
 const statusLabels: Record<string, string> = {
   draft: "Draft",
@@ -22,22 +28,6 @@ const statusLabels: Record<string, string> = {
   content_review: "Content Review",
   final_review: "Final Review",
   published: "Published",
-};
-
-const statusColors: Record<string, string> = {
-  draft: "bg-gray-100 text-gray-700",
-  toc_generation: "bg-blue-100 text-blue-700",
-  toc_review: "bg-yellow-100 text-yellow-700",
-  toc_approved: "bg-blue-100 text-blue-700",
-  content_briefs: "bg-indigo-100 text-indigo-700",
-  ppt_generation: "bg-purple-100 text-purple-700",
-  ppt_review: "bg-purple-100 text-purple-700",
-  recording: "bg-orange-100 text-orange-700",
-  transcription: "bg-cyan-100 text-cyan-700",
-  content_generation: "bg-teal-100 text-teal-700",
-  content_review: "bg-teal-100 text-teal-700",
-  final_review: "bg-green-100 text-green-700",
-  published: "bg-green-100 text-green-800",
 };
 
 const statusToPhase: Record<string, number> = {
@@ -75,8 +65,8 @@ export default function DashboardPage() {
 
   if (isLoading || !user) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
-        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      <div className="flex items-center justify-center h-screen bg-bi-navy-50">
+        <div className="w-8 h-8 border-4 border-bi-blue-600 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -89,23 +79,23 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-bi-navy-50">
       <Sidebar />
       <main className="flex-1 ml-16 overflow-auto">
         <div className="max-w-7xl mx-auto p-8">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Welcome back, {user.name}</h1>
-              <p className="text-gray-500 mt-1">
+              <h1 className="text-3xl font-bold text-bi-navy-700">Welcome back, {user.name}</h1>
+              <p className="text-bi-navy-600 mt-1">
                 {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
               </p>
             </div>
             {user.role === "pm" && (
               <Link href="/create">
-                <button className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-sm">
+                <Button variant="primary" size="lg" className="flex items-center gap-2">
                   <Plus className="w-5 h-5" /> New Course
-                </button>
+                </Button>
               </Link>
             )}
           </div>
@@ -114,84 +104,90 @@ export default function DashboardPage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             {[
               { label: "Total Courses", value: stats.total, icon: BookOpen, color: "blue" },
-              { label: "In Production", value: stats.inProgress, icon: Zap, color: "amber" },
-              { label: "Pending Review", value: stats.inReview, icon: Clock, color: "yellow" },
-              { label: "Published", value: stats.published, icon: CheckCircle, color: "green" },
+              { label: "In Production", value: stats.inProgress, icon: Zap, color: "accent" },
+              { label: "Pending Review", value: stats.inReview, icon: Clock, color: "blue" },
+              { label: "Published", value: stats.published, icon: CheckCircle, color: "success" },
             ].map(s => (
-              <div key={s.label} className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+              <Card key={s.label}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-500">{s.label}</p>
-                    <p className="text-2xl font-bold text-gray-900 mt-1">{s.value}</p>
+                    <p className="text-sm text-bi-navy-600">{s.label}</p>
+                    <p className="text-3xl font-bold text-bi-navy-700 mt-2">{s.value}</p>
                   </div>
-                  <s.icon className={`w-8 h-8 text-${s.color}-500 opacity-50`} />
+                  <div className={`w-12 h-12 rounded-lg ${
+                    s.color === 'blue' ? 'bg-bi-blue-50 text-bi-blue-600' :
+                    s.color === 'accent' ? 'bg-bi-accent-50 text-bi-accent-600' :
+                    'bg-green-50 text-green-600'
+                  } flex items-center justify-center`}>
+                    <s.icon className="w-6 h-6" />
+                  </div>
                 </div>
-              </div>
+              </Card>
             ))}
           </div>
 
           {/* Courses */}
           {courses.length === 0 ? (
-            <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-              <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">No courses yet</h3>
-              <p className="text-gray-500 mb-6 max-w-md mx-auto">
-                {user.role === "pm" ? "Create your first course to get started." : "No courses assigned yet. Check back soon!"}
-              </p>
-              {user.role === "pm" && (
-                <Link href="/create">
-                  <button className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">
-                    Create First Course
-                  </button>
-                </Link>
-              )}
-            </div>
+            <Card>
+              <EmptyState
+                icon={<BookOpen className="w-16 h-16" />}
+                title="No courses yet"
+                description={user.role === "pm" ? "Create your first course to get started." : "No courses assigned yet. Check back soon!"}
+                action={user.role === "pm" ? {
+                  label: "Create First Course",
+                  onClick: () => router.push("/create"),
+                  variant: "primary"
+                } : undefined}
+              />
+            </Card>
           ) : (
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-600">Course</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-600">Phase</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-600">Progress</th>
-                    <th className="px-6 py-3 text-right text-sm font-semibold text-gray-600">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {courses.map(course => {
-                    const phase = statusToPhase[course.status] || 1;
-                    return (
-                      <tr key={course.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4">
-                          <p className="font-medium text-gray-900">{course.title}</p>
-                          <p className="text-sm text-gray-500">{course.platform} &middot; {course.domain || "General"}</p>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${statusColors[course.status] || "bg-gray-100 text-gray-700"}`}>
-                            {statusLabels[course.status] || course.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-20 bg-gray-200 rounded-full h-1.5">
-                              <div className="bg-blue-600 h-1.5 rounded-full" style={{ width: `${(phase / 13) * 100}%` }} />
+            <Card className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-bi-navy-50 border-b border-bi-navy-200">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-bi-navy-700">Course</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-bi-navy-700">Phase</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-bi-navy-700">Progress</th>
+                      <th className="px-6 py-4 text-right text-sm font-semibold text-bi-navy-700">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-bi-navy-200">
+                    {courses.map(course => {
+                      const phase = statusToPhase[course.status] || 1;
+                      return (
+                        <tr key={course.id} className="hover:bg-bi-navy-50 transition-colors">
+                          <td className="px-6 py-4">
+                            <p className="font-semibold text-bi-navy-700">{course.title}</p>
+                            <p className="text-sm text-bi-navy-600 mt-0.5">{course.platform} · {course.domain || "General"}</p>
+                          </td>
+                          <td className="px-6 py-4">
+                            <Badge variant="status">
+                              {statusLabels[course.status] || course.status}
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-24">
+                                <ProgressBar value={phase} max={13} size="sm" />
+                              </div>
+                              <span className="text-xs text-bi-navy-600 font-medium">{phase}/13</span>
                             </div>
-                            <span className="text-xs text-gray-500">{phase}/13</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <Link href={`/course/${course.id}`}>
-                            <button className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors">
-                              Open <ArrowRight className="w-4 h-4" />
-                            </button>
-                          </Link>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <Link href={`/course/${course.id}`}>
+                              <Button variant="secondary" size="sm" className="flex items-center gap-1">
+                                Open <ArrowRight className="w-4 h-4" />
+                              </Button>
+                            </Link>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
           )}
         </div>
       </main>
