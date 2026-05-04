@@ -12,20 +12,20 @@ interface ScormPayload {
 export function PreviewSCORM({ payload }: { payload: Record<string, unknown> | null }) {
   if (!payload || !payload.url) {
     return (
-      <div className="text-center py-12 text-sm text-bi-navy-500">
+      <div className="text-center py-12 text-sm text-slate-500">
         No SCORM bundle built yet.<br />
-        <span className="text-xs text-bi-navy-400">Approve the other artifacts first, then build a bundle.</span>
+        <span className="text-xs text-slate-400">Approve the other artifacts first, then build a bundle.</span>
       </div>
     );
   }
   const p = payload as unknown as ScormPayload;
 
   return (
-    <div className="rounded-lg border border-bi-navy-200 p-4 flex items-center gap-4">
+    <div className="rounded-lg border border-slate-200 p-4 flex items-center gap-4">
       <div className="text-3xl">📦</div>
       <div className="flex-1 min-w-0">
-        <div className="font-semibold text-bi-navy-900 truncate">{p.filename}</div>
-        <div className="text-xs text-bi-navy-500 mt-0.5">
+        <div className="font-semibold text-slate-900 truncate">{p.filename}</div>
+        <div className="text-xs text-slate-500 mt-0.5">
           {(p.size_bytes / 1024).toFixed(0)} KB · built {new Date(p.built_at).toLocaleString()}
         </div>
       </div>

@@ -35,7 +35,7 @@ export default async function ContentTab({
 
   if (!course || !course.modules) {
     return (
-      <div className="rounded-lg border border-dashed border-bi-navy-300 p-10 text-center text-sm text-bi-navy-500">
+      <div className="rounded-lg border border-dashed border-bi-navy-300 p-10 text-center text-sm text-slate-500">
         Course not found.
       </div>
     );

@@ -86,11 +86,11 @@ export function PptTrackerClient({ courseId, courseHref, initialRows, waitingOnA
           </a>
         </div>
       )}
-      <div className="rounded-lg border border-bi-navy-200 bg-white">
-        <header className="px-4 py-3 border-b border-bi-navy-200 flex justify-between items-center gap-3 flex-wrap">
+      <div className="rounded-lg border border-slate-200 bg-white">
+        <header className="px-4 py-3 border-b border-slate-200 flex justify-between items-center gap-3 flex-wrap">
           <div>
             <h2 className="font-semibold">PPT Tracker</h2>
-            <p className="text-xs text-bi-navy-500 mt-0.5">
+            <p className="text-xs text-slate-500 mt-0.5">
               {rows.length} videos · {rows.filter((r) => r.slidesTotal > 0).length} have slides ·{" "}
               {totalToGenerate} pending
             </p>
@@ -115,7 +115,7 @@ export function PptTrackerClient({ courseId, courseHref, initialRows, waitingOnA
           </div>
         </header>
         <table className="w-full text-sm">
-          <thead className="bg-bi-navy-50 text-xs uppercase tracking-wider text-bi-navy-500">
+          <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500">
             <tr>
               <th className="text-left px-4 py-2">Module / Lesson</th>
               <th className="text-left px-4 py-2">Video</th>
@@ -126,12 +126,12 @@ export function PptTrackerClient({ courseId, courseHref, initialRows, waitingOnA
           </thead>
           <tbody className="divide-y divide-slate-100">
             {rows.map((r) => (
-              <tr key={r.videoId} className="hover:bg-bi-navy-50/60">
+              <tr key={r.videoId} className="hover:bg-slate-50/60">
                 <td className="px-4 py-2 align-top">
-                  <div className="text-xs text-bi-navy-500">{r.moduleTitle}</div>
-                  <div className="text-bi-navy-700 text-sm">{r.lessonTitle}</div>
+                  <div className="text-xs text-slate-500">{r.moduleTitle}</div>
+                  <div className="text-slate-700 text-sm">{r.lessonTitle}</div>
                 </td>
-                <td className="px-4 py-2 align-top text-bi-navy-900">{r.videoTitle}</td>
+                <td className="px-4 py-2 align-top text-slate-900">{r.videoTitle}</td>
                 <td className="px-4 py-2 align-top">
                   {r.slidesTotal > 0 ? (
                     <span className="inline-flex items-center gap-1 text-emerald-700">
@@ -139,7 +139,7 @@ export function PptTrackerClient({ courseId, courseHref, initialRows, waitingOnA
                       {r.slidesTotal} slides
                     </span>
                   ) : (
-                    <span className="text-bi-navy-400">none</span>
+                    <span className="text-slate-400">none</span>
                   )}
                 </td>
                 <td className="px-4 py-2 align-top">
@@ -165,7 +165,7 @@ export function PptTrackerClient({ courseId, courseHref, initialRows, waitingOnA
                     <button
                       onClick={() => exportOne(r.videoId)}
                       disabled={r.slidesTotal === 0}
-                      className="text-xs px-2 py-1 rounded border border-bi-navy-300 hover:bg-bi-navy-50 disabled:opacity-40 inline-flex items-center gap-1"
+                      className="text-xs px-2 py-1 rounded border border-bi-navy-300 hover:bg-slate-50 disabled:opacity-40 inline-flex items-center gap-1"
                       title={r.slidesTotal === 0 ? "Generate slides first" : "Download .pptx"}
                     >
                       <Download className="w-3 h-3" /> .pptx
@@ -177,7 +177,7 @@ export function PptTrackerClient({ courseId, courseHref, initialRows, waitingOnA
           </tbody>
         </table>
         {rows.length === 0 && (
-          <div className="p-8 text-center text-sm text-bi-navy-500">
+          <div className="p-8 text-center text-sm text-slate-500">
             {totalVideos === 0
               ? "No videos yet — generate a TOC first to populate the PPT tracker."
               : `No approved briefs yet. Approve briefs in the Content Briefs tab to populate this list (${totalVideos} videos waiting).`}
@@ -190,7 +190,7 @@ export function PptTrackerClient({ courseId, courseHref, initialRows, waitingOnA
 
 function StatusPill({ status }: { status: string }) {
   const map: Record<string, string> = {
-    pending: "bg-bi-navy-100 text-bi-navy-600",
+    pending: "bg-slate-100 text-slate-600",
     brief_ready: "bg-blue-50 text-blue-700",
     ppt_ready: "bg-purple-50 text-purple-700",
     recorded: "bg-orange-50 text-orange-700",

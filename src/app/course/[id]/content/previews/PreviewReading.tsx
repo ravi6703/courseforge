@@ -20,12 +20,12 @@ export function PreviewReading({ payload }: { payload: Record<string, unknown> |
   return (
     <div className="space-y-3">
       <div className="flex items-baseline justify-between">
-        <h3 className="font-bold text-bi-navy-700">Reading list · {items.length} items</h3>
-        <span className="text-xs text-bi-navy-500">~{totalRead} min total</span>
+        <h3 className="font-bold text-slate-700">Reading list · {items.length} items</h3>
+        <span className="text-xs text-slate-500">~{totalRead} min total</span>
       </div>
       <div className="space-y-2">
         {items.map((item, idx) => (
-          <div key={idx} className="rounded-lg border border-bi-navy-100 p-3 hover:border-bi-blue-300 transition-colors">
+          <div key={idx} className="rounded-lg border border-slate-200 p-3 hover:border-bi-blue-300 transition-colors">
             <div className="flex items-baseline justify-between gap-3">
               <a
                 href={item.url}
@@ -35,10 +35,10 @@ export function PreviewReading({ payload }: { payload: Record<string, unknown> |
               >
                 {item.title}
               </a>
-              <span className="text-xs text-bi-navy-500 shrink-0">{item.reading_time_min} min</span>
+              <span className="text-xs text-slate-500 shrink-0">{item.reading_time_min} min</span>
             </div>
-            <p className="mt-1 text-sm text-bi-navy-700">{item.summary}</p>
-            <p className="mt-1.5 text-xs text-bi-navy-600 italic">
+            <p className="mt-1 text-sm text-slate-700">{item.summary}</p>
+            <p className="mt-1.5 text-xs text-slate-600 italic">
               <span className="font-semibold not-italic">Why it matters: </span>
               {item.why_it_matters}
             </p>
@@ -51,7 +51,7 @@ export function PreviewReading({ payload }: { payload: Record<string, unknown> |
 
 function Empty() {
   return (
-    <div className="text-center py-12 text-sm text-bi-navy-500">
+    <div className="text-center py-12 text-sm text-slate-500">
       No reading list generated yet.
     </div>
   );

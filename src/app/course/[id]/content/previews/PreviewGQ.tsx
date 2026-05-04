@@ -28,7 +28,7 @@ export function PreviewGQ({ payload }: { payload: Record<string, unknown> | null
   return (
     <div className="space-y-3">
       <div className="flex items-baseline justify-between">
-        <h3 className="font-bold text-bi-navy-700">Graded assessment · {questions.length} questions</h3>
+        <h3 className="font-bold text-slate-700">Graded assessment · {questions.length} questions</h3>
         <div className={`text-xs font-semibold ${offBy100 ? "text-amber-700" : "text-emerald-700"}`}>
           Total weight: {totalPoints} {offBy100 && "(should be 100)"}
         </div>
@@ -39,8 +39,8 @@ export function PreviewGQ({ payload }: { payload: Record<string, unknown> | null
           <div key={q.id} className="space-y-1.5">
             <QuestionCard q={q} idx={idx + 1} weight={q.points} />
             {q.rubric_text && (
-              <div className="ml-3 px-3 py-1.5 text-xs text-bi-navy-700 bg-bi-blue-50/50 border-l-2 border-bi-blue-300 rounded-r">
-                <span className="font-semibold uppercase tracking-wide text-bi-navy-500 text-[10px]">Rubric (hidden from learner)</span>
+              <div className="ml-3 px-3 py-1.5 text-xs text-slate-700 bg-bi-blue-50/50 border-l-2 border-bi-blue-300 rounded-r">
+                <span className="font-semibold uppercase tracking-wide text-slate-500 text-[10px]">Rubric (hidden from learner)</span>
                 <div className="mt-0.5">{q.rubric_text}</div>
               </div>
             )}
@@ -52,5 +52,5 @@ export function PreviewGQ({ payload }: { payload: Record<string, unknown> | null
 }
 
 function Empty() {
-  return <div className="text-center py-12 text-sm text-bi-navy-500">No graded assessment yet.</div>;
+  return <div className="text-center py-12 text-sm text-slate-500">No graded assessment yet.</div>;
 }

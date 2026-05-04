@@ -1,6 +1,8 @@
-// White stat card with a soft pastel icon ring in the top-right corner —
-// the BI hub pattern. Optional delta line below the value.
+// White stat card — BI hub pattern. Big number, small label, soft icon ring.
+// Optional `href` makes the whole card a drill-through link with hover lift.
+// Optional `delta` shows trajectory (e.g. "↑ 2 this week").
 
+import Link from "next/link";
 import { LucideIcon } from "lucide-react";
 
 type Tone = "blue" | "amber" | "violet" | "emerald" | "teal" | "gold" | "red";
@@ -15,26 +17,41 @@ const RINGS: Record<Tone, string> = {
   red:     "bg-red-50 text-red-700",
 };
 
-export function KpiCard({
-  label, value, delta, deltaTone = "neutral", icon: Icon, tone = "blue",
-}: {
+export interface KpiCardProps {
   label: string;
   value: string | number;
   delta?: string;
   deltaTone?: "neutral" | "up" | "down";
   icon: LucideIcon;
   tone?: Tone;
-}) {
+  href?: string;
+  /** When true, the value is rendered muted with an empty-state hint underneath. */
+  empty?: boolean;
+  emptyHint?: string;
+}
+
+export function KpiCard({
+  label, value, delta, deltaTone = "neutral", icon: Icon, tone = "blue",
+  href, empty = false, emptyHint,
+}: KpiCardProps) {
   const deltaCls =
     deltaTone === "up"   ? "text-emerald-700" :
     deltaTone === "down" ? "text-red-700"     :
-                           "text-bi-navy-500";
-  return (
-    <div className="bg-white border border-bi-navy-100 rounded-[10px] shadow-bi-sm p-5 flex items-start justify-between gap-3">
-      <div className="min-w-0">
-        <div className="text-[13px] text-bi-navy-500 font-medium leading-tight">{label}</div>
-        <div className="text-[30px] font-extrabold text-bi-navy-900 tracking-tight leading-none mt-1.5">{value}</div>
-        {delta && (
+                           "text-slate-500";
+
+  const card = (
+    <div className={`bg-white border border-slate-200 rounded-[10px] shadow-sm p-5 flex items-start justify-between gap-3 transition-all ${
+      href ? "hover:shadow-md hover:border-slate-300 hover:-translate-y-px cursor-pointer" : ""
+    }`}>
+      <div className="min-w-0 flex-1">
+        <div className="text-[13px] text-slate-500 font-medium leading-tight">{label}</div>
+        <div className={`text-[30px] font-extrabold tracking-tight leading-none mt-1.5 ${empty ? "text-slate-300" : "text-slate-900"}`}>
+          {value}
+        </div>
+        {empty && emptyHint && (
+          <div className="mt-1.5 text-[11.5px] text-slate-500 leading-snug">{emptyHint}</div>
+        )}
+        {!empty && delta && (
           <div className={`mt-1.5 text-[11px] font-semibold ${deltaCls}`}>{delta}</div>
         )}
       </div>
@@ -43,4 +60,7 @@ export function KpiCard({
       </div>
     </div>
   );
+
+  if (!href) return card;
+  return <Link href={href} className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-bi-blue-600 focus-visible:rounded-[10px]">{card}</Link>;
 }

@@ -22,7 +22,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 
 type NavItem = { label: string; href: string; icon: React.ComponentType<{ className?: string }>; badge?: string | number };
-type Section  = { id: string; label: string; items: NavItem[]; visibleOn?: (pathname: string) => boolean };
+type  Section = { id: string; label: string; items: NavItem[]; visibleOn?: (pathname: string) => boolean; pmOnly?: boolean };
 
 const SECTIONS: Section[] = [
   {
@@ -60,7 +60,7 @@ const SECTIONS: Section[] = [
     ],
   },
   {
-    id: "admin", label: "Admin",
+    id: "admin", label: "Admin", pmOnly: true,
     items: [
       { label: "Settings",     href: "/dashboard?settings=1", icon: Settings },
       { label: "Integrations", href: "/dashboard?integrations=1", icon: Settings },
@@ -118,20 +118,20 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
     return pathname.startsWith(href + "/") || pathname === href;
   };
 
-  if (!user) return <aside className="w-60 bg-white border-r border-bi-navy-100" />;
+  if (!user) return <aside className="w-60 bg-white border-r border-slate-200" />;
 
-  const visibleSections = SECTIONS.filter((s) => !s.visibleOn || s.visibleOn(pathname));
+  const visibleSections = SECTIONS.filter((s) => (!s.visibleOn || s.visibleOn(pathname)) && (!s.pmOnly || user.role === "pm"));
 
   return (
     <aside
-      className={`group/side fixed left-0 top-0 h-screen bg-white border-r border-bi-navy-100 flex flex-col z-40 transition-[width] duration-200 overflow-hidden ${collapsed ? "w-16" : "w-60"}`}
+      className={`group/side fixed left-0 top-0 h-screen bg-white border-r border-slate-200 flex flex-col z-40 transition-[width] duration-200 overflow-hidden ${collapsed ? "w-16" : "w-60"}`}
       data-collapsed={collapsed ? "true" : "false"}
       id="cf-sidebar"
     >
       {/* Brand */}
-      <Link href="/dashboard" className="flex items-center gap-2.5 px-4 h-14 border-b border-bi-navy-100 shrink-0">
+      <Link href="/dashboard" className="flex items-center gap-2.5 px-4 h-14 border-b border-slate-200 shrink-0">
         <div className="w-8 h-8 rounded-full bg-bi-navy-700 text-white grid place-items-center font-black text-sm shrink-0">∞</div>
-        <span className={`font-bold text-bi-navy-900 tracking-tight text-[15px] truncate ${collapsed ? "hidden" : ""}`}>
+        <span className={`font-bold text-slate-900 tracking-tight text-[15px] truncate ${collapsed ? "hidden" : ""}`}>
           Course<span className="text-bi-blue-600">Forge</span>
         </span>
       </Link>
@@ -145,7 +145,7 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
               <button
                 type="button"
                 onClick={() => toggleSection(sec.id)}
-                className={`flex items-center justify-between w-full px-2 py-1.5 text-[10px] font-bold uppercase tracking-[.08em] text-bi-navy-500 hover:text-bi-navy-700 ${collapsed ? "hidden" : ""}`}
+                className={`flex items-center justify-between w-full px-2 py-1.5 text-[10px] font-bold uppercase tracking-[.08em] text-slate-500 hover:text-slate-700 ${collapsed ? "hidden" : ""}`}
               >
                 <span>{sec.label}</span>
                 <ChevronDown className={`w-3 h-3 transition-transform ${isCollapsed ? "-rotate-90" : ""}`} />
@@ -163,8 +163,8 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
                         href={href}
                         className={`flex items-center gap-3 px-2.5 py-2 rounded-lg text-[13.5px] font-medium transition-colors whitespace-nowrap ${
                           active
-                            ? "bg-bi-navy-700 text-white hover:bg-bi-navy-700"
-                            : "text-bi-navy-700 hover:bg-bi-navy-50"
+                            ? "bg-bi-navy-900 text-white hover:bg-bi-navy-900"
+                            : "text-slate-700 hover:bg-slate-50"
                         }`}
                       >
                         <Icon className="w-[18px] h-[18px] shrink-0" />
@@ -185,17 +185,17 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
       </nav>
 
       {/* User footer */}
-      <div className="border-t border-bi-navy-100 px-3 py-2.5 flex items-center gap-2.5 shrink-0">
+      <div className="border-t border-slate-200 px-3 py-2.5 flex items-center gap-2.5 shrink-0">
         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-bi-navy-700 to-bi-blue-600 text-white grid place-items-center text-[11px] font-bold shrink-0">
           {user.name.split(" ").map((n) => n[0]).join("").slice(0,2).toUpperCase()}
         </div>
         <div className={`min-w-0 flex-1 ${collapsed ? "hidden" : ""}`}>
-          <div className="text-[12.5px] font-semibold text-bi-navy-900 truncate leading-tight">{user.name}</div>
-          <div className="text-[10px] text-bi-navy-500 uppercase tracking-wider font-semibold mt-px">{user.role} · BI</div>
+          <div className="text-[12.5px] font-semibold text-slate-900 truncate leading-tight">{user.name}</div>
+          <div className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold mt-px">{user.role} · BI</div>
         </div>
         <button
           onClick={handleLogout}
-          className={`p-1.5 text-bi-navy-500 hover:text-bi-navy-900 hover:bg-bi-navy-50 rounded-md ${collapsed ? "hidden" : ""}`}
+          className={`p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-50 rounded-md ${collapsed ? "hidden" : ""}`}
           title="Sign out"
         >
           <LogOut className="w-4 h-4" />

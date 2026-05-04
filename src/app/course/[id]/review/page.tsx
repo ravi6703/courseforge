@@ -70,11 +70,11 @@ export default async function ReviewTab({ params }: { params: Promise<{ id: stri
       </div>
 
       {/* Completion checklist */}
-      <section className="bg-white border border-bi-navy-100 rounded-[10px] shadow-bi-sm overflow-hidden">
-        <header className="px-5 py-3.5 border-b border-bi-navy-100 flex items-center justify-between">
+      <section className="bg-white border border-slate-200 rounded-[10px] shadow-sm overflow-hidden">
+        <header className="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between">
           <div>
-            <h2 className="text-[15px] font-bold text-bi-navy-900 tracking-tight">Completion checklist</h2>
-            <div className="text-[12px] text-bi-navy-500 mt-0.5">
+            <h2 className="text-[15px] font-bold text-slate-900 tracking-tight">Completion checklist</h2>
+            <div className="text-[12px] text-slate-500 mt-0.5">
               {checklist.filter((c) => c.done).length} / {checklist.length} stages complete
             </div>
           </div>
@@ -82,14 +82,14 @@ export default async function ReviewTab({ params }: { params: Promise<{ id: stri
         </header>
         <ul>
           {checklist.map((row) => (
-            <li key={row.label} className="px-5 py-3 flex items-center gap-3 border-b border-bi-navy-50 last:border-0 hover:bg-bi-navy-50 group">
-              <span className={`shrink-0 w-6 h-6 rounded-full grid place-items-center ${row.done ? "bg-emerald-100 text-emerald-700" : "bg-bi-navy-100 text-bi-navy-400"}`}>
+            <li key={row.label} className="px-5 py-3 flex items-center gap-3 border-b border-bi-navy-50 last:border-0 hover:bg-slate-50 group">
+              <span className={`shrink-0 w-6 h-6 rounded-full grid place-items-center ${row.done ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-400"}`}>
                 {row.done ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
               </span>
-              <span className={`flex-1 text-[13.5px] font-medium ${row.done ? "text-bi-navy-900" : "text-bi-navy-700"}`}>
+              <span className={`flex-1 text-[13.5px] font-medium ${row.done ? "text-slate-900" : "text-slate-700"}`}>
                 {row.label}
               </span>
-              <span className="text-[12px] text-bi-navy-500 tabular-nums">{row.detail}</span>
+              <span className="text-[12px] text-slate-500 tabular-nums">{row.detail}</span>
               {row.href && (
                 <Link href={row.href} className="text-[12px] font-semibold text-bi-blue-600 hover:underline shrink-0 inline-flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                   Review <ArrowRight className="w-3 h-3" />
@@ -98,8 +98,8 @@ export default async function ReviewTab({ params }: { params: Promise<{ id: stri
             </li>
           ))}
         </ul>
-        <footer className="px-5 py-3 border-t border-bi-navy-100 flex items-center justify-end gap-2">
-          <button className="px-3 py-1.5 rounded-md border border-bi-navy-100 text-[13px] font-semibold text-bi-navy-700 hover:bg-bi-navy-50">
+        <footer className="px-5 py-3 border-t border-slate-200 flex items-center justify-end gap-2">
+          <button className="px-3 py-1.5 rounded-md border border-slate-200 text-[13px] font-semibold text-slate-700 hover:bg-slate-50">
             Submit for authority approval
           </button>
           <button

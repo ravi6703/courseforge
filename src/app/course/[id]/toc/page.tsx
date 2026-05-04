@@ -63,11 +63,11 @@ export default async function TocTab({
   return (
     <div className="space-y-6">
       <ResearchPanel research={research} />
-      <div className="rounded-lg border border-bi-navy-200 bg-bi-navy-50 px-4 py-3 text-sm text-bi-navy-700 flex items-center gap-6 flex-wrap">
-        <div><span className="font-semibold">{moduleCount}</span> <span className="text-bi-navy-500">modules</span></div>
-        <div><span className="font-semibold">{lessonCount}</span> <span className="text-bi-navy-500">lessons</span></div>
-        <div><span className="font-semibold">{videoCount}</span> <span className="text-bi-navy-500">videos</span></div>
-        <div className="text-xs text-bi-navy-500 ml-auto">Briefs, slides, recordings and content all default to 1 per video.</div>
+      <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 flex items-center gap-6 flex-wrap">
+        <div><span className="font-semibold">{moduleCount}</span> <span className="text-slate-500">modules</span></div>
+        <div><span className="font-semibold">{lessonCount}</span> <span className="text-slate-500">lessons</span></div>
+        <div><span className="font-semibold">{videoCount}</span> <span className="text-slate-500">videos</span></div>
+        <div className="text-xs text-slate-500 ml-auto">Briefs, slides, recordings and content all default to 1 per video.</div>
       </div>
       <TocTree
         courseId={id}
@@ -93,17 +93,17 @@ function ResearchPanel({ research }: { research: unknown }) {
         Why this TOC is better
       </div>
       {r.positioning_statement && (
-        <p className="text-sm text-bi-navy-800 mb-2">{r.positioning_statement}</p>
+        <p className="text-sm text-slate-800 mb-2">{r.positioning_statement}</p>
       )}
       {r.why_better && r.why_better.length > 0 && (
-        <ul className="text-sm text-bi-navy-700 list-disc pl-5 space-y-1">
+        <ul className="text-sm text-slate-700 list-disc pl-5 space-y-1">
           {r.why_better.map((b: string, i: number) => (
             <li key={i}>{b}</li>
           ))}
         </ul>
       )}
       {r.competitor_courses && r.competitor_courses.length > 0 && (
-        <div className="mt-2 text-xs text-bi-navy-500">
+        <div className="mt-2 text-xs text-slate-500">
           Benchmarked against {r.competitor_courses.length} competitor course
           {r.competitor_courses.length === 1 ? "" : "s"}
         </div>

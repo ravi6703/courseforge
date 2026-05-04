@@ -23,8 +23,8 @@ export function PreviewPQ({ payload }: { payload: Record<string, unknown> | null
   return (
     <div className="space-y-3">
       <div className="flex items-baseline justify-between">
-        <h3 className="font-bold text-bi-navy-700">Practice quiz · {questions.length} questions</h3>
-        <div className="text-xs text-bi-navy-500">
+        <h3 className="font-bold text-slate-700">Practice quiz · {questions.length} questions</h3>
+        <div className="text-xs text-slate-500">
           {counts.easy} easy · {counts.medium} medium · {counts.hard} hard
         </div>
       </div>
@@ -40,9 +40,9 @@ export function PreviewPQ({ payload }: { payload: Record<string, unknown> | null
 
 export function QuestionCard({ q, idx, weight }: { q: PQQuestion; idx: number; weight?: number }) {
   return (
-    <div className="rounded-lg border border-bi-navy-100 bg-bi-navy-50/40 p-3">
+    <div className="rounded-lg border border-slate-200 bg-slate-50/40 p-3">
       <div className="flex items-baseline justify-between gap-2">
-        <div className="font-semibold text-sm text-bi-navy-900">
+        <div className="font-semibold text-sm text-slate-900">
           Q{idx} · {q.stem}
         </div>
         <div className="flex items-center gap-1.5 shrink-0 text-[10px]">
@@ -51,7 +51,7 @@ export function QuestionCard({ q, idx, weight }: { q: PQQuestion; idx: number; w
               {weight} pts
             </span>
           )}
-          <span className="px-1.5 py-[1px] rounded-full bg-bi-navy-200 text-bi-navy-700 font-medium uppercase tracking-wide">
+          <span className="px-1.5 py-[1px] rounded-full bg-slate-200 text-slate-700 font-medium uppercase tracking-wide">
             {q.type}
           </span>
           <DiffPill d={q.difficulty} />
@@ -67,7 +67,7 @@ export function QuestionCard({ q, idx, weight }: { q: PQQuestion; idx: number; w
             return (
               <li
                 key={i}
-                className={`px-2 py-0.5 rounded ${isCorrect ? "bg-emerald-50 text-emerald-800 font-semibold" : "text-bi-navy-700"}`}
+                className={`px-2 py-0.5 rounded ${isCorrect ? "bg-emerald-50 text-emerald-800 font-semibold" : "text-slate-700"}`}
               >
                 {letter}. {opt}{isCorrect ? "  ✓" : ""}
               </li>
@@ -78,12 +78,12 @@ export function QuestionCard({ q, idx, weight }: { q: PQQuestion; idx: number; w
 
       {q.type === "short" && (
         <div className="mt-2 text-sm">
-          <div className="text-xs font-semibold uppercase tracking-wide text-bi-navy-500">Sample answer</div>
-          <div className="text-bi-navy-700 italic">{q.correct}</div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Sample answer</div>
+          <div className="text-slate-700 italic">{q.correct}</div>
         </div>
       )}
 
-      <div className="mt-2 text-xs text-bi-navy-600 border-t border-bi-navy-100 pt-1.5 italic">
+      <div className="mt-2 text-xs text-slate-600 border-t border-slate-200 pt-1.5 italic">
         <span className="font-semibold not-italic">Why: </span>
         {q.explanation}
       </div>
@@ -98,7 +98,7 @@ function DiffPill({ d }: { d: "easy" | "medium" | "hard" }) {
   return <span className={`px-1.5 py-[1px] rounded-full font-medium ${cls}`}>{d}</span>;
 }
 function BloomPill({ b }: { b: string }) {
-  return <span className="px-1.5 py-[1px] rounded-full bg-bi-navy-100 text-bi-navy-700 font-medium">{b}</span>;
+  return <span className="px-1.5 py-[1px] rounded-full bg-slate-100 text-slate-700 font-medium">{b}</span>;
 }
 
 function countByDifficulty(qs: PQQuestion[]) {
@@ -109,5 +109,5 @@ function countByDifficulty(qs: PQQuestion[]) {
 }
 
 function Empty() {
-  return <div className="text-center py-12 text-sm text-bi-navy-500">No practice questions yet.</div>;
+  return <div className="text-center py-12 text-sm text-slate-500">No practice questions yet.</div>;
 }

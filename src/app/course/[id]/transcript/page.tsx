@@ -77,13 +77,13 @@ export default async function TranscriptTab({
     <div className="space-y-4">
       {/* Export buttons */}
       <div className="flex gap-2">
-        <button className="text-xs px-3 py-1.5 rounded-md bg-bi-navy-100 text-bi-navy-700 hover:bg-bi-navy-200">
+        <button className="text-xs px-3 py-1.5 rounded-md bg-slate-100 text-slate-700 hover:bg-slate-200">
           Export as .pptx
         </button>
-        <button className="text-xs px-3 py-1.5 rounded-md bg-bi-navy-100 text-bi-navy-700 hover:bg-bi-navy-200">
+        <button className="text-xs px-3 py-1.5 rounded-md bg-slate-100 text-slate-700 hover:bg-slate-200">
           Export as SCORM 1.2
         </button>
-        <button className="text-xs px-3 py-1.5 rounded-md bg-bi-navy-100 text-bi-navy-700 hover:bg-bi-navy-200">
+        <button className="text-xs px-3 py-1.5 rounded-md bg-slate-100 text-slate-700 hover:bg-slate-200">
           Export for Coursera
         </button>
       </div>

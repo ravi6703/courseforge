@@ -111,7 +111,7 @@ function SuggestButton({
     return (
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1 text-xs text-bi-navy-400 hover:text-bi-blue-600 transition-colors px-1.5 py-0.5 rounded hover:bg-bi-blue-50"
+        className="flex items-center gap-1 text-xs text-slate-400 hover:text-bi-blue-600 transition-colors px-1.5 py-0.5 rounded hover:bg-bi-blue-50"
         title="AI suggestion"
       >
         <Sparkles className="w-3 h-3" />
@@ -126,7 +126,7 @@ function SuggestButton({
         <span className="text-xs font-semibold text-blue-700 flex items-center gap-1">
           <Sparkles className="w-3 h-3" /> AI Suggestion
         </span>
-        <button onClick={handleDiscard} className="text-bi-navy-400 hover:text-bi-navy-600">
+        <button onClick={handleDiscard} className="text-slate-400 hover:text-slate-600">
           <X className="w-3.5 h-3.5" />
         </button>
       </div>
@@ -156,12 +156,12 @@ function SuggestButton({
       ) : (
         <>
           <div className="space-y-1">
-            <p className="text-xs font-medium text-bi-navy-700">Suggested title:</p>
-            <p className="text-xs text-bi-navy-900 bg-white border border-bi-navy-200 rounded px-2 py-1">{suggestion.title}</p>
+            <p className="text-xs font-medium text-slate-700">Suggested title:</p>
+            <p className="text-xs text-slate-900 bg-white border border-slate-200 rounded px-2 py-1">{suggestion.title}</p>
             {suggestion.description && (
               <>
-                <p className="text-xs font-medium text-bi-navy-700 mt-1.5">Description:</p>
-                <p className="text-xs text-bi-navy-700 bg-white border border-bi-navy-200 rounded px-2 py-1">{suggestion.description}</p>
+                <p className="text-xs font-medium text-slate-700 mt-1.5">Description:</p>
+                <p className="text-xs text-slate-700 bg-white border border-slate-200 rounded px-2 py-1">{suggestion.description}</p>
               </>
             )}
             <p className="text-xs text-bi-blue-600 italic mt-1">{suggestion.rationale}</p>
@@ -175,13 +175,13 @@ function SuggestButton({
             </button>
             <button
               onClick={() => setSuggestion(null)}
-              className="flex items-center gap-1 px-2.5 py-1 rounded border border-bi-navy-300 text-bi-navy-600 text-xs hover:bg-bi-navy-100 transition-colors"
+              className="flex items-center gap-1 px-2.5 py-1 rounded border border-bi-navy-300 text-slate-600 text-xs hover:bg-slate-100 transition-colors"
             >
               <X className="w-3 h-3" /> Retry
             </button>
             <button
               onClick={handleDiscard}
-              className="ml-auto text-xs text-bi-navy-400 hover:text-bi-navy-600"
+              className="ml-auto text-xs text-slate-400 hover:text-slate-600"
             >
               Discard
             </button>
@@ -250,9 +250,9 @@ export function TocTree({
   };
 
   return (
-    <div className="rounded-lg border border-bi-navy-200 bg-white">
-      <div className="px-4 py-3 border-b border-bi-navy-200 flex items-center justify-between">
-        <h2 className="font-semibold text-bi-navy-900">Table of Contents</h2>
+    <div className="rounded-lg border border-slate-200 bg-white">
+      <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+        <h2 className="font-semibold text-slate-900">Table of Contents</h2>
         <div className="flex items-center gap-2 text-sm">
           {unresolvedTotal > 0 && (
             <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-xs">
@@ -291,22 +291,22 @@ export function TocTree({
               <div>
                 <button
                   onClick={() => setOpenModule(open ? null : m.id)}
-                  className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-bi-navy-50"
+                  className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-slate-50"
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-xs font-mono text-bi-navy-400">
+                    <span className="text-xs font-mono text-slate-400">
                       {String(idx + 1).padStart(2, "0")}
                     </span>
-                    <span className="font-medium text-bi-navy-900 truncate">{m.title}{videoCountByModule && videoCountByModule[m.id] !== undefined && (
-                  <span className="ml-2 text-xs text-bi-navy-400 font-normal">({videoCountByModule[m.id]} video{videoCountByModule[m.id] === 1 ? "" : "s"})</span>
+                    <span className="font-medium text-slate-900 truncate">{m.title}{videoCountByModule && videoCountByModule[m.id] !== undefined && (
+                  <span className="ml-2 text-xs text-slate-400 font-normal">({videoCountByModule[m.id]} video{videoCountByModule[m.id] === 1 ? "" : "s"})</span>
                 )}</span>
                     {m.description && (
-                      <span className="text-xs text-bi-navy-400 truncate hidden sm:block max-w-xs">
+                      <span className="text-xs text-slate-400 truncate hidden sm:block max-w-xs">
                         — {m.description}
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-bi-navy-500 shrink-0">
+                  <div className="flex items-center gap-2 text-xs text-slate-500 shrink-0">
                     <span>{ls.length} lessons</span>
                     {moduleComments.length > 0 && (
                       <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">
@@ -328,14 +328,14 @@ export function TocTree({
               </div>
 
               {open && (
-                <ul className="bg-bi-navy-50/50 border-t border-bi-navy-100">
+                <ul className="bg-slate-50/50 border-t border-slate-200">
                   {ls.map((l) => {
                     const lc = commentsByTarget[`lesson:${l.id}`] || [];
                     return (
-                      <li key={l.id} className="border-b border-bi-navy-100 last:border-b-0">
+                      <li key={l.id} className="border-b border-slate-200 last:border-b-0">
                         <div className="px-6 py-2.5 text-sm flex justify-between items-start">
-                          <span className="text-bi-navy-800 flex-1">{l.title}</span>
-                          <span className="text-xs text-bi-navy-500 shrink-0 ml-3">
+                          <span className="text-slate-800 flex-1">{l.title}</span>
+                          <span className="text-xs text-slate-500 shrink-0 ml-3">
                             {(l.content_types || []).join(" · ") || "—"}
                             {lc.length > 0 && (
                               <span className="ml-2 text-amber-700">

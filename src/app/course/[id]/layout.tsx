@@ -39,13 +39,13 @@ export default async function CourseLayout({
 
 function ExportBar({ courseId }: { courseId: string }) {
   return (
-    <div className="border-t border-bi-navy-100 bg-white">
+    <div className="border-t border-slate-200 bg-white">
       <div className="max-w-[1320px] mx-auto px-7 py-3 flex items-center gap-3 text-[13px]">
-        <span className="font-semibold text-bi-navy-700">Export:</span>
-        <Link href={`/api/export/pptx?courseId=${courseId}`}     className="px-3 py-1.5 rounded-md border border-bi-navy-100 text-bi-navy-700 hover:bg-bi-navy-50 font-medium">PowerPoint</Link>
-        <Link href={`/api/export/scorm?courseId=${courseId}`}    className="px-3 py-1.5 rounded-md border border-bi-navy-100 text-bi-navy-700 hover:bg-bi-navy-50 font-medium">SCORM 1.2</Link>
-        <Link href={`/api/export/coursera?courseId=${courseId}`} className="px-3 py-1.5 rounded-md border border-bi-navy-100 text-bi-navy-700 hover:bg-bi-navy-50 font-medium">Coursera</Link>
-        <span className="text-[11.5px] text-bi-navy-500 ml-auto">Udemy &amp; xAPI exports coming soon</span>
+        <span className="font-semibold text-slate-700">Export:</span>
+        <Link href={`/api/export/pptx?courseId=${courseId}`}     className="px-3 py-1.5 rounded-md border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium">PowerPoint</Link>
+        <Link href={`/api/export/scorm?courseId=${courseId}`}    className="px-3 py-1.5 rounded-md border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium">SCORM 1.2</Link>
+        <Link href={`/api/export/coursera?courseId=${courseId}`} className="px-3 py-1.5 rounded-md border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium">Coursera</Link>
+        <span className="text-[11.5px] text-slate-500 ml-auto">Udemy &amp; xAPI exports coming soon</span>
       </div>
     </div>
   );

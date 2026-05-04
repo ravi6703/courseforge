@@ -8,7 +8,7 @@ type Tone =
   | "teal" | "red" | "orange" | "gold";
 
 const TONES: Record<Tone, string> = {
-  navy:    "bg-bi-navy-100 text-bi-navy-700",
+  navy:    "bg-slate-100 text-slate-700",
   blue:    "bg-bi-blue-50 text-bi-blue-700",
   amber:   "bg-amber-50 text-amber-700",
   emerald: "bg-emerald-50 text-emerald-700",

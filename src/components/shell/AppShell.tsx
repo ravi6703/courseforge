@@ -38,7 +38,7 @@ export function AppShell({ children, title, crumbs, rightSlot, fullBleed }: AppS
   };
 
   return (
-    <div className="min-h-screen bg-bi-navy-50">
+    <div className="min-h-screen bg-slate-50">
       <Sidebar collapsed={collapsed} />
       <div
         className={`transition-[margin] duration-200 min-h-screen flex flex-col ${

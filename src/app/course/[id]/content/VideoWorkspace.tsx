@@ -76,10 +76,10 @@ export function VideoWorkspace({ row, activeKind, onKindChange }: Props) {
   };
 
   return (
-    <section className="bg-white border border-bi-navy-100 rounded-[10px] shadow-bi-sm grid grid-cols-[200px_1fr] overflow-hidden min-h-[640px]">
+    <section className="bg-white border border-slate-200 rounded-[10px] shadow-sm grid grid-cols-[200px_1fr] overflow-hidden min-h-[640px]">
       {/* Vertical artifact rail (BI light, navy active) */}
-      <aside className="border-r border-bi-navy-100 bg-bi-navy-50 py-3">
-        <div className="px-4 pb-1 text-[10px] font-bold uppercase tracking-[.06em] text-bi-navy-500">
+      <aside className="border-r border-slate-200 bg-slate-50 py-3">
+        <div className="px-4 pb-1 text-[10px] font-bold uppercase tracking-[.06em] text-slate-500">
           Artifacts · {row.videoTitle.match(/V\d+/)?.[0] ?? ""}
         </div>
         <ul>
@@ -88,7 +88,7 @@ export function VideoWorkspace({ row, activeKind, onKindChange }: Props) {
             const meta = KIND_META[kind];
             const isSel = activeKind === kind;
             const status = it ? it.status : "missing";
-            let pillCls = "bg-bi-navy-100 text-bi-navy-600";
+            let pillCls = "bg-slate-100 text-slate-600";
             let pillTxt = "—";
             if (status === "approved") { pillCls = "bg-emerald-100 text-emerald-700"; pillTxt = "OK"; }
             else if (status === "draft") { pillCls = "bg-amber-100 text-amber-700"; pillTxt = "Draft"; }
@@ -98,8 +98,8 @@ export function VideoWorkspace({ row, activeKind, onKindChange }: Props) {
                   onClick={() => onKindChange(kind)}
                   className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] border-l-[3px] transition-colors ${
                     isSel
-                      ? "bg-white border-l-bi-navy-900 text-bi-navy-900 font-bold"
-                      : "border-l-transparent text-bi-navy-700 hover:bg-white font-medium"
+                      ? "bg-white border-l-bi-navy-900 text-slate-900 font-bold"
+                      : "border-l-transparent text-slate-700 hover:bg-white font-medium"
                   }`}
                 >
                   <span className={`shrink-0 w-[22px] h-[22px] rounded-md grid place-items-center text-[12px] ${
@@ -121,14 +121,14 @@ export function VideoWorkspace({ row, activeKind, onKindChange }: Props) {
         {/* Video header */}
         <div className="flex items-start justify-between gap-4 mb-4">
           <div>
-            <h2 className="text-[17px] font-bold text-bi-navy-900 tracking-tight">{KIND_META[activeKind].icon} {row.videoTitle} · {KIND_META[activeKind].label}</h2>
-            <div className="text-[12px] text-bi-navy-500 mt-0.5">{row.moduleTitle} · {row.lessonTitle}</div>
+            <h2 className="text-[17px] font-bold text-slate-900 tracking-tight">{KIND_META[activeKind].icon} {row.videoTitle} · {KIND_META[activeKind].label}</h2>
+            <div className="text-[12px] text-slate-500 mt-0.5">{row.moduleTitle} · {row.lessonTitle}</div>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
             <button
               onClick={() => callBulk("regen_all")}
               disabled={bulkBusy !== null}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-bi-navy-100 text-[12.5px] font-semibold text-bi-navy-700 hover:bg-bi-navy-50 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-[12.5px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
             >
               {bulkBusy === "regen_all" ? <Loader2 className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3 h-3" />}
               Re-generate all
@@ -151,17 +151,17 @@ export function VideoWorkspace({ row, activeKind, onKindChange }: Props) {
 
         {/* Preview + side rail */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4">
-          <div className="bg-white border border-bi-navy-100 rounded-[10px] overflow-hidden">
-            <header className="px-4 py-3 border-b border-bi-navy-100 flex items-center justify-between gap-3">
+          <div className="bg-white border border-slate-200 rounded-[10px] overflow-hidden">
+            <header className="px-4 py-3 border-b border-slate-200 flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <h3 className="text-[14px] font-bold text-bi-navy-900">{KIND_META[activeKind].label}</h3>
-                <div className="text-[11.5px] text-bi-navy-500 mt-0.5">{KIND_META[activeKind].sub}</div>
+                <h3 className="text-[14px] font-bold text-slate-900">{KIND_META[activeKind].label}</h3>
+                <div className="text-[11.5px] text-slate-500 mt-0.5">{KIND_META[activeKind].sub}</div>
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
-                <button className="p-1.5 rounded-md text-bi-navy-500 hover:bg-bi-navy-50 hover:text-bi-navy-900" title="Copy as JSON">
+                <button className="p-1.5 rounded-md text-slate-500 hover:bg-slate-50 hover:text-slate-900" title="Copy as JSON">
                   <FileText className="w-3.5 h-3.5" />
                 </button>
-                <button className="p-1.5 rounded-md text-bi-navy-500 hover:bg-bi-navy-50 hover:text-bi-navy-900" title="Format spec">
+                <button className="p-1.5 rounded-md text-slate-500 hover:bg-slate-50 hover:text-slate-900" title="Format spec">
                   <AlertCircle className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -186,42 +186,42 @@ export function VideoWorkspace({ row, activeKind, onKindChange }: Props) {
 
           {/* Side rail */}
           <aside className="space-y-3">
-            <div className="bg-white border border-bi-navy-100 rounded-[10px] overflow-hidden">
-              <div className="px-3.5 py-2.5 border-b border-bi-navy-100 flex items-center justify-between">
-                <span className="text-[10.5px] font-bold uppercase tracking-[.05em] text-bi-navy-700 inline-flex items-center gap-1.5">
+            <div className="bg-white border border-slate-200 rounded-[10px] overflow-hidden">
+              <div className="px-3.5 py-2.5 border-b border-slate-200 flex items-center justify-between">
+                <span className="text-[10.5px] font-bold uppercase tracking-[.05em] text-slate-700 inline-flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-bi-accent-600" /> AI Edit
                 </span>
-                <span className="text-[10px] text-bi-navy-500 font-medium">P2 · soon</span>
+                <span className="text-[10px] text-slate-500 font-medium">P2 · soon</span>
               </div>
-              <div className="p-3.5 text-[12.5px] text-bi-navy-600 leading-relaxed">
+              <div className="p-3.5 text-[12.5px] text-slate-600 leading-relaxed">
                 Describe an edit in plain English; accept the diff; revert anytime. Coming next.
               </div>
-              <button disabled className="w-full mx-3.5 mb-3.5 py-1.5 rounded-md bg-bi-navy-100 text-bi-navy-500 text-[11.5px] font-semibold cursor-not-allowed" style={{ width: "calc(100% - 1.75rem)" }}>
+              <button disabled className="w-full mx-3.5 mb-3.5 py-1.5 rounded-md bg-slate-100 text-slate-500 text-[11.5px] font-semibold cursor-not-allowed" style={{ width: "calc(100% - 1.75rem)" }}>
                 Open chat
               </button>
             </div>
 
-            <div className="bg-white border border-bi-navy-100 rounded-[10px] overflow-hidden">
-              <div className="px-3.5 py-2.5 border-b border-bi-navy-100 flex items-center justify-between">
-                <span className="text-[10.5px] font-bold uppercase tracking-[.05em] text-bi-navy-700 inline-flex items-center gap-1.5">
+            <div className="bg-white border border-slate-200 rounded-[10px] overflow-hidden">
+              <div className="px-3.5 py-2.5 border-b border-slate-200 flex items-center justify-between">
+                <span className="text-[10.5px] font-bold uppercase tracking-[.05em] text-slate-700 inline-flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-bi-blue-600" /> Suggestions
                 </span>
-                <span className="text-[10px] text-bi-navy-500 font-medium">P3 · soon</span>
+                <span className="text-[10px] text-slate-500 font-medium">P3 · soon</span>
               </div>
-              <div className="p-3.5 text-[12.5px] text-bi-navy-600 leading-relaxed">
+              <div className="p-3.5 text-[12.5px] text-slate-600 leading-relaxed">
                 Pedagogy lint findings (uncovered LO, weight imbalance, reading-level drift) with one-click apply.
               </div>
             </div>
 
-            <div className="bg-bi-navy-50 border border-dashed border-bi-navy-200 rounded-[10px] p-3.5">
-              <div className="text-[10.5px] font-bold uppercase tracking-[.05em] text-bi-navy-700">Format spec</div>
-              <div className="text-[11.5px] text-bi-navy-600 mt-1.5 leading-relaxed">{KIND_META[activeKind].sub}</div>
+            <div className="bg-slate-50 border border-dashed border-slate-200 rounded-[10px] p-3.5">
+              <div className="text-[10.5px] font-bold uppercase tracking-[.05em] text-slate-700">Format spec</div>
+              <div className="text-[11.5px] text-slate-600 mt-1.5 leading-relaxed">{KIND_META[activeKind].sub}</div>
             </div>
 
-            <div className="bg-white border border-bi-navy-100 rounded-[10px] p-3.5">
-              <div className="text-[10.5px] font-bold uppercase tracking-[.05em] text-bi-navy-700">Status</div>
-              <div className="text-[12.5px] text-bi-navy-700 mt-1.5">
-                <strong className="text-bi-navy-900">{approvedCount}</strong> of <strong className="text-bi-navy-900">{CONTENT_KINDS.length}</strong> artifacts approved on this video.
+            <div className="bg-white border border-slate-200 rounded-[10px] p-3.5">
+              <div className="text-[10.5px] font-bold uppercase tracking-[.05em] text-slate-700">Status</div>
+              <div className="text-[12.5px] text-slate-700 mt-1.5">
+                <strong className="text-slate-900">{approvedCount}</strong> of <strong className="text-slate-900">{CONTENT_KINDS.length}</strong> artifacts approved on this video.
               </div>
             </div>
           </aside>

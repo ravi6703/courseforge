@@ -88,13 +88,13 @@ export function ApprovalBar({
           {error}
         </div>
       )}
-      <div className="rounded-lg border border-bi-navy-200 bg-bi-navy-50 px-3 py-2 flex items-center justify-between gap-3 text-sm">
-        <div className="text-xs text-bi-navy-600 min-w-0 truncate">
+      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 flex items-center justify-between gap-3 text-sm">
+        <div className="text-xs text-slate-600 min-w-0 truncate">
           {noItem
             ? <>Not generated yet</>
             : isApproved
-              ? <>Approved <span className="text-bi-navy-400">·</span> {approvedAt ? new Date(approvedAt).toLocaleString() : ""}</>
-              : <>Draft <span className="text-bi-navy-400">·</span> generated {generatedAt ? new Date(generatedAt).toLocaleString() : ""}</>
+              ? <>Approved <span className="text-slate-400">·</span> {approvedAt ? new Date(approvedAt).toLocaleString() : ""}</>
+              : <>Draft <span className="text-slate-400">·</span> generated {generatedAt ? new Date(generatedAt).toLocaleString() : ""}</>
           }
         </div>
 
@@ -103,7 +103,7 @@ export function ApprovalBar({
             <button
               onClick={regenerate}
               disabled={busy !== null}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-bi-navy-700 hover:bg-white border border-bi-navy-200 rounded disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-white border border-slate-200 rounded disabled:opacity-50"
             >
               {busy === "regen" ? <Loader2 className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3 h-3" />}
               Re-generate
@@ -113,7 +113,7 @@ export function ApprovalBar({
             <button
               onClick={() => setStatus("draft")}
               disabled={busy !== null}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-bi-navy-700 hover:bg-white border border-bi-navy-200 rounded disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-white border border-slate-200 rounded disabled:opacity-50"
             >
               {busy === "reject" ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />}
               Unapprove

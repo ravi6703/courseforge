@@ -58,10 +58,10 @@ export function ContentView({
 
   if (rows.length === 0) {
     return (
-      <div className="bg-white border border-dashed border-bi-navy-200 rounded-[10px] p-12 text-center">
+      <div className="bg-white border border-dashed border-slate-200 rounded-[10px] p-12 text-center">
         <div className="text-3xl mb-2">📚</div>
-        <div className="text-[15px] font-bold text-bi-navy-900">No videos in this course yet</div>
-        <div className="mt-1 text-[13px] text-bi-navy-500">Generate a TOC and approve briefs to land here.</div>
+        <div className="text-[15px] font-bold text-slate-900">No videos in this course yet</div>
+        <div className="mt-1 text-[13px] text-slate-500">Generate a TOC and approve briefs to land here.</div>
       </div>
     );
   }
@@ -74,7 +74,7 @@ export function ContentView({
       {selectedRow ? (
         <VideoWorkspace row={selectedRow} activeKind={activeKind} onKindChange={setKind} />
       ) : (
-        <div className="bg-white border border-bi-navy-100 rounded-[10px] p-12 text-center text-[13px] text-bi-navy-500">
+        <div className="bg-white border border-slate-200 rounded-[10px] p-12 text-center text-[13px] text-slate-500">
           Pick a video on the left to start.
         </div>
       )}

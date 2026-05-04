@@ -27,7 +27,7 @@ export function CourseTabs({ courseId }: { courseId: string }) {
   const current = TABS.findIndex((t) => pathname.endsWith(`/${t.slug}`));
 
   return (
-    <nav className="bg-white border-b border-bi-navy-100 px-7 sticky top-16 z-20">
+    <nav className="bg-white border-b border-slate-200 px-7 sticky top-16 z-20">
       <div className="flex gap-px overflow-x-auto -mb-px">
         {TABS.map((t, i) => {
           const isCurrent = i === current;
@@ -39,8 +39,8 @@ export function CourseTabs({ courseId }: { courseId: string }) {
               href={`/course/${courseId}/${t.slug}`}
               className={`inline-flex items-center gap-2 px-3.5 py-3 text-[13.5px] font-semibold whitespace-nowrap border-b-2 transition-colors ${
                 isCurrent
-                  ? "border-bi-navy-900 text-bi-navy-900"
-                  : "border-transparent text-bi-navy-500 hover:text-bi-navy-800"
+                  ? "border-bi-navy-900 text-slate-900"
+                  : "border-transparent text-slate-500 hover:text-slate-800"
               }`}
             >
               {isDone ? (
