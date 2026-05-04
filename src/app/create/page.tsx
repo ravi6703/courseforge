@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Sidebar } from "@/components/Sidebar";
+import { AppShell } from "@/components/shell/AppShell";
 import { User, Platform, ContentType, Course } from "@/types";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -346,10 +346,8 @@ export default function CreateCoursePage() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar />
-
-      <main className="flex-1 ml-16 overflow-auto">
+    <AppShell title="New course">
+      <main className="flex-1 overflow-auto">
         <div className="max-w-5xl mx-auto p-8">
           {/* Header */}
           <div className="mb-8">
@@ -1016,7 +1014,6 @@ export default function CreateCoursePage() {
             </div>
           </div>
         </div>
-      </main>
-    </div>
+      </main></AppShell>
   );
 }
