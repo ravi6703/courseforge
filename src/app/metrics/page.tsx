@@ -4,7 +4,7 @@
 // before; only the chrome and primitives changed.
 
 import { useEffect, useState } from "react";
-import { BookOpen, Settings2, CheckCircle2, Users, Clock, Zap } from "lucide-react";
+import { BookOpen, Settings, CheckCircle2, Users, Clock, Zap } from "lucide-react";
 import { AppShell } from "@/components/shell/AppShell";
 import { KpiCard } from "@/components/ui/KpiCard";
 import { Tag } from "@/components/ui/Tag";
@@ -75,7 +75,7 @@ export default function MetricsPage() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-5">
         <KpiCard label="Total courses"        value={data.courses.total}                                    icon={BookOpen}     tone="blue"    />
-        <KpiCard label="In production"        value={data.courses.in_production}                            icon={Settings2}    tone="amber"   />
+        <KpiCard label="In production"        value={data.courses.in_production}                            icon={Settings}    tone="amber"   />
         <KpiCard label="Published"            value={data.courses.published}                                icon={CheckCircle2} tone="emerald" />
         <KpiCard label="Coaches active (30d)" value={data.coach_throughput_30d.per_coach.length}             icon={Users}        tone="violet"  />
       </div>

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Plus, BookOpen, Clock, HeartPulse, Zap, Search, ChevronRight } from "lucide-react";
+import { Plus, BookOpen, Clock, Heart, Zap, Search, ChevronRight } from "lucide-react";
 import { AppShell } from "@/components/shell/AppShell";
 import { KpiCard } from "@/components/ui/KpiCard";
 import { Tag } from "@/components/ui/Tag";
@@ -104,7 +104,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-5">
         <KpiCard label="Courses in production" value={inProduction.length} icon={BookOpen} tone="blue" />
         <KpiCard label="Awaiting your review"  value={queue.length} icon={Clock} tone="amber" />
-        <KpiCard label="Health score · avg"    value={courses.length ? Math.round(courses.reduce((s,c) => s + pseudoHealth(c), 0) / courses.length) : 0} icon={HeartPulse} tone="emerald" delta={courses.length ? "B grade" : ""} />
+        <KpiCard label="Health score · avg"    value={courses.length ? Math.round(courses.reduce((s,c) => s + pseudoHealth(c), 0) / courses.length) : 0} icon={Heart} tone="emerald" delta={courses.length ? "B grade" : ""} />
         <KpiCard label="Published"             value={published.length} icon={Zap} tone="violet" />
       </div>
 

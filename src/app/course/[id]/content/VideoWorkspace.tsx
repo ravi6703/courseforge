@@ -6,7 +6,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, RefreshCw, Check, FileCode, Info } from "lucide-react";
+import { Loader2, RotateCcw, Check, FileText, AlertCircle } from "lucide-react";
 import type { ContentVideoRow, ContentKindKey } from "./types";
 import { CONTENT_KINDS, KIND_META, findItem } from "./types";
 import { ApprovalBar } from "./ApprovalBar";
@@ -130,7 +130,7 @@ export function VideoWorkspace({ row, activeKind, onKindChange }: Props) {
               disabled={bulkBusy !== null}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-bi-navy-100 text-[12.5px] font-semibold text-bi-navy-700 hover:bg-bi-navy-50 disabled:opacity-50"
             >
-              {bulkBusy === "regen_all" ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+              {bulkBusy === "regen_all" ? <Loader2 className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3 h-3" />}
               Re-generate all
             </button>
             <button
@@ -159,10 +159,10 @@ export function VideoWorkspace({ row, activeKind, onKindChange }: Props) {
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
                 <button className="p-1.5 rounded-md text-bi-navy-500 hover:bg-bi-navy-50 hover:text-bi-navy-900" title="Copy as JSON">
-                  <FileCode className="w-3.5 h-3.5" />
+                  <FileText className="w-3.5 h-3.5" />
                 </button>
                 <button className="p-1.5 rounded-md text-bi-navy-500 hover:bg-bi-navy-50 hover:text-bi-navy-900" title="Format spec">
-                  <Info className="w-3.5 h-3.5" />
+                  <AlertCircle className="w-3.5 h-3.5" />
                 </button>
               </div>
             </header>

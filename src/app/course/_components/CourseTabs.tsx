@@ -7,12 +7,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  ListTree, ClipboardList, Presentation, Video, Mic, BookOpen, CheckCircle2, Check,
+  Layers, FileText, Presentation, Video, Mic, BookOpen, CheckCircle2, Check,
 } from "lucide-react";
 
 const TABS = [
-  { slug: "toc",        label: "Table of contents", icon: ListTree         },
-  { slug: "briefs",     label: "Content briefs",    icon: ClipboardList    },
+  { slug: "toc",        label: "Table of contents", icon: Layers         },
+  { slug: "briefs",     label: "Content briefs",    icon: FileText    },
   { slug: "ppts",       label: "Presentations",     icon: Presentation     },
   { slug: "recording",  label: "Recordings",        icon: Video            },
   { slug: "transcript", label: "Transcripts",       icon: Mic              },

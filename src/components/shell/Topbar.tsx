@@ -17,6 +17,7 @@ interface TopbarProps {
   notifCount?: number;     // shows red dot if > 0
   rightSlot?: React.ReactNode;
   workspace?: string;      // "Board Infinity" by default
+  onToggleSidebar?: () => void;
 }
 
 export function Topbar({
@@ -25,6 +26,7 @@ export function Topbar({
   notifCount = 1,
   rightSlot,
   workspace = "Board Infinity",
+  onToggleSidebar,
 }: TopbarProps) {
   const [initials, setInitials] = useState("U");
 
@@ -37,20 +39,12 @@ export function Topbar({
     });
   }, []);
 
-  const toggleSidebar = () => {
-    const el = document.getElementById("cf-sidebar");
-    if (!el) return;
-    const next = el.getAttribute("data-collapsed") !== "true";
-    el.setAttribute("data-collapsed", String(next));
-    // Also push the page area's left padding via a data attr on <html>
-    document.documentElement.setAttribute("data-sidebar-collapsed", String(next));
-    try { localStorage.setItem("cf:sidebar:collapsed", String(next)); } catch {}
-  };
+
 
   return (
     <header className="sticky top-0 z-30 h-16 bg-white border-b border-bi-navy-100 flex items-center px-6 gap-3">
       <button
-        onClick={toggleSidebar}
+        onClick={onToggleSidebar}
         className="p-2 -ml-2 rounded-lg text-bi-navy-600 hover:text-bi-navy-900 hover:bg-bi-navy-50 transition-colors"
         aria-label="Toggle sidebar"
       >
