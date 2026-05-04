@@ -1,13 +1,12 @@
 "use client";
 
-// Right pane of the Content tab v2. Receives the selected video row + the
-// active artifact tab, renders the KPI strip, tab strip, per-artifact preview,
-// and the approval bar. AI Edit + Suggestions side rail are P2/P3 (stubbed
-// here as TODO panels so the layout intent stays visible in the code).
+// Right pane of the Content tab v3. Vertical artifact rail (light, BI
+// aesthetic, navy fill on active) + preview pane + AI Edit / Suggestions
+// side rail (P2/P3 stubs).
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, RefreshCw, Check, FileCode, Info } from "lucide-react";
 import type { ContentVideoRow, ContentKindKey } from "./types";
 import { CONTENT_KINDS, KIND_META, findItem } from "./types";
 import { ApprovalBar } from "./ApprovalBar";
@@ -23,6 +22,14 @@ interface Props {
   onKindChange: (k: ContentKindKey) => void;
 }
 
+const RAIL_TONE: Record<ContentKindKey, string> = {
+  reading:  "bg-violet-50 text-violet-700",
+  pq:       "bg-bi-blue-50 text-bi-blue-700",
+  gq:       "bg-bi-accent-50 text-bi-accent-700",
+  scorm:    "bg-teal-50 text-teal-700",
+  ai_coach: "bg-orange-50 text-orange-700",
+};
+
 export function VideoWorkspace({ row, activeKind, onKindChange }: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -30,10 +37,8 @@ export function VideoWorkspace({ row, activeKind, onKindChange }: Props) {
   const [bulkError, setBulkError] = useState<string | null>(null);
 
   const item = findItem(row, activeKind);
-
-  const approvedCount = row.contentItems.filter((i) => i.status === "approved").length;
   const draftCount = row.contentItems.filter((i) => i.status === "draft").length;
-  const missingCount = CONTENT_KINDS.length - row.contentItems.length;
+  const approvedCount = row.contentItems.filter((i) => i.status === "approved").length;
 
   const callBulk = async (action: "approve_ready" | "regen_all") => {
     setBulkBusy(action);
@@ -48,9 +53,6 @@ export function VideoWorkspace({ row, activeKind, onKindChange }: Props) {
       if (!res.ok) {
         setBulkError(data.error ?? `HTTP ${res.status}`);
       } else if (action === "regen_all" && Array.isArray(data.regenerate)) {
-        // Fire each regeneration from the browser — Vercel cancels server
-        // background fetches when the function returns. We sequence them
-        // to keep AI cost predictable; failures are surfaced as a count.
         let failed = 0;
         for (const job of data.regenerate as Array<{ video_id: string; kind: string }>) {
           try {
@@ -60,9 +62,7 @@ export function VideoWorkspace({ row, activeKind, onKindChange }: Props) {
               body: JSON.stringify({ video_id: job.video_id, kind: job.kind }),
             });
             if (!r.ok) failed++;
-          } catch {
-            failed++;
-          }
+          } catch { failed++; }
         }
         if (failed > 0) setBulkError(`${failed} regenerations failed — open each tab to retry.`);
         startTransition(() => router.refresh());
@@ -76,100 +76,99 @@ export function VideoWorkspace({ row, activeKind, onKindChange }: Props) {
   };
 
   return (
-    <main className="flex-1 overflow-auto">
-      <div className="max-w-5xl mx-auto px-6 py-5">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <div className="text-xs text-bi-navy-500 uppercase tracking-wide">
-              {row.moduleTitle} · {row.lessonTitle}
-            </div>
-            <h1 className="mt-1 text-xl font-bold text-bi-navy-900 truncate">{row.videoTitle}</h1>
-          </div>
-          <div className="flex gap-2 shrink-0">
-            <button
-              onClick={() => callBulk("regen_all")}
-              disabled={bulkBusy !== null}
-              className="text-xs font-semibold text-bi-navy-700 px-2.5 py-1.5 border border-bi-navy-200 rounded hover:bg-bi-navy-50 disabled:opacity-50"
-            >
-              {bulkBusy === "regen_all" ? <Loader2 className="w-3 h-3 inline animate-spin" /> : null} Re-generate all
-            </button>
-            <button
-              onClick={() => callBulk("approve_ready")}
-              disabled={bulkBusy !== null || draftCount === 0}
-              className="text-xs font-semibold text-white px-3 py-1.5 bg-bi-blue-600 hover:bg-bi-blue-700 rounded disabled:opacity-50"
-            >
-              {bulkBusy === "approve_ready" ? <Loader2 className="w-3 h-3 inline animate-spin" /> : null}
-              Approve all drafts ({draftCount})
-            </button>
-          </div>
+    <section className="bg-white border border-bi-navy-100 rounded-[10px] shadow-bi-sm grid grid-cols-[200px_1fr] overflow-hidden min-h-[640px]">
+      {/* Vertical artifact rail (BI light, navy active) */}
+      <aside className="border-r border-bi-navy-100 bg-bi-navy-50 py-3">
+        <div className="px-4 pb-1 text-[10px] font-bold uppercase tracking-[.06em] text-bi-navy-500">
+          Artifacts · {row.videoTitle.match(/V\d+/)?.[0] ?? ""}
         </div>
-
-        {bulkError && (
-          <div className="mt-2 text-xs text-red-700 bg-red-50 border border-red-200 rounded px-2 py-1">{bulkError}</div>
-        )}
-
-        {/* KPI strip */}
-        <div className="mt-3 rounded-lg border border-bi-navy-200 bg-white px-4 py-2.5 flex items-center gap-6">
-          {CONTENT_KINDS.map((kind) => {
-            const it = findItem(row, kind);
-            const meta = KIND_META[kind];
-            const status = it ? it.status : "missing";
-            const txt = status === "approved" ? "Approved"
-                      : status === "draft"    ? "Draft"
-                      : "Not built";
-            const cls = status === "approved" ? "text-emerald-700"
-                      : status === "draft"    ? "text-amber-700"
-                      : "text-bi-navy-400";
-            return (
-              <div key={kind} className="flex flex-col">
-                <span className="text-[10px] uppercase tracking-wide font-semibold text-bi-navy-500">
-                  {meta.icon} {meta.label}
-                </span>
-                <span className={`text-sm font-bold ${cls}`}>{txt}</span>
-              </div>
-            );
-          })}
-          <div className="ml-auto flex flex-col items-end">
-            <span className="text-[10px] uppercase tracking-wide font-semibold text-bi-navy-500">Status</span>
-            <span className="text-sm font-bold text-bi-navy-700">{approvedCount}/{CONTENT_KINDS.length} approved · {missingCount} not built</span>
-          </div>
-        </div>
-
-        {/* Tab strip */}
-        <div className="mt-4 flex border-b border-bi-navy-200">
+        <ul>
           {CONTENT_KINDS.map((kind) => {
             const it = findItem(row, kind);
             const meta = KIND_META[kind];
             const isSel = activeKind === kind;
             const status = it ? it.status : "missing";
-            const badgeCls = status === "approved" ? "bg-emerald-100 text-emerald-700"
-                           : status === "draft"    ? "bg-amber-100 text-amber-700"
-                           : "bg-bi-navy-100 text-bi-navy-600";
+            let pillCls = "bg-bi-navy-100 text-bi-navy-600";
+            let pillTxt = "—";
+            if (status === "approved") { pillCls = "bg-emerald-100 text-emerald-700"; pillTxt = "OK"; }
+            else if (status === "draft") { pillCls = "bg-amber-100 text-amber-700"; pillTxt = "Draft"; }
             return (
-              <button
-                key={kind}
-                onClick={() => onKindChange(kind)}
-                className={`px-3 py-2 text-sm font-semibold flex items-center gap-2 border-b-2 transition-colors ${
-                  isSel
-                    ? "border-bi-blue-600 text-bi-blue-700"
-                    : "border-transparent text-bi-navy-600 hover:text-bi-navy-900"
-                }`}
-              >
-                <span>{meta.icon} {meta.label}</span>
-                <span className={`text-[10px] font-bold px-1.5 py-[1px] rounded-full ${badgeCls}`}>
-                  {status === "approved" ? "OK" : status === "draft" ? "Draft" : "—"}
-                </span>
-              </button>
+              <li key={kind}>
+                <button
+                  onClick={() => onKindChange(kind)}
+                  className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] border-l-[3px] transition-colors ${
+                    isSel
+                      ? "bg-white border-l-bi-navy-900 text-bi-navy-900 font-bold"
+                      : "border-l-transparent text-bi-navy-700 hover:bg-white font-medium"
+                  }`}
+                >
+                  <span className={`shrink-0 w-[22px] h-[22px] rounded-md grid place-items-center text-[12px] ${
+                    isSel ? "bg-bi-navy-900 text-white" : RAIL_TONE[kind]
+                  }`}>{meta.icon}</span>
+                  <span className="flex-1 text-left truncate">{meta.label}</span>
+                  <span className={`shrink-0 font-mono text-[10px] font-bold px-1.5 py-px rounded-full ${pillCls}`}>
+                    {pillTxt}
+                  </span>
+                </button>
+              </li>
             );
           })}
+        </ul>
+      </aside>
+
+      {/* Workspace body */}
+      <div className="p-5">
+        {/* Video header */}
+        <div className="flex items-start justify-between gap-4 mb-4">
+          <div>
+            <h2 className="text-[17px] font-bold text-bi-navy-900 tracking-tight">{KIND_META[activeKind].icon} {row.videoTitle} · {KIND_META[activeKind].label}</h2>
+            <div className="text-[12px] text-bi-navy-500 mt-0.5">{row.moduleTitle} · {row.lessonTitle}</div>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={() => callBulk("regen_all")}
+              disabled={bulkBusy !== null}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-bi-navy-100 text-[12.5px] font-semibold text-bi-navy-700 hover:bg-bi-navy-50 disabled:opacity-50"
+            >
+              {bulkBusy === "regen_all" ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+              Re-generate all
+            </button>
+            <button
+              onClick={() => callBulk("approve_ready")}
+              disabled={bulkBusy !== null || draftCount === 0}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-bi-navy-900 text-white text-[12.5px] font-semibold hover:bg-bi-navy-800 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {bulkBusy === "approve_ready" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+              Approve drafts
+              <span className="bg-white/20 text-white px-1.5 py-px rounded-full text-[10px] font-bold ml-1">{draftCount}</span>
+            </button>
+          </div>
         </div>
 
-        {/* Body: preview + side rail */}
-        <div className="mt-4 grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4">
-          <section className="rounded-lg border border-bi-navy-200 bg-white p-4">
-            <div className="text-xs text-bi-navy-500 mb-3">{KIND_META[activeKind].sub}</div>
-            <Preview kind={activeKind} payload={item?.payload ?? null} />
+        {bulkError && (
+          <div className="mb-3 text-[12px] text-red-700 bg-red-50 border border-red-100 rounded-md px-2.5 py-1.5">{bulkError}</div>
+        )}
+
+        {/* Preview + side rail */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4">
+          <div className="bg-white border border-bi-navy-100 rounded-[10px] overflow-hidden">
+            <header className="px-4 py-3 border-b border-bi-navy-100 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className="text-[14px] font-bold text-bi-navy-900">{KIND_META[activeKind].label}</h3>
+                <div className="text-[11.5px] text-bi-navy-500 mt-0.5">{KIND_META[activeKind].sub}</div>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button className="p-1.5 rounded-md text-bi-navy-500 hover:bg-bi-navy-50 hover:text-bi-navy-900" title="Copy as JSON">
+                  <FileCode className="w-3.5 h-3.5" />
+                </button>
+                <button className="p-1.5 rounded-md text-bi-navy-500 hover:bg-bi-navy-50 hover:text-bi-navy-900" title="Format spec">
+                  <Info className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </header>
+            <div className="p-4">
+              <Preview kind={activeKind} payload={item?.payload ?? null} />
+            </div>
             <ApprovalBar
               itemId={item?.id ?? null}
               status={item ? item.status : "missing"}
@@ -179,42 +178,56 @@ export function VideoWorkspace({ row, activeKind, onKindChange }: Props) {
               kind={activeKind}
             />
             {item?.generation_error && (
-              <div className="mt-2 text-xs text-red-700 bg-red-50 border border-red-200 rounded px-2 py-1">
+              <div className="mx-4 mb-4 text-[12px] text-red-700 bg-red-50 border border-red-100 rounded-md px-2.5 py-1.5">
                 Last generation error: {item.generation_error}
               </div>
             )}
-          </section>
+          </div>
 
-          {/* Side rail (P2 / P3 stubs) */}
+          {/* Side rail */}
           <aside className="space-y-3">
-            <div className="rounded-lg border border-bi-navy-200 bg-white p-3">
-              <div className="text-xs font-bold uppercase tracking-wide text-bi-navy-600 mb-1">AI Edit</div>
-              <div className="text-xs text-bi-navy-500">
-                Coming in P2 — describe an edit in plain English, accept the diff, revert anytime.
+            <div className="bg-white border border-bi-navy-100 rounded-[10px] overflow-hidden">
+              <div className="px-3.5 py-2.5 border-b border-bi-navy-100 flex items-center justify-between">
+                <span className="text-[10.5px] font-bold uppercase tracking-[.05em] text-bi-navy-700 inline-flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-bi-accent-600" /> AI Edit
+                </span>
+                <span className="text-[10px] text-bi-navy-500 font-medium">P2 · soon</span>
               </div>
-              <button
-                disabled
-                className="mt-2 w-full text-xs font-semibold py-1.5 rounded bg-bi-navy-100 text-bi-navy-400 cursor-not-allowed"
-              >
+              <div className="p-3.5 text-[12.5px] text-bi-navy-600 leading-relaxed">
+                Describe an edit in plain English; accept the diff; revert anytime. Coming next.
+              </div>
+              <button disabled className="w-full mx-3.5 mb-3.5 py-1.5 rounded-md bg-bi-navy-100 text-bi-navy-500 text-[11.5px] font-semibold cursor-not-allowed" style={{ width: "calc(100% - 1.75rem)" }}>
                 Open chat
               </button>
             </div>
 
-            <div className="rounded-lg border border-bi-navy-200 bg-white p-3">
-              <div className="text-xs font-bold uppercase tracking-wide text-bi-navy-600 mb-1">Suggestions</div>
-              <div className="text-xs text-bi-navy-500">
-                Coming in P3 — pedagogy lint findings (uncovered LO, weight imbalance, reading-level drift) with one-click apply.
+            <div className="bg-white border border-bi-navy-100 rounded-[10px] overflow-hidden">
+              <div className="px-3.5 py-2.5 border-b border-bi-navy-100 flex items-center justify-between">
+                <span className="text-[10.5px] font-bold uppercase tracking-[.05em] text-bi-navy-700 inline-flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-bi-blue-600" /> Suggestions
+                </span>
+                <span className="text-[10px] text-bi-navy-500 font-medium">P3 · soon</span>
+              </div>
+              <div className="p-3.5 text-[12.5px] text-bi-navy-600 leading-relaxed">
+                Pedagogy lint findings (uncovered LO, weight imbalance, reading-level drift) with one-click apply.
               </div>
             </div>
 
-            <div className="rounded-lg border border-dashed border-bi-navy-200 bg-bi-navy-50 p-3">
-              <div className="text-xs font-bold text-bi-navy-700">Format spec</div>
-              <div className="text-xs text-bi-navy-600 mt-1 leading-relaxed">{KIND_META[activeKind].sub}</div>
+            <div className="bg-bi-navy-50 border border-dashed border-bi-navy-200 rounded-[10px] p-3.5">
+              <div className="text-[10.5px] font-bold uppercase tracking-[.05em] text-bi-navy-700">Format spec</div>
+              <div className="text-[11.5px] text-bi-navy-600 mt-1.5 leading-relaxed">{KIND_META[activeKind].sub}</div>
+            </div>
+
+            <div className="bg-white border border-bi-navy-100 rounded-[10px] p-3.5">
+              <div className="text-[10.5px] font-bold uppercase tracking-[.05em] text-bi-navy-700">Status</div>
+              <div className="text-[12.5px] text-bi-navy-700 mt-1.5">
+                <strong className="text-bi-navy-900">{approvedCount}</strong> of <strong className="text-bi-navy-900">{CONTENT_KINDS.length}</strong> artifacts approved on this video.
+              </div>
             </div>
           </aside>
         </div>
       </div>
-    </main>
+    </section>
   );
 }
 

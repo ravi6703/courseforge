@@ -1,11 +1,14 @@
 "use client";
 
-// PROD-3 — minimal PM-only metrics dashboard. Reads /api/admin/metrics
-// and renders a one-page scorecard with the four PRD success metrics.
-// Designed to fit on a single 13" laptop screen so it's easy to glance at.
+// Metrics dashboard — re-themed onto the BI shell. Same data contract as
+// before; only the chrome and primitives changed.
 
 import { useEffect, useState } from "react";
-import { Sidebar } from "@/components/Sidebar";
+import { BookOpen, Settings2, CheckCircle2, Users, Clock, Zap } from "lucide-react";
+import { AppShell } from "@/components/shell/AppShell";
+import { KpiCard } from "@/components/ui/KpiCard";
+import { Tag } from "@/components/ui/Tag";
+import { AvatarMini } from "@/components/ui/AvatarStack";
 
 interface MetricsResponse {
   org_id: string;
@@ -36,115 +39,135 @@ export default function MetricsPage() {
 
   if (error) {
     return (
-      <div className="flex h-screen bg-bi-navy-50">
-        <Sidebar />
-        <main className="flex-1 ml-16 p-8">
-          <h1 className="text-3xl font-bold text-bi-navy-700">Metrics</h1>
-          <p className="mt-4 text-red-700">Failed to load metrics: {error}</p>
-        </main>
-      </div>
+      <AppShell title="Metrics">
+        <h1 className="text-[24px] font-extrabold text-bi-navy-900 tracking-tight">Course production metrics</h1>
+        <p className="mt-3 text-[14px] text-red-700">Failed to load metrics: {error}</p>
+      </AppShell>
     );
   }
 
   if (!data) {
     return (
-      <div className="flex h-screen bg-bi-navy-50 items-center justify-center">
-        <div className="w-8 h-8 border-4 border-bi-blue-600 border-t-transparent rounded-full animate-spin" />
-      </div>
+      <AppShell title="Metrics">
+        <div className="grid place-items-center py-32">
+          <div className="w-8 h-8 border-4 border-bi-blue-600 border-t-transparent rounded-full animate-spin" />
+        </div>
+      </AppShell>
     );
   }
 
-  const tt = data.time_to_publish;
-  const rev = data.toc_revisions;
   const ai = data.ai_health_24h;
+  const aiOnTarget = ai.fallback_rate_pct !== null && ai.fallback_rate_pct <= ai.target_max_pct;
+  const ttpOnTarget =
+    data.time_to_publish.median_days !== null &&
+    data.time_to_publish.median_days <= data.time_to_publish.target_days;
 
   return (
-    <div className="flex h-screen bg-bi-navy-50">
-      <Sidebar />
-      <main className="flex-1 ml-16 overflow-auto">
-        <div className="max-w-6xl mx-auto p-8">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-bi-navy-700">Course Production Metrics</h1>
-            <p className="text-bi-navy-600 mt-1 text-sm">
-              Updated {new Date(data.generated_at).toLocaleString()} · Org {data.org_id.slice(0, 8)}…
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <Stat label="Total courses" value={data.courses.total} />
-            <Stat label="In production" value={data.courses.in_production} />
-            <Stat label="Published" value={data.courses.published} />
-            <Stat label="Coaches active (30d)" value={data.coach_throughput_30d.per_coach.length} />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <ScoreCard
-              title="Time to publish"
-              currentLabel={tt.median_days ? `${tt.median_days}d (median)` : "no data"}
-              targetLabel={`< ${tt.target_days}d`}
-              hit={tt.median_days != null && tt.median_days <= tt.target_days}
-              note={tt.sample_size ? `${tt.sample_size} published course${tt.sample_size === 1 ? "" : "s"}` : "Publish a course to start measuring"}
-            />
-            <ScoreCard
-              title="TOC revision cycles"
-              currentLabel={rev.mean_per_course != null ? `${rev.mean_per_course} avg` : "no data"}
-              targetLabel={`≤ ${rev.target_max}`}
-              hit={rev.mean_per_course != null && rev.mean_per_course <= rev.target_max}
-              note={rev.sample_size ? `Across ${rev.sample_size} published course${rev.sample_size === 1 ? "" : "s"}` : "Counts toc.improved events"}
-            />
-            <ScoreCard
-              title="AI health (last 24h)"
-              currentLabel={ai.fallback_rate_pct != null ? `${ai.fallback_rate_pct}% fallback` : "no AI calls yet"}
-              targetLabel={`< ${ai.target_max_pct}%`}
-              hit={ai.fallback_rate_pct == null || ai.fallback_rate_pct < ai.target_max_pct}
-              note={`${ai.total_requests} total · ${ai.denied} rate-limited · ${ai.errored} errored`}
-            />
-            <ScoreCard
-              title="Coach throughput (30d)"
-              currentLabel={
-                data.coach_throughput_30d.per_coach.length
-                  ? `${(data.coach_throughput_30d.per_coach.reduce((s, c) => s + c.courses_30d, 0) / data.coach_throughput_30d.per_coach.length).toFixed(1)} avg`
-                  : "no data"
-              }
-              targetLabel={`≥ ${data.coach_throughput_30d.target_per_coach} / coach`}
-              hit={
-                data.coach_throughput_30d.per_coach.length > 0 &&
-                data.coach_throughput_30d.per_coach.every((c) => c.courses_30d >= data.coach_throughput_30d.target_per_coach)
-              }
-              note={`${data.coach_throughput_30d.per_coach.length} coach${data.coach_throughput_30d.per_coach.length === 1 ? "" : "es"} active`}
-            />
-          </div>
+    <AppShell title="Metrics">
+      <div className="flex items-start justify-between gap-4 mb-5">
+        <div>
+          <h1 className="text-[24px] font-extrabold text-bi-navy-900 tracking-tight">Course production metrics</h1>
+          <p className="text-[13px] text-bi-navy-500 mt-0.5">
+            Updated {new Date(data.generated_at).toLocaleString()} · org {data.org_id.slice(0, 8)}…
+          </p>
         </div>
-      </main>
-    </div>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-5">
+        <KpiCard label="Total courses"        value={data.courses.total}                                    icon={BookOpen}     tone="blue"    />
+        <KpiCard label="In production"        value={data.courses.in_production}                            icon={Settings2}    tone="amber"   />
+        <KpiCard label="Published"            value={data.courses.published}                                icon={CheckCircle2} tone="emerald" />
+        <KpiCard label="Coaches active (30d)" value={data.coach_throughput_30d.per_coach.length}             icon={Users}        tone="violet"  />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 mb-5">
+        <Panel
+          title="Time to publish"
+          sub={`target ≤ ${data.time_to_publish.target_days} days · sample ${data.time_to_publish.sample_size}`}
+          icon={Clock}
+        >
+          <div className="grid grid-cols-3 gap-3 text-center">
+            <Big value={data.time_to_publish.median_days !== null ? `${data.time_to_publish.median_days}d` : "—"} label="Median" />
+            <Big value={data.time_to_publish.mean_days   !== null ? `${data.time_to_publish.mean_days}d`   : "—"} label="Mean"   />
+            <div className="flex flex-col items-center justify-center gap-1.5">
+              <Tag tone={ttpOnTarget ? "emerald" : "amber"}>{ttpOnTarget ? "on target" : "watch"}</Tag>
+              <span className="text-[10px] text-bi-navy-500 uppercase tracking-wider font-bold">Status</span>
+            </div>
+          </div>
+        </Panel>
+
+        <Panel
+          title="AI fallback rate (24h)"
+          sub={`target ≤ ${ai.target_max_pct}%`}
+          icon={Zap}
+        >
+          <div className="grid grid-cols-3 gap-3 text-center">
+            <Big value={ai.fallback_rate_pct !== null ? `${ai.fallback_rate_pct.toFixed(1)}%` : "—"} label="Fallback" valueClass={aiOnTarget ? "text-emerald-700" : "text-red-700"} />
+            <Big value={String(Math.max(0, ai.total_requests - ai.errored))} label="OK" valueClass="text-emerald-700" />
+            <Big value={String(ai.errored)} label="Errors" valueClass={ai.errored > 0 ? "text-red-700" : ""} />
+          </div>
+        </Panel>
+      </div>
+
+      <Panel title="Coach throughput · last 30 days">
+        <div className="-mx-5 -mb-5">
+          <table className="w-full">
+            <thead className="border-b border-bi-navy-100">
+              <tr>
+                <th className="text-left px-5 py-2.5 text-[10.5px] font-bold uppercase tracking-[.04em] text-bi-navy-500">Coach</th>
+                <th className="text-left px-5 py-2.5 text-[10.5px] font-bold uppercase tracking-[.04em] text-bi-navy-500">Courses (30d)</th>
+                <th className="text-left px-5 py-2.5 text-[10.5px] font-bold uppercase tracking-[.04em] text-bi-navy-500">vs target</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.coach_throughput_30d.per_coach.length === 0 && (
+                <tr><td colSpan={3} className="px-5 py-6 text-center text-[13px] text-bi-navy-500">No coach activity in the last 30 days.</td></tr>
+              )}
+              {data.coach_throughput_30d.per_coach.map((c) => {
+                const onTarget = c.courses_30d >= data.coach_throughput_30d.target_per_coach;
+                return (
+                  <tr key={c.coach_id} className="border-b border-bi-navy-50 last:border-0 hover:bg-bi-navy-50">
+                    <td className="px-5 py-3 text-[13px]">
+                      <span className="inline-flex items-center gap-2">
+                        <AvatarMini name={c.coach_id.slice(0,2)} variant={(c.coach_id.charCodeAt(0) % 2) === 0 ? "a" : "b"} />
+                        <span className="font-semibold text-bi-navy-900 font-mono text-[12px]">{c.coach_id.slice(0,8)}…</span>
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 text-[13px] font-bold text-bi-navy-900 tabular-nums">{c.courses_30d}</td>
+                    <td className="px-5 py-3"><Tag tone={onTarget ? "emerald" : "amber"}>{onTarget ? "on target" : "below target"}</Tag></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </Panel>
+    </AppShell>
   );
 }
 
-function Stat({ label, value }: { label: string; value: number }) {
+function Panel({
+  title, sub, icon: Icon, children,
+}: { title: string; sub?: string; icon?: React.ComponentType<{ className?: string }>; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-xl border border-bi-navy-200 p-5 shadow-sm">
-      <p className="text-sm text-bi-navy-600">{label}</p>
-      <p className="text-2xl font-bold text-bi-navy-700 mt-1">{value}</p>
-    </div>
+    <section className="bg-white border border-bi-navy-100 rounded-[10px] shadow-bi-sm overflow-hidden">
+      <div className="px-5 py-3 border-b border-bi-navy-100 flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-[15px] font-bold text-bi-navy-900 tracking-tight">{title}</h2>
+          {sub && <div className="text-[12px] text-bi-navy-500 mt-0.5">{sub}</div>}
+        </div>
+        {Icon && <Icon className="w-4 h-4 text-bi-navy-400 shrink-0" />}
+      </div>
+      <div className="p-5">{children}</div>
+    </section>
   );
 }
 
-function ScoreCard({
-  title, currentLabel, targetLabel, hit, note,
-}: { title: string; currentLabel: string; targetLabel: string; hit: boolean; note: string }) {
+function Big({ value, label, valueClass = "text-bi-navy-900" }: { value: string; label: string; valueClass?: string }) {
   return (
-    <div className={`bg-white rounded-xl border p-5 shadow-sm ${hit ? "border-emerald-200" : "border-amber-200"}`}>
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-bi-navy-700">{title}</h3>
-        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${hit ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
-          {hit ? "On target" : "Off target"}
-        </span>
-      </div>
-      <div className="mt-3 flex items-baseline gap-3">
-        <span className="text-2xl font-bold text-bi-navy-700">{currentLabel}</span>
-        <span className="text-sm text-bi-navy-600">target {targetLabel}</span>
-      </div>
-      <p className="mt-2 text-xs text-bi-navy-600">{note}</p>
+    <div>
+      <div className={`text-[28px] font-extrabold tracking-tight leading-none ${valueClass}`}>{value}</div>
+      <div className="text-[10px] text-bi-navy-500 uppercase tracking-[.04em] font-bold mt-1">{label}</div>
     </div>
   );
 }
