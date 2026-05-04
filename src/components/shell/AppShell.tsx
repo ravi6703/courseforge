@@ -1,11 +1,11 @@
 "use client";
 
 // Shell wrapper for every authenticated page. Renders the BI sidebar,
-// the topbar, and pushes the main content over by 240px (or 64px when
-// collapsed). The collapsed state lives on <html data-sidebar-collapsed>
-// so CSS in this component can react to it without prop-drilling.
+// the topbar, and pushes main over by 240px (or 64px when collapsed).
+// Collapsed state lives in React + localStorage; passed down so Sidebar
+// and Topbar both stay in sync without exotic CSS selectors.
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 
@@ -16,29 +16,36 @@ interface AppShellProps {
   title?: string;
   crumbs?: Crumb[];
   rightSlot?: React.ReactNode;
-  // When true, the page renders without max-width / padding constraints
-  // (used for full-bleed canvases like the Content workspace).
   fullBleed?: boolean;
 }
 
 export function AppShell({ children, title, crumbs, rightSlot, fullBleed }: AppShellProps) {
+  const [collapsed, setCollapsed] = useState(false);
+
   useEffect(() => {
-    // Restore collapsed preference from localStorage
     try {
       const v = localStorage.getItem("cf:sidebar:collapsed");
-      if (v === "true") {
-        const el = document.getElementById("cf-sidebar");
-        el?.setAttribute("data-collapsed", "true");
-        document.documentElement.setAttribute("data-sidebar-collapsed", "true");
-      }
+      if (v === "true") setCollapsed(true);
     } catch {}
   }, []);
 
+  const toggle = () => {
+    setCollapsed((c) => {
+      const next = !c;
+      try { localStorage.setItem("cf:sidebar:collapsed", String(next)); } catch {}
+      return next;
+    });
+  };
+
   return (
     <div className="min-h-screen bg-bi-navy-50">
-      <Sidebar />
-      <div className="ml-60 transition-[margin] duration-200 has-[#cf-sidebar[data-collapsed='true']]:ml-16 [html[data-sidebar-collapsed='true']_&]:ml-16 min-h-screen flex flex-col">
-        <Topbar title={title} crumbs={crumbs} rightSlot={rightSlot} />
+      <Sidebar collapsed={collapsed} />
+      <div
+        className={`transition-[margin] duration-200 min-h-screen flex flex-col ${
+          collapsed ? "ml-16" : "ml-60"
+        }`}
+      >
+        <Topbar title={title} crumbs={crumbs} rightSlot={rightSlot} onToggleSidebar={toggle} />
         <main className={fullBleed ? "flex-1" : "flex-1 max-w-[1320px] mx-auto w-full px-7 py-7"}>
           {children}
         </main>

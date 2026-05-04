@@ -14,10 +14,10 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  LayoutDashboard, BarChart3, Library, Plus, FileTemplate,
-  ListTree, ClipboardList, Presentation, Video, Mic, BookOpen, CheckCircle2,
-  HeartPulse, FlaskConical,
-  Settings, Plug, Users, LogOut, ChevronDown,
+  LayoutDashboard, BarChart, BookOpen, Plus,
+  Layers, FileText, Presentation, Video, Mic, CheckCircle,
+  Heart, Beaker,
+  Settings, Users, LogOut, ChevronDown,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -29,13 +29,13 @@ const SECTIONS: Section[] = [
     id: "overview", label: "Overview",
     items: [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { label: "Metrics",   href: "/metrics",   icon: BarChart3       },
+      { label: "Metrics",   href: "/metrics",   icon: BarChart       },
     ],
   },
   {
     id: "courses", label: "Courses",
     items: [
-      { label: "All courses", href: "/dashboard", icon: Library },
+      { label: "All courses", href: "/dashboard", icon: BookOpen },
       { label: "New course",  href: "/create",    icon: Plus    },
     ],
   },
@@ -43,27 +43,27 @@ const SECTIONS: Section[] = [
     id: "pipeline", label: "Course pipeline",
     visibleOn: (p) => /^\/course\/[^/]+/.test(p),
     items: [
-      { label: "Table of contents", href: "/course/CURRENT/toc",        icon: ListTree         },
-      { label: "Content briefs",    href: "/course/CURRENT/briefs",     icon: ClipboardList    },
+      { label: "Table of contents", href: "/course/CURRENT/toc",        icon: Layers         },
+      { label: "Content briefs",    href: "/course/CURRENT/briefs",     icon: FileText    },
       { label: "Presentations",     href: "/course/CURRENT/ppts",       icon: Presentation     },
       { label: "Recordings",        href: "/course/CURRENT/recording",  icon: Video            },
       { label: "Transcripts",       href: "/course/CURRENT/transcript", icon: Mic              },
       { label: "Content",           href: "/course/CURRENT/content",    icon: BookOpen         },
-      { label: "Final review",      href: "/course/CURRENT/review",     icon: CheckCircle2     },
+      { label: "Final review",      href: "/course/CURRENT/review",     icon: CheckCircle     },
     ],
   },
   {
     id: "public", label: "Public",
     items: [
-      { label: "Health scores",     href: "/dashboard?tab=health", icon: HeartPulse    },
-      { label: "Learning science",  href: "/learning-science",     icon: FlaskConical  },
+      { label: "Health scores",     href: "/dashboard?tab=health", icon: Heart    },
+      { label: "Learning science",  href: "/learning-science",     icon: Beaker  },
     ],
   },
   {
     id: "admin", label: "Admin",
     items: [
       { label: "Settings",     href: "/dashboard?settings=1", icon: Settings },
-      { label: "Integrations", href: "/dashboard?integrations=1", icon: Plug },
+      { label: "Integrations", href: "/dashboard?integrations=1", icon: Settings },
       { label: "Team",         href: "/dashboard?team=1", icon: Users },
     ],
   },
@@ -71,7 +71,7 @@ const SECTIONS: Section[] = [
 
 const COLLAPSE_KEY = "cf:sidebar:section-collapsed";
 
-export function Sidebar() {
+export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
   const pathname = usePathname() || "";
   const router = useRouter();
   const [user, setUser] = useState<{ name: string; email: string; role: string } | null>(null);
@@ -124,14 +124,14 @@ export function Sidebar() {
 
   return (
     <aside
-      className="group/side fixed left-0 top-0 h-screen w-60 bg-white border-r border-bi-navy-100 flex flex-col z-40 transition-[width] duration-200 data-[collapsed=true]:w-16 overflow-hidden"
-      data-collapsed="false"
+      className={`group/side fixed left-0 top-0 h-screen bg-white border-r border-bi-navy-100 flex flex-col z-40 transition-[width] duration-200 overflow-hidden ${collapsed ? "w-16" : "w-60"}`}
+      data-collapsed={collapsed ? "true" : "false"}
       id="cf-sidebar"
     >
       {/* Brand */}
       <Link href="/dashboard" className="flex items-center gap-2.5 px-4 h-14 border-b border-bi-navy-100 shrink-0">
         <div className="w-8 h-8 rounded-full bg-bi-navy-700 text-white grid place-items-center font-black text-sm shrink-0">∞</div>
-        <span className="font-bold text-bi-navy-900 tracking-tight text-[15px] truncate group-data-[collapsed=true]/side:hidden">
+        <span className={`font-bold text-bi-navy-900 tracking-tight text-[15px] truncate ${collapsed ? "hidden" : ""}`}>
           Course<span className="text-bi-blue-600">Forge</span>
         </span>
       </Link>
@@ -145,12 +145,12 @@ export function Sidebar() {
               <button
                 type="button"
                 onClick={() => toggleSection(sec.id)}
-                className="flex items-center justify-between w-full px-2 py-1.5 text-[10px] font-bold uppercase tracking-[.08em] text-bi-navy-500 hover:text-bi-navy-700 group-data-[collapsed=true]/side:hidden"
+                className={`flex items-center justify-between w-full px-2 py-1.5 text-[10px] font-bold uppercase tracking-[.08em] text-bi-navy-500 hover:text-bi-navy-700 ${collapsed ? "hidden" : ""}`}
               >
                 <span>{sec.label}</span>
                 <ChevronDown className={`w-3 h-3 transition-transform ${isCollapsed ? "-rotate-90" : ""}`} />
               </button>
-              <ul className={`flex flex-col gap-px ${isCollapsed ? "hidden group-data-[collapsed=true]/side:flex" : ""}`}>
+              <ul className={`flex flex-col gap-px ${isCollapsed ? "hidden" : ""}`}>
                 {sec.items.map((item) => {
                   const href = courseId ? item.href.replace("CURRENT", courseId) : item.href;
                   const Icon = item.icon;
@@ -168,9 +168,9 @@ export function Sidebar() {
                         }`}
                       >
                         <Icon className="w-[18px] h-[18px] shrink-0" />
-                        <span className="truncate group-data-[collapsed=true]/side:hidden">{item.label}</span>
+                        <span className={`truncate ${collapsed ? "hidden" : ""}`}>{item.label}</span>
                         {item.badge !== undefined && (
-                          <span className={`ml-auto text-[10px] font-bold tracking-wide rounded-full px-1.5 py-px group-data-[collapsed=true]/side:hidden ${
+                          <span className={`ml-auto text-[10px] font-bold tracking-wide rounded-full px-1.5 py-px ${collapsed ? "hidden" : ""} ${
                             active ? "bg-white/20 text-white" : "bg-bi-accent-100 text-bi-accent-700"
                           }`}>{item.badge}</span>
                         )}
@@ -189,13 +189,13 @@ export function Sidebar() {
         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-bi-navy-700 to-bi-blue-600 text-white grid place-items-center text-[11px] font-bold shrink-0">
           {user.name.split(" ").map((n) => n[0]).join("").slice(0,2).toUpperCase()}
         </div>
-        <div className="min-w-0 flex-1 group-data-[collapsed=true]/side:hidden">
+        <div className={`min-w-0 flex-1 ${collapsed ? "hidden" : ""}`}>
           <div className="text-[12.5px] font-semibold text-bi-navy-900 truncate leading-tight">{user.name}</div>
           <div className="text-[10px] text-bi-navy-500 uppercase tracking-wider font-semibold mt-px">{user.role} · BI</div>
         </div>
         <button
           onClick={handleLogout}
-          className="p-1.5 text-bi-navy-500 hover:text-bi-navy-900 hover:bg-bi-navy-50 rounded-md group-data-[collapsed=true]/side:hidden"
+          className={`p-1.5 text-bi-navy-500 hover:text-bi-navy-900 hover:bg-bi-navy-50 rounded-md ${collapsed ? "hidden" : ""}`}
           title="Sign out"
         >
           <LogOut className="w-4 h-4" />
