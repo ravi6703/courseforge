@@ -4,7 +4,7 @@
 // generate/regenerate transcript actions.
 
 import { useState } from "react";
-import { Loader2, RotateCcw, Eye, Sparkles, BookOpen, Download } from "lucide-react";
+import { Loader2, RotateCcw, Eye, Sparkles, BookOpen, Download, Languages } from "lucide-react";
 
 export interface TranscriptVideoRow {
   videoId: string;
@@ -34,8 +34,28 @@ export function TranscriptView({
   const [transcribing, setTranscribing] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [busyUtil, setBusyUtil] = useState<{ id: string; util: "cleanup" | "glossary" | null }>({ id: "", util: null });
+  const [busyUtil, setBusyUtil] = useState<{ id: string; util: "cleanup" | "glossary" | "translate" | null }>({ id: "", util: null });
   const [glossaries, setGlossaries] = useState<Record<string, Array<{ term: string; definition: string }>>>({});
+  const [translations, setTranslations] = useState<Record<string, { target: string; text: string }>>({});
+
+  const runTranslate = async (transcriptId: string) => {
+    const target = window.prompt("Target language (e.g. hi, es, ar, fr, de, pt, ja, zh, ko, ru, vi, tr):", "hi");
+    if (!target?.trim()) return;
+    setBusyUtil({ id: transcriptId, util: "translate" });
+    try {
+      const res = await fetch(`/api/transcript/${transcriptId}/translate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ target: target.trim() }),
+      });
+      const data = await res.json();
+      if (res.ok && data.translation) {
+        setTranslations((tx) => ({ ...tx, [transcriptId]: { target: data.target_name ?? data.target, text: data.translation } }));
+      } else {
+        alert(`Translation failed: ${data.error ?? `HTTP ${res.status}`}`);
+      }
+    } finally { setBusyUtil({ id: "", util: null }); }
+  };
 
   const runCleanup = async (transcriptId: string) => {
     setBusyUtil({ id: transcriptId, util: "cleanup" });
@@ -249,6 +269,15 @@ export function TranscriptView({
                                       Glossary
                                     </button>
                                     <button
+                                      onClick={() => row.transcript && runTranslate(row.transcript.id)}
+                                      disabled={busyUtil.util === "translate" && busyUtil.id === row.transcript?.id}
+                                      className="text-xs px-2 py-1 rounded border border-bi-navy-300 text-bi-navy-700 bg-white hover:bg-bi-navy-50 inline-flex items-center gap-1 disabled:opacity-50"
+                                      title="Translate transcript to another language"
+                                    >
+                                      {busyUtil.util === "translate" && busyUtil.id === row.transcript?.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Languages className="w-3 h-3" />}
+                                      Translate
+                                    </button>
+                                    <button
                                       onClick={() => row.transcript && downloadSubtitle(row.transcript.id, "srt")}
                                       className="text-xs px-2 py-1 rounded border border-bi-navy-300 text-bi-navy-700 bg-white hover:bg-bi-navy-50 inline-flex items-center gap-1"
                                       title="Download SubRip"
@@ -309,6 +338,34 @@ export function TranscriptView({
                                     </li>
                                   ))}
                                 </ul>
+                              </div>
+                            )}
+
+                            {/* Translation results */}
+                            {hasTranscript && translations[row.transcript!.id] && (
+                              <div className="mt-3 pt-3 border-t border-bi-navy-200">
+                                <div className="flex items-center justify-between mb-1.5">
+                                  <div className="text-[10.5px] font-bold uppercase tracking-[.06em] text-bi-navy-500">
+                                    Translation · {translations[row.transcript!.id].target}
+                                  </div>
+                                  <button
+                                    onClick={() => {
+                                      const blob = new Blob([translations[row.transcript!.id].text], { type: "text/plain" });
+                                      const url = URL.createObjectURL(blob);
+                                      const a = document.createElement("a");
+                                      a.href = url;
+                                      a.download = `transcript-${row.transcript!.id}-${translations[row.transcript!.id].target}.txt`;
+                                      a.click();
+                                      URL.revokeObjectURL(url);
+                                    }}
+                                    className="text-[10.5px] text-bi-blue-700 hover:underline inline-flex items-center gap-0.5"
+                                  >
+                                    <Download className="w-2.5 h-2.5" /> .txt
+                                  </button>
+                                </div>
+                                <pre className="text-xs whitespace-pre-wrap font-mono text-bi-navy-700 bg-bi-navy-50 rounded p-2 max-h-96 overflow-y-auto">
+                                  {translations[row.transcript!.id].text}
+                                </pre>
                               </div>
                             )}
                           </div>
