@@ -31,12 +31,21 @@ describe("Content Schemas — Zod validation", () => {
       expect(result.success).toBe(true);
     });
 
-    it("rejects missing video_id", () => {
+    it("accepts lesson_id (preferred lesson-scope shape)", () => {
       const payload = {
+        lesson_id: "550e8400-e29b-41d4-a716-446655440000",
         kind: "pq",
       };
       const result = GenerateContentItemSchema.safeParse(payload);
-      expect(result.success).toBe(false);
+      expect(result.success).toBe(true);
+    });
+
+    it("schema is permissive on id presence — the route enforces 'exactly one'", () => {
+      // Schema-level it's fine to omit both ids; the /api/content/generate
+      // handler returns a 400 when neither is supplied.
+      const payload = { kind: "pq" };
+      const result = GenerateContentItemSchema.safeParse(payload);
+      expect(result.success).toBe(true);
     });
 
     it("rejects invalid kind", () => {

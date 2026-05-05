@@ -22,6 +22,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle2, Circle, Sparkles, Loader2, FileText } from "lucide-react";
 import { BriefCard } from "./BriefCard";
+import { StatusPill } from "@/components/ui/StatusPill";
 
 export interface BriefRow {
   videoId: string;
@@ -143,24 +144,21 @@ export function BriefsView({
             {bulkGenerating ? `Generating ${pending}…` : `Generate all (${pending} pending)`}
           </button>
         )}
-        <div className="flex items-center gap-1 text-[11.5px]">
+        <div className="flex items-center gap-1.5">
           {([
-            { k: "all" as const, label: "All", count: totalVideos },
-            { k: "pending" as const, label: "Pending", count: pending },
-            { k: "draft" as const, label: "Draft", count: drafted },
-            { k: "approved" as const, label: "Approved", count: approved },
+            { k: "all"      as const, label: "All",      count: totalVideos, variant: "neutral"  as const },
+            { k: "pending"  as const, label: "Pending",  count: pending,     variant: "pending"  as const },
+            { k: "draft"    as const, label: "Draft",    count: drafted,     variant: "draft"    as const },
+            { k: "approved" as const, label: "Approved", count: approved,    variant: "approved" as const },
           ]).map((f) => (
-            <button
+            <StatusPill
               key={f.k}
+              variant={f.variant}
+              label={f.label}
+              count={f.count}
+              active={filter === f.k}
               onClick={() => setFilter(f.k)}
-              className={`px-2 py-1 rounded-md font-medium ${
-                filter === f.k
-                  ? "bg-bi-navy-100 text-bi-navy-800"
-                  : "text-bi-navy-500 hover:text-bi-navy-700"
-              }`}
-            >
-              {f.label} <span className="opacity-70 tabular-nums">{f.count}</span>
-            </button>
+            />
           ))}
         </div>
       </div>
@@ -196,12 +194,12 @@ export function BriefsView({
                         <StatusIcon status={r.brief?.status} />
                         <span className="flex-1 truncate">{r.videoTitle}</span>
                         {r.brief?.stale_since && (
-                          <span
+                          <StatusPill
+                            variant="stale"
+                            size="sm"
+                            label="Stale"
                             title={r.brief.stale_reason ?? "Outcomes changed since this brief was generated"}
-                            className="text-[9.5px] font-semibold uppercase tracking-wider text-amber-700 bg-amber-50 border border-amber-200 px-1 py-0.5 rounded"
-                          >
-                            Stale
-                          </span>
+                          />
                         )}
                       </button>
                     );

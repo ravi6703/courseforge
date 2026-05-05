@@ -1,9 +1,14 @@
-// Content tab — overview grid (videos × artifact kinds).
+// Content tab — overview grid: lessons × artifact-kinds.
 //
-// Round A.4: split into three pages so each surface has one job:
-//   /content                        — this overview
-//   /content/[videoId]              — per-video workspace (all kinds)
-//   /content/[videoId]/[kind]       — focused full-page editor
+// As of the lesson-scope migration the 7 non-video artifacts (Reading,
+// Practice quiz, Assessment, Worked example, Discussion, SCORM, AI
+// Coach) belong to the lesson, not the video. Per-video Briefs and PPT
+// slides remain on the Briefs / Slides tabs.
+//
+// Routes:
+//   /content                                    — this overview
+//   /content/lesson/[lessonId]                  — per-lesson workspace
+//   /content/lesson/[lessonId]/[kind]           — focused single-kind editor
 
 import { getServerSupabase } from "@/lib/supabase/server";
 import { ContentOverview } from "./ContentOverview";
@@ -16,23 +21,22 @@ export default async function ContentTab({
   const { id } = await params;
   const supabase = await getServerSupabase();
 
+  // Pull lessons (with module info), their videos for count, and the
+  // lesson-scoped content items. video_id is now NULL for these rows;
+  // we group by (lesson_id, kind).
   const { data: course } = await supabase
     .from("courses")
-    .select(
-      `
+    .select(`
       id, title,
       modules(
         id, title, order,
         lessons(
           id, title, order,
-          videos(
-            id, title, order,
-            content_items(id, kind, status, stale_since)
-          )
+          videos(id, title, order),
+          content_items(id, kind, status, stale_since)
         )
       )
-    `
-    )
+    `)
     .eq("id", id)
     .single();
 
@@ -44,24 +48,26 @@ export default async function ContentTab({
     );
   }
 
-  // Flatten to overview rows.
-  const rows: Array<{
-    videoId: string; videoTitle: string;
-    lessonTitle: string; moduleTitle: string; moduleOrder: number;
-    contentItems: Array<{ id: string; kind: string; status: string }>;
-  }> = [];
+  type OverviewRow = {
+    lessonId: string;
+    lessonTitle: string;
+    moduleTitle: string;
+    moduleOrder: number;
+    videoCount: number;
+    contentItems: Array<{ id: string; kind: string; status: string; stale_since?: string | null }>;
+  };
+
+  const rows: OverviewRow[] = [];
   for (const mod of course.modules) {
     for (const lesson of mod.lessons || []) {
-      for (const video of lesson.videos || []) {
-        rows.push({
-          videoId: video.id,
-          videoTitle: video.title,
-          lessonTitle: lesson.title,
-          moduleTitle: mod.title,
-          moduleOrder: mod.order ?? 0,
-          contentItems: (video.content_items || []) as Array<{ id: string; kind: string; status: string; stale_since?: string | null }>,
-        });
-      }
+      rows.push({
+        lessonId: lesson.id,
+        lessonTitle: lesson.title,
+        moduleTitle: mod.title,
+        moduleOrder: mod.order ?? 0,
+        videoCount: (lesson.videos || []).length,
+        contentItems: (lesson.content_items || []) as Array<{ id: string; kind: string; status: string; stale_since?: string | null }>,
+      });
     }
   }
 
