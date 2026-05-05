@@ -1,4 +1,5 @@
 import { getServerSupabase } from "@/lib/supabase/server";
+import { Suspense } from "react";
 import { ContentView, ContentVideoRow } from "./ContentView";
 
 export default async function ContentTab({
@@ -72,7 +73,8 @@ export default async function ContentTab({
   const totalCount = allItems.length;
 
   return (
-    <ContentView
+    <Suspense fallback={<div className="py-12 text-center text-slate-500 text-sm">Loading…</div>}>
+      <ContentView
       courseId={id}
       rows={rows}
       kpis={{
@@ -81,5 +83,6 @@ export default async function ContentTab({
         totalCount,
       }}
     />
+    </Suspense>
   );
 }

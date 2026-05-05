@@ -16,7 +16,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, BarChart, BookOpen, Plus,
   Layers, FileText, Presentation, Video, Mic, CheckCircle,
-  Heart, Beaker,
+  Heart, Award,
   Settings, Users, LogOut, ChevronDown,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -56,7 +56,7 @@ const SECTIONS: Section[] = [
     id: "public", label: "Public",
     items: [
       { label: "Health scores",     href: "/dashboard?tab=health", icon: Heart    },
-      { label: "Learning science",  href: "/learning-science",     icon: Beaker  },
+      { label: "Learning science",  href: "/learning-science",     icon: Award  },
     ],
   },
   {

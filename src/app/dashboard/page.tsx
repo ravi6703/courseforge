@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Plus, BookOpen, Clock, Heart, Zap, Search, ChevronRight } from "lucide-react";
@@ -48,7 +48,7 @@ function gradeFromScore(n: number): string {
   return "F · Below standard";
 }
 
-export default function DashboardPage() {
+function DashboardInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const statusFilter = searchParams.get("status") ?? "all"; // all | inProduction | needsReview | published
@@ -343,5 +343,33 @@ function YourQueue({ courses }: { courses: Course[] }) {
         ))}
       </div>
     </div>
+  );
+}
+
+
+// Wrap the inner component (which calls useSearchParams) in Suspense so
+// Next.js doesn't deopt the route during build. The fallback mirrors
+// the loading skeleton inside DashboardInner so there's no flash.
+export default function DashboardPage() {
+  return (
+    <Suspense
+      fallback={
+        <AppShell title="Dashboard">
+          <div className="flex items-start justify-between gap-4 mb-6">
+            <div>
+              <div className="h-7 w-64 bg-slate-200 rounded animate-pulse" />
+              <div className="h-3 w-40 bg-slate-100 rounded animate-pulse mt-2" />
+            </div>
+            <div className="h-9 w-32 bg-slate-200 rounded animate-pulse" />
+          </div>
+          <KpiStripSkeleton />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5 mb-5">
+            <PanelSkeleton rows={3} /><PanelSkeleton rows={3} />
+          </div>
+        </AppShell>
+      }
+    >
+      <DashboardInner />
+    </Suspense>
   );
 }
