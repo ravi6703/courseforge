@@ -4,7 +4,7 @@
 // generate/regenerate transcript actions.
 
 import { useState } from "react";
-import { Loader2, RotateCcw, Eye, Sparkles, BookOpen, Download, Languages, ArrowRight } from "lucide-react";
+import { Loader2, RotateCcw, Eye, Sparkles, BookOpen, Download, Languages, ArrowRight, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
 
 export interface TranscriptVideoRow {
@@ -244,68 +244,19 @@ export function TranscriptView({
                                 ) : !hasRecording ? (
                                   <span className="text-xs text-bi-navy-400">—</span>
                                 ) : hasTranscript ? (
-                                  <div className="flex items-center gap-1 flex-wrap justify-end">
-                                    <button
-                                      onClick={() => setExpandedId(isExpanded ? null : row.videoId)}
-                                      className="text-xs px-2 py-1 rounded border border-blue-300 text-blue-700 bg-blue-50 hover:bg-bi-blue-100 inline-flex items-center gap-1"
-                                    >
-                                      <Eye className="w-3 h-3" /> View full
-                                    </button>
-                                    <button
-                                      onClick={() => row.transcript && runCleanup(row.transcript.id)}
-                                      disabled={busyUtil.util === "cleanup" && busyUtil.id === row.transcript?.id}
-                                      className="text-xs px-2 py-1 rounded border border-bi-navy-300 text-bi-navy-700 bg-white hover:bg-bi-navy-50 inline-flex items-center gap-1 disabled:opacity-50"
-                                      title="Remove fillers + reflow paragraphs"
-                                    >
-                                      {busyUtil.util === "cleanup" && busyUtil.id === row.transcript?.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
-                                      Cleanup
-                                    </button>
-                                    <button
-                                      onClick={() => row.transcript && runGlossary(row.transcript.id)}
-                                      disabled={busyUtil.util === "glossary" && busyUtil.id === row.transcript?.id}
-                                      className="text-xs px-2 py-1 rounded border border-bi-navy-300 text-bi-navy-700 bg-white hover:bg-bi-navy-50 inline-flex items-center gap-1 disabled:opacity-50"
-                                      title="Extract domain glossary"
-                                    >
-                                      {busyUtil.util === "glossary" && busyUtil.id === row.transcript?.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <BookOpen className="w-3 h-3" />}
-                                      Glossary
-                                    </button>
-                                    <button
-                                      onClick={() => row.transcript && runTranslate(row.transcript.id)}
-                                      disabled={busyUtil.util === "translate" && busyUtil.id === row.transcript?.id}
-                                      className="text-xs px-2 py-1 rounded border border-bi-navy-300 text-bi-navy-700 bg-white hover:bg-bi-navy-50 inline-flex items-center gap-1 disabled:opacity-50"
-                                      title="Translate transcript to another language"
-                                    >
-                                      {busyUtil.util === "translate" && busyUtil.id === row.transcript?.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Languages className="w-3 h-3" />}
-                                      Translate
-                                    </button>
-                                    <button
-                                      onClick={() => row.transcript && downloadSubtitle(row.transcript.id, "srt")}
-                                      className="text-xs px-2 py-1 rounded border border-bi-navy-300 text-bi-navy-700 bg-white hover:bg-bi-navy-50 inline-flex items-center gap-1"
-                                      title="Download SubRip"
-                                    >
-                                      <Download className="w-3 h-3" /> SRT
-                                    </button>
-                                    <button
-                                      onClick={() => row.transcript && downloadSubtitle(row.transcript.id, "vtt")}
-                                      className="text-xs px-2 py-1 rounded border border-bi-navy-300 text-bi-navy-700 bg-white hover:bg-bi-navy-50 inline-flex items-center gap-1"
-                                      title="Download WebVTT"
-                                    >
-                                      <Download className="w-3 h-3" /> VTT
-                                    </button>
-                                    <Link
-                                      href={`/course/${courseId}/content/${row.videoId}`}
-                                      className="text-xs px-2 py-1 rounded bg-bi-blue-100 text-bi-blue-700 border border-bi-blue-200 hover:bg-bi-blue-200 inline-flex items-center gap-1 font-semibold"
-                                      title="Open this video's content workspace"
-                                    >
-                                      Send to Content <ArrowRight className="w-3 h-3" />
-                                    </Link>
-                                    <button
-                                      onClick={() => handleGenerateTranscript(row)}
-                                      className="text-xs px-2 py-1 rounded border border-bi-navy-300 text-bi-navy-700 bg-bi-navy-50 hover:bg-bi-navy-100 inline-flex items-center gap-1"
-                                    >
-                                      <RotateCcw className="w-3 h-3" /> Re-gen
-                                    </button>
-                                  </div>
+                                  <TranscriptActions
+                                    courseId={courseId}
+                                    videoId={row.videoId}
+                                    transcriptId={row.transcript!.id}
+                                    expanded={isExpanded}
+                                    busyUtil={busyUtil}
+                                    onView={() => setExpandedId(isExpanded ? null : row.videoId)}
+                                    onCleanup={() => runCleanup(row.transcript!.id)}
+                                    onGlossary={() => runGlossary(row.transcript!.id)}
+                                    onTranslate={() => runTranslate(row.transcript!.id)}
+                                    onDownload={(fmt) => downloadSubtitle(row.transcript!.id, fmt)}
+                                    onRegenerate={() => handleGenerateTranscript(row)}
+                                  />
                                 ) : (
                                   <button
                                     onClick={() => handleGenerateTranscript(row)}
@@ -405,5 +356,89 @@ function Stat({ label, value }: { label: string; value: string }) {
       </div>
       <div className="text-2xl font-bold text-bi-navy-900 mt-0.5">{value}</div>
     </div>
+  );
+}
+
+// Per-row action group. Two primary buttons (View, Send to Content) plus
+// an overflow menu for the rest. Replaces the previous 8-button row.
+function TranscriptActions(props: {
+  courseId: string;
+  videoId: string;
+  transcriptId: string;
+  expanded: boolean;
+  busyUtil: { id: string; util: "cleanup" | "glossary" | "translate" | null };
+  onView: () => void;
+  onCleanup: () => void;
+  onGlossary: () => void;
+  onTranslate: () => void;
+  onDownload: (fmt: "srt" | "vtt") => void;
+  onRegenerate: () => void;
+}) {
+  const { courseId, videoId, transcriptId, expanded, busyUtil,
+          onView, onCleanup, onGlossary, onTranslate, onDownload, onRegenerate } = props;
+  const [menuOpen, setMenuOpen] = useState(false);
+  const isBusy = (k: "cleanup" | "glossary" | "translate") =>
+    busyUtil.util === k && busyUtil.id === transcriptId;
+
+  return (
+    <div className="flex items-center gap-1.5 justify-end relative">
+      <button
+        onClick={onView}
+        className="text-xs px-2 py-1 rounded border border-bi-navy-200 text-bi-navy-700 bg-white hover:bg-bi-navy-50 inline-flex items-center gap-1"
+        title="View full transcript"
+      >
+        <Eye className="w-3 h-3" /> {expanded ? "Hide" : "View"}
+      </button>
+      <Link
+        href={`/course/${courseId}/content/${videoId}`}
+        className="text-xs px-2 py-1 rounded bg-bi-blue-100 text-bi-blue-700 border border-bi-blue-200 hover:bg-bi-blue-200 inline-flex items-center gap-1 font-semibold"
+        title="Open this video's content workspace"
+      >
+        Send to Content <ArrowRight className="w-3 h-3" />
+      </Link>
+      <button
+        onClick={() => setMenuOpen((o) => !o)}
+        className="text-bi-navy-500 hover:text-bi-navy-900 p-1.5 rounded hover:bg-bi-navy-50"
+        aria-label="More actions"
+      >
+        <MoreHorizontal className="w-3.5 h-3.5" />
+      </button>
+      {menuOpen && (
+        <>
+          <button className="fixed inset-0 z-10 cursor-default" onClick={() => setMenuOpen(false)} aria-label="Close menu" />
+          <ul className="absolute right-0 top-full mt-1 z-20 min-w-[200px] bg-white border border-bi-navy-200 rounded-md shadow-lg py-1">
+            <MenuItem onClick={() => { onCleanup();   setMenuOpen(false); }} icon={isBusy("cleanup")  ? Loader2 : Sparkles}  label="Clean up" busy={isBusy("cleanup")} />
+            <MenuItem onClick={() => { onGlossary();  setMenuOpen(false); }} icon={isBusy("glossary") ? Loader2 : BookOpen}  label="Extract glossary" busy={isBusy("glossary")} />
+            <MenuItem onClick={() => { onTranslate(); setMenuOpen(false); }} icon={isBusy("translate")? Loader2 : Languages} label="Translate" busy={isBusy("translate")} />
+            <li className="border-t border-bi-navy-100 my-1" />
+            <MenuItem onClick={() => { onDownload("srt"); setMenuOpen(false); }} icon={Download} label="Download SRT" />
+            <MenuItem onClick={() => { onDownload("vtt"); setMenuOpen(false); }} icon={Download} label="Download VTT" />
+            <li className="border-t border-bi-navy-100 my-1" />
+            <MenuItem onClick={() => { onRegenerate(); setMenuOpen(false); }} icon={RotateCcw} label="Re-generate transcript" />
+          </ul>
+        </>
+      )}
+    </div>
+  );
+}
+
+function MenuItem({
+  onClick, icon: Icon, label, busy,
+}: {
+  onClick: () => void;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  busy?: boolean;
+}) {
+  return (
+    <li>
+      <button
+        onClick={onClick}
+        className="w-full text-left flex items-center gap-2 px-3 py-1.5 text-[12.5px] text-bi-navy-700 hover:bg-bi-navy-50"
+      >
+        <Icon className={`w-3.5 h-3.5 ${busy ? "animate-spin" : ""}`} />
+        {label}
+      </button>
+    </li>
   );
 }

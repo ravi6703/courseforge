@@ -128,7 +128,12 @@ export function VideoWorkspace({ row, activeKind, onKindChange }: Props) {
         {/* Video header */}
         <div className="flex items-start justify-between gap-4 mb-4">
           <div>
-            <h2 className="text-[17px] font-bold text-bi-navy-900 tracking-tight">{KIND_META[activeKind].icon} {row.videoTitle} · {KIND_META[activeKind].label}</h2>
+            <h2 className="text-[17px] font-bold text-bi-navy-900 tracking-tight inline-flex items-center gap-2">
+              <span className={`text-[10px] font-bold tracking-wider px-1.5 py-0.5 rounded ${KIND_META[activeKind].tone}`}>{KIND_META[activeKind].icon}</span>
+              <span>{row.videoTitle}</span>
+              <span className="text-bi-navy-300 mx-0.5">·</span>
+              <span>{KIND_META[activeKind].label}</span>
+            </h2>
             <div className="text-[12px] text-bi-navy-500 mt-0.5">{row.moduleTitle} · {row.lessonTitle}</div>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">

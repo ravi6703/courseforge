@@ -16,32 +16,31 @@ export default async function CourseProfilePage({
     <div className="space-y-4">
       <ProfilePurposeBanner />
       <ProfileEditor courseId={id} initial={profile} />
-      <Collaborators courseId={id} />
+      <details className="bg-white border border-bi-navy-100 rounded-lg overflow-hidden">
+        <summary className="px-5 py-3 cursor-pointer flex items-center justify-between list-none [&::-webkit-details-marker]:hidden hover:bg-bi-navy-50/60">
+          <div>
+            <h3 className="text-[14px] font-semibold text-bi-navy-900">Collaborators</h3>
+            <p className="text-[11.5px] text-bi-navy-500 mt-0.5">Invite other coaches or reviewers to this course.</p>
+          </div>
+          <span className="text-[11px] text-bi-navy-500 group-open:hidden">Show</span>
+        </summary>
+        <div className="border-t border-bi-navy-100">
+          <Collaborators courseId={id} />
+        </div>
+      </details>
     </div>
   );
 }
 
 function ProfilePurposeBanner() {
+  // Compact one-line note instead of the previous 4-bullet mega-banner
+  // — same job (tell first-time visitors what this page is) without
+  // dominating the viewport.
   return (
-    <section className="rounded-lg border border-bi-blue-200 bg-bi-blue-50/60 p-4">
-      <div className="flex items-start gap-3">
-        <div className="w-9 h-9 rounded-full bg-bi-blue-600 text-white grid place-items-center font-bold shrink-0">i</div>
-        <div className="min-w-0">
-          <h2 className="text-[14.5px] font-bold text-bi-navy-900">What is the Course Profile?</h2>
-          <p className="text-[12.5px] text-bi-navy-700 mt-0.5 leading-relaxed">
-            The Course Profile is the system context every AI prompt sees. You set it
-            once here, and the TOC, briefs, slides, transcripts and content artifacts
-            all read from it — so audience, tone, vocabulary, brand, and pedagogy
-            stay consistent across the whole course.
-          </p>
-          <ul className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-[12px] text-bi-navy-700 list-disc pl-5">
-            <li><span className="font-semibold">Connected to the TOC:</span> audience + difficulty arc shape modules and lessons.</li>
-            <li><span className="font-semibold">Connected to briefs:</span> tone, persona and vocabulary inform every brief.</li>
-            <li><span className="font-semibold">Connected to slides &amp; SCORM:</span> brand kit (colors, logo, template) is applied to exports.</li>
-            <li><span className="font-semibold">Connected to content:</span> reading list seeds the further-reading artifact.</li>
-          </ul>
-        </div>
-      </div>
-    </section>
+    <p className="text-[12px] text-bi-navy-500 leading-relaxed">
+      <span className="font-semibold text-bi-navy-700">Course Profile.</span>{" "}
+      The system context every AI prompt sees. Audience, tone, vocabulary, brand and pedagogy
+      live here — TOC, briefs, slides, transcripts and content all read from this single source.
+    </p>
   );
 }
