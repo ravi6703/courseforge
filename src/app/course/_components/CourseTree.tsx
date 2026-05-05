@@ -13,17 +13,12 @@
 //   localStorage cf:tree:<courseId> stores expanded state per course
 //   so a coach's deep-tree view survives navigation.
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
-  ChevronRight, ChevronDown, MoreHorizontal, Settings, Layers, FileText,
-  Presentation, Video as VideoIcon, Mic, BookOpen, CheckCircle2, Search,
+  ChevronRight, ChevronDown, MoreHorizontal, Search,
 } from "lucide-react";
-
-type StageSlug =
-  | "profile" | "toc" | "briefs" | "ppts"
-  | "recording" | "transcript" | "content" | "review";
 
 interface VideoNode {
   id: string;
@@ -52,17 +47,6 @@ export interface CourseTreeData {
   progressPct: number;
   healthScore?: number | null;
 }
-
-const STAGE_LINKS: Array<{ slug: StageSlug; label: string; icon: React.ComponentType<{ className?: string }> }> = [
-  { slug: "profile",    label: "Course profile",    icon: Settings       },
-  { slug: "toc",        label: "Table of contents", icon: Layers         },
-  { slug: "briefs",     label: "Content briefs",    icon: FileText       },
-  { slug: "ppts",       label: "Presentations",     icon: Presentation   },
-  { slug: "recording",  label: "Recordings",        icon: VideoIcon      },
-  { slug: "transcript", label: "Transcripts",       icon: Mic            },
-  { slug: "content",    label: "Content",           icon: BookOpen       },
-  { slug: "review",     label: "Final review",      icon: CheckCircle2   },
-];
 
 // 5 artifact kinds, in the order the rail renders them
 const KINDS = ["reading", "pq", "gq", "scorm", "ai_coach"] as const;
@@ -109,12 +93,6 @@ export function CourseTree({ data }: { data: CourseTreeData }) {
   };
   const collapseAll = () => { setExpanded({}); saveExpanded(data.courseId, {}); };
 
-  // Determine current stage from the URL: /course/<id>/<stage>
-  const stage = (() => {
-    const m = pathname.match(/^\/course\/[^/]+\/([^/?#]+)/);
-    return (m?.[1] as StageSlug | undefined) ?? "toc";
-  })();
-
   const isMatch = (text: string) => !search || text.toLowerCase().includes(search.toLowerCase());
 
   // Selection helper — when a video is clicked, push ?focus=<videoId> AND
@@ -153,29 +131,6 @@ export function CourseTree({ data }: { data: CourseTreeData }) {
           </div>
         </div>
       </header>
-
-      {/* Stage links — always present, the right-pane router */}
-      <nav className="px-2 py-2 border-b border-slate-200">
-        <div className="text-[10.5px] font-bold uppercase tracking-[.06em] text-slate-500 px-2 pb-1.5">Stages</div>
-        {STAGE_LINKS.map((s) => {
-          const Icon = s.icon;
-          const isCurrent = s.slug === stage;
-          return (
-            <Link
-              key={s.slug}
-              href={`/course/${data.courseId}/${s.slug}${focus ? `?focus=${focus}` : ""}`}
-              className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-[13px] transition-colors ${
-                isCurrent
-                  ? "bg-slate-900 text-white font-semibold"
-                  : "text-slate-700 hover:bg-slate-50 font-medium"
-              }`}
-            >
-              <Icon className="w-3.5 h-3.5 shrink-0" />
-              <span className="truncate">{s.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
 
       {/* Search + expand controls */}
       <div className="px-3 py-2 border-b border-slate-200 flex items-center gap-2">

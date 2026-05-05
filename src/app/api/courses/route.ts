@@ -77,6 +77,11 @@ export async function POST(req: NextRequest) {
     capstone: (body.capstone as boolean) ?? false,
     reference_course_url: (body.reference_course_url as string) ?? null,
     content_types: (body.content_types as string[]) ?? [],
+    ...(body.hierarchy_preset       ? { hierarchy_preset:       body.hierarchy_preset } : {}),
+    ...(body.company_logo_url       ? { company_logo_url:       body.company_logo_url } : {}),
+    ...(body.ppt_template_url       ? { ppt_template_url:       body.ppt_template_url } : {}),
+    ...(body.learning_objectives    ? { learning_objectives:    body.learning_objectives } : {}),
+    ...(body.content_format_defaults? { content_format_defaults: body.content_format_defaults } : {}),
   };
 
   const { error: cErr } = await supabase.from("courses").upsert(courseRow, { onConflict: "id" });

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/shell/AppShell";
-import { User, Platform, ContentType, Course } from "@/types";
+import { User, Platform, ContentType, Course, HIERARCHY_PRESETS, HierarchyPreset, ContentFormatDefaults } from "@/types";
 import { createClient } from "@/lib/supabase/client";
 import {
   BookOpen,
@@ -105,6 +105,11 @@ interface FormState {
   projectBased: boolean;
   capstone: boolean;
   moduleHours: Record<number, number>;
+  hierarchyPresetKey: keyof typeof HIERARCHY_PRESETS;
+  hierarchyPreset: HierarchyPreset;
+  companyLogoUrl: string;
+  pptTemplateUrl: string;
+  formatDefaults: ContentFormatDefaults;
 }
 
 export default function CreateCoursePage() {
@@ -135,6 +140,15 @@ export default function CreateCoursePage() {
     projectBased: false,
     capstone: false,
     moduleHours: { 0: 0, 1: 0, 2: 0, 3: 0 },
+    hierarchyPresetKey: "standard",
+    hierarchyPreset: HIERARCHY_PRESETS.standard,
+    companyLogoUrl: "",
+    pptTemplateUrl: "",
+    formatDefaults: {
+      reading: { format: "rte" },
+      assessment: { difficulty: "intermediate", count: 5, types: ["mcq_single", "true_false"] },
+      scorm: { version: "1.2" },
+    },
   });
 
   const [currentJobRoleInput, setCurrentJobRoleInput] = useState("");
@@ -161,6 +175,19 @@ export default function CreateCoursePage() {
 
   // Calculate total hours from module hours
   const totalHours = Object.values(formState.moduleHours).reduce((a, b) => a + b, 0) || formState.durationWeeks * formState.hoursPerWeek;
+
+  // When the platform changes, swap the hierarchy preset to a sensible
+  // default for that platform unless the coach has already overridden it.
+  useEffect(() => {
+    if (!formState.platform) return;
+    const presetKey = (formState.platform in HIERARCHY_PRESETS ? formState.platform : "standard") as keyof typeof HIERARCHY_PRESETS;
+    setFormState((prev) =>
+      prev.hierarchyPresetKey === "standard" || prev.hierarchyPresetKey === formState.platform
+        ? { ...prev, hierarchyPresetKey: presetKey, hierarchyPreset: HIERARCHY_PRESETS[presetKey] }
+        : prev
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formState.platform]);
 
   // Initialize module hours when duration changes
   useEffect(() => {
@@ -277,6 +304,10 @@ export default function CreateCoursePage() {
         assigned_coach: formState.assignedCoach || undefined,
         content_types: formState.contentTypes,
         module_hours: formState.moduleHours,
+        hierarchy_preset: formState.hierarchyPreset,
+        company_logo_url: formState.companyLogoUrl || undefined,
+        ppt_template_url: formState.pptTemplateUrl || undefined,
+        content_format_defaults: formState.formatDefaults,
         created_at: now,
         updated_at: now,
       };
@@ -781,6 +812,192 @@ export default function CreateCoursePage() {
                     </div>
                   </div>
                 )}
+
+                {/* Hierarchy preset */}
+                <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+                  <h3 className="font-semibold text-gray-900 mb-1">Course Hierarchy</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    How this course is structured. Defaults to the convention used by the platform you picked — change it if you&apos;re importing from somewhere else.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {Object.entries(HIERARCHY_PRESETS).map(([key, preset]) => {
+                      const active = formState.hierarchyPresetKey === key;
+                      return (
+                        <button
+                          key={key}
+                          onClick={() => {
+                            const k = key as keyof typeof HIERARCHY_PRESETS;
+                            setFormState((prev) => ({ ...prev, hierarchyPresetKey: k, hierarchyPreset: HIERARCHY_PRESETS[k] }));
+                          }}
+                          className={`text-left p-4 rounded-lg border-2 transition-all ${active ? "border-blue-600 bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}
+                        >
+                          <div className="text-sm font-semibold text-gray-900">{preset.label}</div>
+                          <div className="text-[12px] text-gray-600 font-mono mt-1">
+                            {preset.levels.join(" → ")}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Branding & template */}
+                <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+                  <h3 className="font-semibold text-gray-900 mb-1">Branding &amp; Template</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Used on every generated slide deck, SCORM bundle, and reading-material export.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-900 mb-2">Company Logo URL</label>
+                      <input
+                        type="url"
+                        placeholder="https://yourcompany.com/logo.png"
+                        value={formState.companyLogoUrl}
+                        onChange={(e) => updateFormField("companyLogoUrl", e.target.value)}
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">PNG or SVG, ≥256×256. Embedded in exported artifacts.</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-900 mb-2">PPT Template URL</label>
+                      <input
+                        type="url"
+                        placeholder="https://…/your-deck-template.pptx"
+                        value={formState.pptTemplateUrl}
+                        onChange={(e) => updateFormField("pptTemplateUrl", e.target.value)}
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Slide generation will mirror this template&apos;s layouts and theme.</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Default output formats */}
+                <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+                  <h3 className="font-semibold text-gray-900 mb-1">Default Output Formats</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Defaults the AI uses when generating content artifacts. Per-video overrides are still possible later.
+                  </p>
+
+                  <div className="space-y-5">
+                    {/* Reading */}
+                    <div>
+                      <div className="text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">Reading material</div>
+                      <div className="flex gap-2 flex-wrap">
+                        {(["rte", "markdown", "word"] as const).map((fmt) => (
+                          <button
+                            key={fmt}
+                            onClick={() =>
+                              updateFormField("formatDefaults", {
+                                ...formState.formatDefaults,
+                                reading: { format: fmt },
+                              })
+                            }
+                            className={`px-3 py-1.5 rounded-md border text-sm font-semibold capitalize ${
+                              formState.formatDefaults.reading?.format === fmt
+                                ? "bg-bi-navy-900 text-white border-bi-navy-900"
+                                : "border-gray-200 text-gray-700 hover:bg-gray-50"
+                            }`}
+                          >
+                            {fmt === "rte" ? "Rich-text editor" : fmt === "markdown" ? "Markdown" : "Word document"}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Assessment */}
+                    <div>
+                      <div className="text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">Assessment</div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-xs text-gray-600 mb-1">Difficulty</label>
+                          <select
+                            value={formState.formatDefaults.assessment?.difficulty ?? "intermediate"}
+                            onChange={(e) =>
+                              updateFormField("formatDefaults", {
+                                ...formState.formatDefaults,
+                                assessment: { ...formState.formatDefaults.assessment!, difficulty: e.target.value as "beginner" | "intermediate" | "advanced" },
+                              })
+                            }
+                            className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
+                          >
+                            <option value="beginner">Beginner</option>
+                            <option value="intermediate">Intermediate</option>
+                            <option value="advanced">Advanced</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-600 mb-1">Question count</label>
+                          <input
+                            type="number"
+                            min={1}
+                            max={50}
+                            value={formState.formatDefaults.assessment?.count ?? 5}
+                            onChange={(e) =>
+                              updateFormField("formatDefaults", {
+                                ...formState.formatDefaults,
+                                assessment: { ...formState.formatDefaults.assessment!, count: parseInt(e.target.value, 10) || 5 },
+                              })
+                            }
+                            className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-600 mb-1">Types</label>
+                          <div className="flex flex-wrap gap-1">
+                            {(["mcq_single", "mcq_multi", "true_false", "short_answer"] as const).map((t) => {
+                              const sel = formState.formatDefaults.assessment?.types ?? [];
+                              const on = sel.includes(t);
+                              return (
+                                <button
+                                  key={t}
+                                  onClick={() =>
+                                    updateFormField("formatDefaults", {
+                                      ...formState.formatDefaults,
+                                      assessment: {
+                                        ...formState.formatDefaults.assessment!,
+                                        types: on ? sel.filter((x) => x !== t) : [...sel, t],
+                                      },
+                                    })
+                                  }
+                                  className={`px-2 py-1 rounded-md border text-[11px] font-semibold ${on ? "bg-bi-blue-600 text-white border-bi-blue-600" : "border-gray-200 text-gray-700 hover:bg-gray-50"}`}
+                                >
+                                  {t === "mcq_single" ? "MCQ (single)" : t === "mcq_multi" ? "MCQ (multi)" : t === "true_false" ? "True / False" : "Short answer"}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* SCORM */}
+                    <div>
+                      <div className="text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">SCORM</div>
+                      <div className="flex gap-2">
+                        {(["1.2", "2004"] as const).map((v) => (
+                          <button
+                            key={v}
+                            onClick={() =>
+                              updateFormField("formatDefaults", {
+                                ...formState.formatDefaults,
+                                scorm: { version: v },
+                              })
+                            }
+                            className={`px-3 py-1.5 rounded-md border text-sm font-semibold ${
+                              formState.formatDefaults.scorm?.version === v
+                                ? "bg-bi-navy-900 text-white border-bi-navy-900"
+                                : "border-gray-200 text-gray-700 hover:bg-gray-50"
+                            }`}
+                          >
+                            SCORM {v}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
                 {/* Time Distribution */}
                 <div className="bg-white rounded-xl border border-gray-200 p-6">

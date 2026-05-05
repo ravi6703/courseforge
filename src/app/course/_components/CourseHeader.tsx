@@ -4,6 +4,7 @@ import { getServerSupabase } from "@/lib/supabase/server";
 import { Tag } from "@/components/ui/Tag";
 import { HealthPill } from "@/components/ui/HealthPill";
 import { AvatarMini } from "@/components/ui/AvatarStack";
+import { StageNav } from "./StageNav";
 
 const STATUS_PCT: Record<string, number> = {
   draft: 4, toc_generation: 12, toc_review: 18, toc_approved: 24, content_briefs: 32,
@@ -92,6 +93,10 @@ export async function CourseHeader({ courseId }: { courseId: string }) {
       <div className="mt-3 flex items-center gap-2 flex-wrap">
         <Tag tone={phase === "Published" ? "emerald" : "blue"}>{phase}</Tag>
         {course.audience_level && <Tag tone="navy">{course.audience_level}</Tag>}
+      </div>
+
+      <div className="mt-3 pb-2">
+        <StageNav courseId={courseId} />
       </div>
     </div>
   );

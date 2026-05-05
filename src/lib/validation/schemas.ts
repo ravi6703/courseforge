@@ -41,6 +41,22 @@ export const CourseUpsertSchema = z.object({
   capstone: z.boolean().optional(),
   reference_course_url: z.union([z.string().url(), z.literal("")]).nullish(),
   content_types: z.array(contentTypeEnum).optional(),
+  hierarchy_preset: z.object({
+    label: z.string().max(60),
+    levels: z.array(z.string().min(1).max(40)).min(2).max(8),
+  }).optional(),
+  company_logo_url: z.union([z.string().url(), z.literal("")]).nullish(),
+  ppt_template_url: z.union([z.string().url(), z.literal("")]).nullish(),
+  learning_objectives: z.array(learningObjective).max(20).optional(),
+  content_format_defaults: z.object({
+    reading: z.object({ format: z.enum(["rte","markdown","word"]) }).optional(),
+    assessment: z.object({
+      difficulty: z.enum(["beginner","intermediate","advanced"]),
+      count: z.number().int().min(1).max(50),
+      types: z.array(z.enum(["mcq_single","mcq_multi","true_false","short_answer"])).min(1),
+    }).optional(),
+    scorm: z.object({ version: z.enum(["1.2","2004"]) }).optional(),
+  }).optional(),
   modules: z.array(z.unknown()).optional(),
 });
 export type CourseUpsertInput = z.infer<typeof CourseUpsertSchema>;
@@ -116,6 +132,15 @@ export const GenerateBriefSchema = z.object({
     visual_requirements: z.string().max(5000).optional(),
     difficulty_notes: z.string().max(5000).optional(),
     references: z.string().max(5000).optional(),
+    slide_count: z.number().int().min(1).max(120).optional(),
+    estimated_minutes: z.number().int().min(1).max(180).optional(),
+    objective_override: z.string().max(2000).optional(),
+    target_outcome: z.string().max(2000).optional(),
+    prereq_check: z.string().max(2000).optional(),
+    learner_pitfalls: z.string().max(5000).optional(),
+    hands_on_activity: z.string().max(5000).optional(),
+    call_to_action: z.string().max(2000).optional(),
+    glossary_terms: z.string().max(5000).optional(),
   }).optional(),
 });
 

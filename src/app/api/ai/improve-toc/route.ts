@@ -7,13 +7,17 @@ import { Module } from "@/types";
 
 interface ImproveTOCRequest {
   courseId: string;
-  modules: Module[];
-  comments: Array<{
+  modules?: Module[];
+  comments?: Array<{
     text: string;
     target_type: string;
     target_id: string;
   }>;
-  courseTitle: string;
+  courseTitle?: string;
+  // Scoped re-edit. When provided, the AI is told to refresh content
+  // dependent on the given level (e.g. "Module" or "Lesson") + id.
+  level?: "course" | "module" | "lesson";
+  targetId?: string;
 }
 
 function generateFallbackImprovement(modules: Module[]): Module[] {
@@ -36,20 +40,23 @@ function generateFallbackImprovement(modules: Module[]): Module[] {
 }
 
 async function improveWithAI(request: ImproveTOCRequest): Promise<Module[]> {
-  const commentsText = request.comments
+  const commentsText = (request.comments ?? [])
     .map((c) => `[${c.target_type} ${c.target_id}]: ${c.text}`)
     .join("\n");
+  const scopedNote = request.level && request.targetId
+    ? `\nThe coach just edited learning objectives at the ${request.level} level (id=${request.targetId}). Focus your rewrites on items downstream of that change.\n`
+    : "";
 
   const prompt = `You are a curriculum improvement specialist. The following comments have been made on a course Table of Contents.
 
-Course Title: ${request.courseTitle}
+Course Title: ${request.courseTitle ?? "(unknown)"}${scopedNote}
 
 CURRENT TOC (modules only):
 ${JSON.stringify(
-  request.modules.map((m) => ({
+  (request.modules ?? []).map((m) => ({
     id: m.id,
     title: m.title,
-    lessons: m.lessons.map((l) => ({ id: l.id, title: l.title })),
+    lessons: (m.lessons ?? []).map((l) => ({ id: l.id, title: l.title })),
   })),
   null,
   2
@@ -84,7 +91,7 @@ Return the improved modules as a JSON array matching the Module interface. Inclu
 
     if (!response.ok) {
       console.error("Claude API error:", response.status);
-      return generateFallbackImprovement(request.modules);
+      return generateFallbackImprovement(request.modules ?? []);
     }
 
     const data = await response.json();
@@ -92,14 +99,14 @@ Return the improved modules as a JSON array matching the Module interface. Inclu
 
     const jsonMatch = content.match(/\[[\s\S]*\]/);
     if (!jsonMatch) {
-      return generateFallbackImprovement(request.modules);
+      return generateFallbackImprovement(request.modules ?? []);
     }
 
     const improved = JSON.parse(jsonMatch[0]) as Module[];
     return improved;
   } catch (error) {
     console.error("Error calling Claude API:", error);
-    return generateFallbackImprovement(request.modules);
+    return generateFallbackImprovement(request.modules ?? []);
   }
 }
 
@@ -125,6 +132,27 @@ export async function POST(request: NextRequest) {
       if (!courseRow || courseRow.org_id !== auth.orgId) {
         return NextResponse.json({ error: "course not found" }, { status: 404 });
       }
+    }
+
+    // If the caller didn't ship the modules tree, hydrate from the DB so
+    // the new "scoped re-edit" call sites (TOC objective edits) don't have
+    // to round-trip the entire tree.
+    if (!body.modules || body.modules.length === 0) {
+      const supabase = await getServerSupabase();
+      const [{ data: m }, { data: l }, { data: v }] = await Promise.all([
+        supabase.from("modules").select("*").eq("course_id", body.courseId).order("order"),
+        supabase.from("lessons").select("*").eq("course_id", body.courseId).order("order"),
+        supabase.from("videos").select("*").eq("course_id", body.courseId).order("order"),
+      ]);
+      const lessonsByModule: Record<string, unknown[]> = {};
+      (l ?? []).forEach((row) => {
+        const arr = (lessonsByModule[row.module_id] ||= []);
+        arr.push({ ...row, videos: (v ?? []).filter((vv) => vv.lesson_id === row.id) });
+      });
+      body.modules = (m ?? []).map((mod) => ({
+        ...mod,
+        lessons: (lessonsByModule[mod.id] ?? []) as Module["lessons"],
+      })) as Module[];
     }
 
     const modules = process.env.ANTHROPIC_API_KEY
