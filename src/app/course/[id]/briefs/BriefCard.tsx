@@ -8,6 +8,7 @@ import {
   ChevronDown, ChevronUp, Sparkles, RefreshCw, ClipboardList, FileText,
   Wand2, Check, X, CheckCircle2, RotateCcw,
 } from "lucide-react";
+import { BriefControls } from "./BriefControls";
 
 interface CoachInput {
   key_topics: string;
@@ -18,6 +19,13 @@ interface CoachInput {
   slide_count: string;          // string in form, parsed to int on submit
   estimated_minutes: string;    // string in form, parsed to int on submit
   objective_override: string;   // optional override for the lesson's default LO
+  // Phase-2 coach inputs — added per coach feedback. All optional.
+  target_outcome: string;       // what the learner can DO after this video
+  prereq_check: string;         // what they should already know coming in
+  learner_pitfalls: string;     // common misconceptions / where students stumble
+  hands_on_activity: string;    // suggested hands-on practice during/after
+  call_to_action: string;       // what we want the learner to do at the end
+  glossary_terms: string;       // pipe- or comma-separated glossary entries
 }
 
 interface Brief {
@@ -51,6 +59,8 @@ interface Props {
 const EMPTY_COACH: CoachInput = {
   key_topics: "", examples: "", visual_requirements: "", difficulty_notes: "", references: "",
   slide_count: "", estimated_minutes: "", objective_override: "",
+  target_outcome: "", prereq_check: "", learner_pitfalls: "",
+  hands_on_activity: "", call_to_action: "", glossary_terms: "",
 };
 
 export function BriefCard({
@@ -123,6 +133,12 @@ export function BriefCard({
             slide_count: coachInput.slide_count ? parseInt(coachInput.slide_count, 10) : undefined,
             estimated_minutes: coachInput.estimated_minutes ? parseInt(coachInput.estimated_minutes, 10) : undefined,
             objective_override: coachInput.objective_override || undefined,
+            target_outcome:    coachInput.target_outcome    || undefined,
+            prereq_check:      coachInput.prereq_check      || undefined,
+            learner_pitfalls:  coachInput.learner_pitfalls  || undefined,
+            hands_on_activity: coachInput.hands_on_activity || undefined,
+            call_to_action:    coachInput.call_to_action    || undefined,
+            glossary_terms:    coachInput.glossary_terms    || undefined,
           } : undefined,
         }),
       });
@@ -361,12 +377,18 @@ export function BriefCard({
           <p className="text-xs text-bi-navy-500">Fill in any guidance for the AI. Leave blank to use course context only.</p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <InputField label="Key Topics to Cover" placeholder="e.g. STP framework, perceptual mapping" value={coachInput.key_topics} onChange={(v) => updateCoach("key_topics", v)} rows={2} />
-            <InputField label="Examples & Case Studies" placeholder="e.g. Tesla rebrand, Slack vs Teams positioning" value={coachInput.examples} onChange={(v) => updateCoach("examples", v)} rows={2} />
-            <InputField label="Visual Requirements" placeholder="e.g. perceptual map diagram, brand archetype wheel" value={coachInput.visual_requirements} onChange={(v) => updateCoach("visual_requirements", v)} rows={2} />
-            <InputField label="Difficulty & Pacing Notes" placeholder="e.g. audience knows marketing basics, slow on segmentation math" value={coachInput.difficulty_notes} onChange={(v) => updateCoach("difficulty_notes", v)} rows={2} />
+            <InputField label="Key Topics to Cover"          placeholder="e.g. STP framework, perceptual mapping, brand archetypes — list 3–5 anchor concepts the video must include" value={coachInput.key_topics} onChange={(v) => updateCoach("key_topics", v)} rows={2} />
+            <InputField label="Target Outcome"               placeholder="e.g. Learner can write a one-paragraph positioning statement for a SaaS product without prompting" value={coachInput.target_outcome} onChange={(v) => updateCoach("target_outcome", v)} rows={2} />
+            <InputField label="Examples & Case Studies"      placeholder="e.g. Tesla rebrand 2018, Slack vs Teams enterprise positioning, Notion onboarding redesign — at least one local-context example" value={coachInput.examples} onChange={(v) => updateCoach("examples", v)} rows={2} />
+            <InputField label="Visual Requirements"          placeholder="e.g. perceptual map (4-quadrant), brand archetype wheel, Slack/Teams comparison table — flag if the AI must produce a diagram" value={coachInput.visual_requirements} onChange={(v) => updateCoach("visual_requirements", v)} rows={2} />
+            <InputField label="Prerequisite Knowledge"       placeholder="e.g. 4Ps of marketing, basic SWOT analysis. Used to gauge depth — anything new gets explicit scaffolding." value={coachInput.prereq_check} onChange={(v) => updateCoach("prereq_check", v)} rows={2} />
+            <InputField label="Learner Pitfalls"             placeholder="e.g. Confusing positioning with branding; conflating segments with personas; treating a vision as a value-prop" value={coachInput.learner_pitfalls} onChange={(v) => updateCoach("learner_pitfalls", v)} rows={2} />
+            <InputField label="Hands-on Activity Suggestion" placeholder="e.g. Mini-exercise: pick a brand you love, write its perceptual map coordinates and defend them in 4 lines" value={coachInput.hands_on_activity} onChange={(v) => updateCoach("hands_on_activity", v)} rows={2} />
+            <InputField label="Difficulty & Pacing Notes"    placeholder="e.g. Audience knows marketing basics; slow on segmentation math; don't dwell on definitions for more than 30s" value={coachInput.difficulty_notes} onChange={(v) => updateCoach("difficulty_notes", v)} rows={2} />
           </div>
-          <InputField label="References & Resources" placeholder="e.g. Building a StoryBrand (Donald Miller, 2017)" value={coachInput.references} onChange={(v) => updateCoach("references", v)} rows={1} />
+          <InputField label="Glossary Terms" placeholder="e.g. STP, JTBD, NPS, ICP — comma-separated. AI will define them inline on first use." value={coachInput.glossary_terms} onChange={(v) => updateCoach("glossary_terms", v)} rows={1} />
+          <InputField label="Call-to-Action at End" placeholder="e.g. Submit your positioning statement to the discussion thread before the next module unlocks" value={coachInput.call_to_action} onChange={(v) => updateCoach("call_to_action", v)} rows={1} />
+          <InputField label="References & Resources" placeholder="e.g. 'Building a StoryBrand' (Donald Miller, 2017); HBR — 'Marketing Myopia'; A16Z 'Memo on Positioning'" value={coachInput.references} onChange={(v) => updateCoach("references", v)} rows={2} />
 
           <div className="grid grid-cols-2 gap-3">
             <NumberField
@@ -407,7 +429,13 @@ export function BriefCard({
           <BriefControls
             videoId={videoId}
             courseId={courseId}
-            brief={brief}
+            brief={{
+              talking_points: toList(brief.talking_points),
+              visual_cues: toList(brief.visual_cues),
+              key_takeaways: toList(brief.key_takeaways),
+              script_outline: brief.script_outline,
+              estimated_duration: brief.estimated_duration ?? "",
+            }}
             profile={profile}
             onGenerated={() => window.location.reload()}
           />

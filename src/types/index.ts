@@ -29,6 +29,33 @@ export type CourseStatus =
 
 export type Platform = "coursera" | "udemy" | "university" | "infylearn" | "custom";
 
+export type HierarchyLevel = "course" | "module" | "week" | "section" | "lesson" | "topic" | "item" | "lecture";
+
+export interface HierarchyPreset {
+  levels: HierarchyLevel[];
+  label: string;
+}
+
+export const HIERARCHY_PRESETS: Record<string, HierarchyPreset> = {
+  standard:    { label: "Standard",    levels: ["course", "module", "lesson", "item"] },
+  coursera:    { label: "Coursera",    levels: ["course", "module", "week", "lesson", "item"] },
+  udemy:       { label: "Udemy",       levels: ["course", "section", "lecture"] },
+  university:  { label: "University",  levels: ["course", "module", "topic", "lesson"] },
+  infylearn:   { label: "InfyLearn",   levels: ["course", "module", "lesson", "item"] },
+};
+
+export interface AssessmentDefaults {
+  difficulty: "beginner" | "intermediate" | "advanced";
+  count: number;
+  types: Array<"mcq_single" | "mcq_multi" | "true_false" | "short_answer">;
+}
+
+export interface ContentFormatDefaults {
+  reading?: { format: "rte" | "markdown" | "word" };
+  assessment?: AssessmentDefaults;
+  scorm?: { version: "1.2" | "2004" };
+}
+
 export type ContentType =
   | "reading"
   | "practice_quiz"
@@ -102,6 +129,11 @@ export interface Course {
   assigned_coach?: string;
   content_types: ContentType[];
   module_hours: Record<string, number>;
+  hierarchy_preset?: HierarchyPreset;
+  company_logo_url?: string;
+  ppt_template_url?: string;
+  learning_objectives?: LearningObjective[];
+  content_format_defaults?: ContentFormatDefaults;
   toc_locked: boolean;
   toc_locked_at?: string;
   toc_locked_by?: string;

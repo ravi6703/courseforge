@@ -1,5 +1,13 @@
 import { getServerSupabase } from "@/lib/supabase/server";
 import { ContentView, ContentVideoRow } from "./ContentView";
+import { ContentFormatBar } from "./ContentFormatBar";
+import type { ContentFormatDefaults } from "@/types";
+
+const DEFAULT_FORMATS: ContentFormatDefaults = {
+  reading: { format: "rte" },
+  assessment: { difficulty: "intermediate", count: 5, types: ["mcq_single", "true_false"] },
+  scorm: { version: "1.2" },
+};
 
 export default async function ContentTab({
   params,
@@ -14,7 +22,7 @@ export default async function ContentTab({
     .from("courses")
     .select(
       `
-      id, title,
+      id, title, content_format_defaults, company_logo_url,
       modules(
         id, title, order,
         lessons(
@@ -71,15 +79,23 @@ export default async function ContentTab({
   const approvedCount = allItems.filter((i) => i.status === "approved").length;
   const totalCount = allItems.length;
 
+  const formatDefaults: ContentFormatDefaults = {
+    ...DEFAULT_FORMATS,
+    ...((course as unknown as { content_format_defaults?: ContentFormatDefaults }).content_format_defaults ?? {}),
+  };
+
   return (
-    <ContentView
-      courseId={id}
-      rows={rows}
-      kpis={{
-        videosWithContent,
-        approvedCount,
-        totalCount,
-      }}
-    />
+    <div className="space-y-4">
+      <ContentFormatBar courseId={id} initial={formatDefaults} />
+      <ContentView
+        courseId={id}
+        rows={rows}
+        kpis={{
+          videosWithContent,
+          approvedCount,
+          totalCount,
+        }}
+      />
+    </div>
   );
 }

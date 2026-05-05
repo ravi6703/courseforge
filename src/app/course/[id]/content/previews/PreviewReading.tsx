@@ -1,6 +1,13 @@
-// Reading preview — list of curated further-reading links, each with a
-// summary, why-it-matters, and read time estimate. Schema:
-//   { items: [{ title, summary, url, why_it_matters, reading_time_min }] }
+"use client";
+
+// Reading preview — list of curated further-reading links + an inline
+// "Open editor" toggle that swaps in the markdown editor (RTE) so coaches
+// can author/edit reading material right here, then export with the
+// company logo embedded.
+
+import { useState } from "react";
+import { Pencil, Eye } from "lucide-react";
+import { ReadingEditor } from "../ReadingEditor";
 
 interface ReadingItem {
   title: string;
@@ -11,17 +18,60 @@ interface ReadingItem {
 }
 
 export function PreviewReading({ payload }: { payload: Record<string, unknown> | null }) {
-  if (!payload) return <Empty />;
-  const items = (payload.items as ReadingItem[] | undefined) ?? [];
-  if (items.length === 0) return <Empty />;
+  const [mode, setMode] = useState<"view" | "edit">("view");
+  const items = (payload?.items as ReadingItem[] | undefined) ?? [];
+  const seedMd = (payload?.markdown as string | undefined)
+    ?? itemsAsMarkdown(items);
+
+  if (mode === "edit") {
+    return (
+      <div className="space-y-2">
+        <div className="flex justify-end">
+          <button
+            onClick={() => setMode("view")}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-bi-navy-200 text-[11.5px] font-semibold text-bi-navy-700 hover:bg-bi-navy-50"
+          >
+            <Eye className="w-3 h-3" /> Switch to preview
+          </button>
+        </div>
+        <ReadingEditor initialMarkdown={seedMd} />
+      </div>
+    );
+  }
+
+  if (items.length === 0 && !seedMd) {
+    return (
+      <div className="space-y-2">
+        <Empty />
+        <div className="flex justify-center">
+          <button
+            onClick={() => setMode("edit")}
+            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-bi-navy-900 text-white text-[12px] font-semibold hover:bg-bi-navy-800"
+          >
+            <Pencil className="w-3 h-3" /> Open editor
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const totalRead = items.reduce((s, i) => s + (i.reading_time_min ?? 0), 0);
 
   return (
     <div className="space-y-3">
       <div className="flex items-baseline justify-between">
-        <h3 className="font-bold text-bi-navy-700">Reading list · {items.length} items</h3>
-        <span className="text-xs text-bi-navy-500">~{totalRead} min total</span>
+        <h3 className="font-bold text-bi-navy-700">
+          {items.length > 0 ? `Reading list · ${items.length} items` : "Reading material"}
+        </h3>
+        <div className="flex items-center gap-2">
+          {items.length > 0 && <span className="text-xs text-bi-navy-500">~{totalRead} min total</span>}
+          <button
+            onClick={() => setMode("edit")}
+            className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-bi-navy-200 text-[11px] font-semibold text-bi-navy-700 hover:bg-bi-navy-50"
+          >
+            <Pencil className="w-3 h-3" /> Edit
+          </button>
+        </div>
       </div>
       <div className="space-y-2">
         {items.map((item, idx) => (
@@ -49,10 +99,17 @@ export function PreviewReading({ payload }: { payload: Record<string, unknown> |
   );
 }
 
+function itemsAsMarkdown(items: ReadingItem[]): string {
+  if (!items.length) return "";
+  return items
+    .map((i) => `## ${i.title}\n\n${i.summary}\n\n**Why it matters:** ${i.why_it_matters}\n\n[Read more](${i.url}) · ~${i.reading_time_min} min\n`)
+    .join("\n");
+}
+
 function Empty() {
   return (
     <div className="text-center py-12 text-sm text-bi-navy-500">
-      No reading list generated yet.
+      No reading material yet.
     </div>
   );
 }

@@ -9,6 +9,7 @@
 // generic `comments` table (target_type='module' | 'lesson' | 'video' | 'toc')
 // from migration_v2.sql.
 
+import Link from "next/link";
 import { TocTree } from "./TocTree";
 import { getServerSupabase } from "@/lib/supabase/server";
 
@@ -20,7 +21,7 @@ export default async function TocTab({
   const { id } = await params;
   const supabase = await getServerSupabase();
 
-  const [{ data: modules }, { data: lessons }, { data: videos }, { data: comments }, { data: research }] =
+  const [{ data: modules }, { data: lessons }, { data: videos }, { data: comments }, { data: research }, { data: course }] =
     await Promise.all([
       supabase
         .from("modules")
@@ -29,13 +30,14 @@ export default async function TocTab({
         .order("order", { ascending: true }),
       supabase
         .from("lessons")
-        .select("id, module_id, title, description, order, content_types")
+        .select("id, module_id, title, description, order, content_types, learning_objectives")
         .eq("course_id", id)
         .order("order", { ascending: true }),
       supabase
         .from("videos")
-        .select("id, lesson_id")
-        .eq("course_id", id),
+        .select("id, lesson_id, title, order")
+        .eq("course_id", id)
+        .order("order", { ascending: true }),
       supabase
         .from("comments")
         .select("id, target_type, target_id, text, author_name, author_role, resolved, is_ai_flag, created_at")
@@ -46,6 +48,11 @@ export default async function TocTab({
         .from("course_research")
         .select("competitor_courses, why_better, positioning_statement, sources")
         .eq("course_id", id)
+        .single(),
+      supabase
+        .from("courses")
+        .select("title, learning_objectives")
+        .eq("id", id)
         .single(),
     ]);
 
@@ -67,12 +74,20 @@ export default async function TocTab({
         <div><span className="font-semibold">{moduleCount}</span> <span className="text-bi-navy-500">modules</span></div>
         <div><span className="font-semibold">{lessonCount}</span> <span className="text-bi-navy-500">lessons</span></div>
         <div><span className="font-semibold">{videoCount}</span> <span className="text-bi-navy-500">videos</span></div>
-        <div className="text-xs text-bi-navy-500 ml-auto">Briefs, slides, recordings and content all default to 1 per video.</div>
+        <div className="text-xs text-bi-navy-500 ml-auto flex items-center gap-3">
+          <Link href={`/course/${id}/profile`} className="text-bi-blue-700 font-semibold hover:underline">
+            ← Back to Course Profile
+          </Link>
+          <span>Briefs, slides, recordings and content all default to 1 per video.</span>
+        </div>
       </div>
       <TocTree
         courseId={id}
+        courseTitle={course?.title ?? ""}
+        courseObjectives={(course?.learning_objectives as unknown[] | null) ?? []}
         modules={modules || []}
         lessons={lessons || []}
+        videos={videos || []}
         comments={comments || []}
         videoCountByModule={videosByModule}
       />

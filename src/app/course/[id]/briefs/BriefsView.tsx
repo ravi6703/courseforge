@@ -12,6 +12,7 @@
 //   - Keyboard shortcuts: j/k navigate, Enter expand, a approve, g generate
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   ChevronDown, ChevronRight, Sparkles, CheckCircle2, Circle, Clock,
   Filter
@@ -56,6 +57,22 @@ export function BriefsView({
   const [focusedIdx, setFocusedIdx] = useState<number>(-1);
   const [localRows, setLocalRows] = useState(rows);
   const containerRef = useRef<HTMLDivElement>(null);
+  const sp = useSearchParams();
+  const focusVideoId = sp.get("focus");
+
+  // Auto-expand the targeted video when navigated from the TOC.
+  useEffect(() => {
+    if (!focusVideoId) return;
+    setExpandedVideos((s) => new Set(s).add(focusVideoId));
+    // Ensure its module is open too
+    const row = rows.find((r) => r.videoId === focusVideoId);
+    if (row) setCollapsedModules((s) => { const next = new Set(s); next.delete(row.moduleId); return next; });
+    // Scroll into view next paint
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`brief-row-${focusVideoId}`);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }, [focusVideoId, rows]);
 
   const totalVideos = localRows.length;
   const drafted = localRows.filter((r) => r.brief && r.brief.status === "draft").length;
@@ -277,7 +294,8 @@ export function BriefsView({
                   return (
                     <li
                       key={r.videoId}
-                      className={`transition-colors ${focused ? "bg-blue-50/40" : ""} ${
+                      id={`brief-row-${r.videoId}`}
+                      className={`transition-colors ${focused || focusVideoId === r.videoId ? "bg-blue-50/40" : ""} ${
                         r.brief?.status === "approved" ? "border-l-4 border-l-emerald-400" :
                         r.brief?.status === "draft" ? "border-l-4 border-l-blue-400" :
                         "border-l-4 border-l-slate-200"

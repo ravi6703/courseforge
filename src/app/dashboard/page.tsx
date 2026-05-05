@@ -1,15 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Plus, BookOpen, Clock, Heart, Zap, Search, ChevronRight } from "lucide-react";
+import {
+  Plus, BookOpen, Clock, Heart, Zap, Search, ChevronRight, MoreHorizontal,
+  Copy, Archive, Trash2, ChevronDown,
+} from "lucide-react";
 import { AppShell } from "@/components/shell/AppShell";
 import { KpiCard } from "@/components/ui/KpiCard";
 import { Tag } from "@/components/ui/Tag";
 import { HealthPill } from "@/components/ui/HealthPill";
 import { AvatarStack } from "@/components/ui/AvatarStack";
-import { FilterChip } from "@/components/ui/FilterChip";
+import { HealthScoreInfo } from "@/components/HealthScoreInfo";
 import { Course } from "@/types";
 import { createClient } from "@/lib/supabase/client";
 
@@ -44,6 +47,7 @@ export default function DashboardPage() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "in_production" | "review" | "draft" | "published">("in_production");
 
   useEffect(() => {
     const init = async () => {
@@ -81,9 +85,22 @@ export default function DashboardPage() {
     return "Good evening";
   })();
 
+  const matchesStatus = (c: Course) => {
+    switch (statusFilter) {
+      case "all":           return true;
+      case "in_production": return !["draft","published"].includes(c.status);
+      case "review":        return c.status.includes("review");
+      case "draft":         return c.status === "draft";
+      case "published":     return c.status === "published";
+    }
+  };
   const filtered = courses.filter((c) =>
-    !search || c.title.toLowerCase().includes(search.toLowerCase())
+    (!search || c.title.toLowerCase().includes(search.toLowerCase())) && matchesStatus(c)
   );
+
+  const removeCourseLocally = (id: string) =>
+    setCourses((prev) => prev.filter((c) => c.id !== id));
+  const addCourseLocally = (c: Course) => setCourses((prev) => [c, ...prev]);
 
   return (
     <AppShell title="Dashboard" rightSlot={null}>
@@ -104,7 +121,10 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-5">
         <KpiCard label="Courses in production" value={inProduction.length} icon={BookOpen} tone="blue" />
         <KpiCard label="Awaiting your review"  value={queue.length} icon={Clock} tone="amber" />
-        <KpiCard label="Health score · avg"    value={courses.length ? Math.round(courses.reduce((s,c) => s + pseudoHealth(c), 0) / courses.length) : 0} icon={Heart} tone="emerald" delta={courses.length ? "B grade" : ""} />
+        <div className="relative">
+          <KpiCard label="Health score · avg"    value={courses.length ? Math.round(courses.reduce((s,c) => s + pseudoHealth(c), 0) / courses.length) : 0} icon={Heart} tone="emerald" delta={courses.length ? "B grade" : ""} />
+          <span className="absolute top-2.5 right-2.5"><HealthScoreInfo compact /></span>
+        </div>
         <KpiCard label="Published"             value={published.length} icon={Zap} tone="violet" />
       </div>
 
@@ -131,8 +151,7 @@ export default function DashboardPage() {
                 className="flex-1 bg-transparent outline-none text-[13px] text-bi-navy-900 placeholder:text-bi-navy-400"
               />
             </div>
-            <FilterChip>All</FilterChip>
-            <FilterChip active>Status: in production</FilterChip>
+            <StatusFilter value={statusFilter} onChange={setStatusFilter} />
           </div>
         </div>
         <div className="p-5">
@@ -142,7 +161,14 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-              {filtered.map((c) => <CourseCard key={c.id} course={c} />)}
+              {filtered.map((c) => (
+                <CourseCard
+                  key={c.id}
+                  course={c}
+                  onDeleted={removeCourseLocally}
+                  onDuplicated={addCourseLocally}
+                />
+              ))}
             </div>
           )}
         </div>
@@ -151,30 +177,194 @@ export default function DashboardPage() {
   );
 }
 
-function CourseCard({ course }: { course: Course }) {
+function CourseCard({
+  course, onDeleted, onDuplicated,
+}: {
+  course: Course;
+  onDeleted: (id: string) => void;
+  onDuplicated: (c: Course) => void;
+}) {
   const pct = STATUS_PCT[course.status] ?? 0;
   const phase = STATUS_LABEL[course.status] ?? "Draft";
   const health = pseudoHealth(course);
   return (
-    <Link
-      href={`/course/${course.id}/toc`}
-      className="relative block bg-white border border-bi-navy-100 rounded-[10px] shadow-bi-sm p-4 hover:shadow-bi-md hover:border-bi-navy-200 hover:-translate-y-px transition-all"
-    >
-      <span className="absolute top-3.5 right-3.5"><HealthPill score={health} /></span>
-      <h3 className="font-bold text-[15px] text-bi-navy-900 tracking-tight leading-snug pr-16 line-clamp-2">{course.title}</h3>
-      <p className="text-[12.5px] text-bi-navy-500 mt-1.5 leading-relaxed line-clamp-2">{course.description || "No description yet."}</p>
-      <div className="flex items-center gap-1.5 mt-3 flex-wrap">
-        <Tag tone="blue">{course.platform || "internal"}</Tag>
-        {course.domain && <Tag tone="violet">{course.domain}</Tag>}
-      </div>
-      <div className="mt-3 h-1.5 rounded-full bg-bi-navy-100 overflow-hidden">
-        <div className="h-full bg-gradient-to-r from-bi-blue-600 to-bi-accent-600" style={{ width: `${pct}%` }} />
-      </div>
-      <div className="flex items-center justify-between mt-3 pt-3 border-t border-bi-navy-100">
-        <AvatarStack avatars={[{ name: "Ravi Bohra" }]} />
-        <span className="text-[11px] font-bold text-bi-navy-700">{pct}% · {phase}</span>
-      </div>
-    </Link>
+    <div className="relative bg-white border border-bi-navy-100 rounded-[10px] shadow-bi-sm hover:shadow-bi-md hover:border-bi-navy-200 hover:-translate-y-px transition-all">
+      <span className="absolute top-3.5 right-10 z-10"><HealthPill score={health} /></span>
+      <span className="absolute top-2.5 right-2.5 z-10">
+        <CourseCardMenu course={course} onDeleted={onDeleted} onDuplicated={onDuplicated} />
+      </span>
+      <Link href={`/course/${course.id}/toc`} className="block p-4">
+        <h3 className="font-bold text-[15px] text-bi-navy-900 tracking-tight leading-snug pr-24 line-clamp-2">{course.title}</h3>
+        <p className="text-[12.5px] text-bi-navy-500 mt-1.5 leading-relaxed line-clamp-2">{course.description || "No description yet."}</p>
+        <div className="flex items-center gap-1.5 mt-3 flex-wrap">
+          <Tag tone="blue">{course.platform || "internal"}</Tag>
+          {course.domain && <Tag tone="violet">{course.domain}</Tag>}
+        </div>
+        <div className="mt-3 h-1.5 rounded-full bg-bi-navy-100 overflow-hidden">
+          <div className="h-full bg-gradient-to-r from-bi-blue-600 to-bi-accent-600" style={{ width: `${pct}%` }} />
+        </div>
+        <div className="flex items-center justify-between mt-3 pt-3 border-t border-bi-navy-100">
+          <AvatarStack avatars={[{ name: "Ravi Bohra" }]} />
+          <span className="text-[11px] font-bold text-bi-navy-700">{pct}% · {phase}</span>
+        </div>
+      </Link>
+    </div>
+  );
+}
+
+function CourseCardMenu({
+  course, onDeleted, onDuplicated,
+}: {
+  course: Course;
+  onDeleted: (id: string) => void;
+  onDuplicated: (c: Course) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+
+  const duplicate = async () => {
+    setBusy("dup");
+    try {
+      const newCourse = {
+        ...course,
+        id: crypto.randomUUID(),
+        title: `${course.title} (copy)`,
+        status: "draft",
+      };
+      const res = await fetch("/api/courses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newCourse),
+      });
+      if (res.ok) onDuplicated(newCourse as unknown as Course);
+    } finally { setBusy(null); setOpen(false); }
+  };
+
+  const archive = async () => {
+    setBusy("arc");
+    try {
+      const res = await fetch(`/api/courses/${course.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ archived: true }),
+      });
+      if (res.ok) onDeleted(course.id);
+    } finally { setBusy(null); setOpen(false); }
+  };
+
+  const remove = async () => {
+    if (!confirm(`Delete "${course.title}"? This cannot be undone.`)) return;
+    setBusy("del");
+    try {
+      const res = await fetch(`/api/courses/${course.id}`, { method: "DELETE" });
+      if (res.ok || res.status === 404) onDeleted(course.id);
+    } finally { setBusy(null); setOpen(false); }
+  };
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen((o) => !o); }}
+        className="p-1.5 rounded-md text-bi-navy-500 hover:bg-bi-navy-100 hover:text-bi-navy-900"
+        aria-label="More actions"
+      >
+        <MoreHorizontal className="w-4 h-4" />
+      </button>
+      {open && (
+        <ul
+          onClick={(e) => e.preventDefault()}
+          className="absolute right-0 top-full mt-1 z-20 min-w-[180px] bg-white border border-bi-navy-200 rounded-md shadow-lg py-1"
+        >
+          <MenuItem icon={Copy}    label={busy === "dup" ? "Duplicating…" : "Duplicate"}        onClick={duplicate} />
+          <MenuItem icon={Archive} label={busy === "arc" ? "Archiving…"  : "Archive"}           onClick={archive} />
+          <MenuItem icon={Trash2}  label={busy === "del" ? "Deleting…"   : "Delete"} danger onClick={remove} />
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function MenuItem({
+  icon: Icon, label, onClick, danger,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  onClick: () => void;
+  danger?: boolean;
+}) {
+  return (
+    <li>
+      <button
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClick(); }}
+        className={`w-full text-left px-3 py-1.5 text-[12.5px] flex items-center gap-2 ${danger ? "text-red-700 hover:bg-red-50" : "text-bi-navy-700 hover:bg-bi-navy-50"}`}
+      >
+        <Icon className="w-3.5 h-3.5" />
+        {label}
+      </button>
+    </li>
+  );
+}
+
+function StatusFilter({
+  value, onChange,
+}: {
+  value: "all" | "in_production" | "review" | "draft" | "published";
+  onChange: (v: "all" | "in_production" | "review" | "draft" | "published") => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+
+  const labels: Record<typeof value, string> = {
+    all: "All",
+    in_production: "In production",
+    review: "Awaiting review",
+    draft: "Drafts",
+    published: "Published",
+  };
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-bi-navy-200 bg-white text-[12.5px] font-semibold text-bi-navy-700 hover:bg-bi-navy-50"
+      >
+        Status: {labels[value]}
+        <ChevronDown className="w-3.5 h-3.5" />
+      </button>
+      {open && (
+        <ul className="absolute right-0 top-full mt-1 z-20 min-w-[180px] bg-white border border-bi-navy-200 rounded-md shadow-lg py-1">
+          {(Object.keys(labels) as Array<typeof value>).map((k) => (
+            <li key={k}>
+              <button
+                onClick={() => { onChange(k); setOpen(false); }}
+                className={`w-full text-left px-3 py-1.5 text-[12.5px] hover:bg-bi-navy-50 ${k === value ? "font-bold text-bi-navy-900" : "text-bi-navy-700"}`}
+              >
+                {labels[k]}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
