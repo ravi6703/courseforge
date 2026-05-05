@@ -57,6 +57,7 @@ export function BriefCard({
   videoId, videoTitle, lessonTitle, moduleTitle, courseId, audienceLevel, prerequisites, existingBrief, embedded = false,
 }: Props) {
   const [brief, setBrief] = useState<Brief | null>(existingBrief);
+  const [profile, setProfile] = useState<import("@/types/course-profile").CourseProfile | null>(null);
   const [loading, setLoading] = useState(false);
   const [approving, setApproving] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -71,6 +72,15 @@ export function BriefCard({
     } catch { /* ignore corruption */ }
     return EMPTY_COACH;
   });
+
+  useEffect(() => {
+    let alive = true;
+    fetch(`/api/courses/${courseId}/profile`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (alive && d?.profile) setProfile(d.profile); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [courseId]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -388,6 +398,19 @@ export function BriefCard({
             <Sparkles className="w-3.5 h-3.5" />
             {loading ? "Generating…" : brief ? "Regenerate brief" : "Generate brief"}
           </button>
+        </div>
+      )}
+
+      {/* Authoring controls (tone, audience, reading-level, vocab, per-section regenerate) */}
+      {brief && view === "brief" && expanded && (
+        <div className="border-t border-bi-navy-100 px-4 pt-4">
+          <BriefControls
+            videoId={videoId}
+            courseId={courseId}
+            brief={brief}
+            profile={profile}
+            onGenerated={() => window.location.reload()}
+          />
         </div>
       )}
 
