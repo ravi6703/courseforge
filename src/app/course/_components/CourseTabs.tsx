@@ -7,10 +7,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Layers, FileText, Presentation, Video, Mic, BookOpen, CheckCircle2, Check,
+  Settings, Layers, FileText, Presentation, Video, Mic, BookOpen, CheckCircle2, Check,
 } from "lucide-react";
 
 const TABS = [
+  { slug: "profile",    label: "Course profile",    icon: Settings       },
   { slug: "toc",        label: "Table of contents", icon: Layers         },
   { slug: "briefs",     label: "Content briefs",    icon: FileText    },
   { slug: "ppts",       label: "Presentations",     icon: Presentation     },

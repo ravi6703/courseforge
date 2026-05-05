@@ -13,6 +13,7 @@ import { checkRateLimit, rateLimitResponse } from "@/lib/ratelimit";
 import { getServerSupabase, requireUser } from "@/lib/supabase/server";
 import { extractJson } from "@/lib/ai/extract/json";
 import { recordActivity } from "@/lib/activity";
+import { getProfile, buildPromptFragment } from "@/lib/course-profile";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -79,6 +80,9 @@ export async function POST(req: NextRequest) {
   let brief: BriefShape;
   let aiError: string | null = null;
   if (process.env.ANTHROPIC_API_KEY) {
+    const profile = await getProfile(sb, body.courseId);
+    const profileFragment = profile ? buildPromptFragment(profile) : undefined;
+    const toneOverride = (body as ReqBody & { toneOverride?: string }).toneOverride;
     const r = await generateWithClaude({
       courseTitle: course.title,
       moduleTitle: lesson?.modules?.title ?? "",
@@ -89,6 +93,8 @@ export async function POST(req: NextRequest) {
       domain: course.domain ?? null,
       lessonObjectives: lesson?.learning_objectives ?? null,
       coachInput: body.coachInput,
+      profileFragment,
+      toneOverride,
     });
     if (r.ok) brief = r.brief;
     else { aiError = r.error; brief = canned(video.title); }
@@ -152,6 +158,8 @@ interface ClaudeIn {
   domain?: string | null;
   lessonObjectives?: unknown;
   coachInput?: ReqBody["coachInput"];
+  profileFragment?: string;
+  toneOverride?: string;
 }
 
 async function generateWithClaude(input: ClaudeIn): Promise<{ ok: true; brief: BriefShape } | { ok: false; error: string }> {
@@ -170,7 +178,9 @@ async function generateWithClaude(input: ClaudeIn): Promise<{ ok: true; brief: B
     ? `\nCOACH OBJECTIVE OVERRIDE (prioritise this over the lesson defaults): ${ci.objective_override.trim()}`
     : "";
 
-  const prompt = `You are an expert instructional designer. Generate a content brief for a single video lesson.
+  const profile = input.profileFragment ? `\n\n${input.profileFragment}\n` : "";
+  const toneOverride = input.toneOverride ? `\n\nTONE OVERRIDE FOR THIS BRIEF (overrides the course tone): ${input.toneOverride}` : "";
+  const prompt = `You are an expert instructional designer. Generate a content brief for a single video lesson.${profile}${toneOverride}
 
 Course: ${input.courseTitle}${domain}${audience}${prereq}
 Module: ${input.moduleTitle}
