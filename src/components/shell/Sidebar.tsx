@@ -43,6 +43,7 @@ const SECTIONS: Section[] = [
     id: "pipeline", label: "Course pipeline",
     visibleOn: (p) => /^\/course\/[^/]+/.test(p),
     items: [
+      { label: "Course profile",    href: "/course/CURRENT/profile",    icon: Settings       },
       { label: "Table of contents", href: "/course/CURRENT/toc",        icon: Layers         },
       { label: "Content briefs",    href: "/course/CURRENT/briefs",     icon: FileText    },
       { label: "Presentations",     href: "/course/CURRENT/ppts",       icon: Presentation     },
