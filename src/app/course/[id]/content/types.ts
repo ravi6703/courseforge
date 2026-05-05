@@ -22,16 +22,20 @@ export interface ContentVideoRow {
 
 // Tab order on the Content tab. Matches the lesson production sequence:
 // reading first (deepest engagement), then formative checks (PQ), then
-// summative (GQ), then SCORM bundle, then AI Coach (advanced/optional).
-export const CONTENT_KINDS = ["reading", "pq", "gq", "scorm", "ai_coach"] as const;
+// summative (GQ), then worked example, discussion, SCORM bundle, AI Coach.
+export const CONTENT_KINDS = [
+  "reading", "pq", "gq", "worked_example", "discussion", "scorm", "ai_coach",
+] as const;
 export type ContentKindKey = (typeof CONTENT_KINDS)[number];
 
 export const KIND_META: Record<ContentKindKey, { label: string; icon: string; sub: string }> = {
-  reading:  { label: "Reading",        icon: "📖", sub: "Curated further-reading list with the why for each link" },
-  pq:       { label: "Practice quiz",  icon: "✏️", sub: "5–10 formative questions · learner sees rationale immediately" },
-  gq:       { label: "Assessment",     icon: "📝", sub: "3–5 graded questions · weighted · pass score · time limit" },
-  scorm:    { label: "SCORM bundle",   icon: "📦", sub: "Downloadable export package · built after other artifacts approve" },
-  ai_coach: { label: "AI Coach",       icon: "🤖", sub: "System prompt that powers the in-course AI coach for this video" },
+  reading:        { label: "Reading",         icon: "📖", sub: "Curated further-reading list with the why for each link" },
+  pq:             { label: "Practice quiz",   icon: "✏️", sub: "5–10 formative questions · learner sees rationale immediately" },
+  gq:             { label: "Assessment",      icon: "📝", sub: "3–5 graded questions · weighted · pass score · time limit" },
+  worked_example: { label: "Worked example",  icon: "🧮", sub: "Step-by-step walkthrough of one canonical problem" },
+  discussion:     { label: "Discussion",      icon: "💬", sub: "Prompt + scaffolds for an asynchronous learner discussion" },
+  scorm:          { label: "SCORM bundle",    icon: "📦", sub: "Downloadable export package · built after other artifacts approve" },
+  ai_coach:       { label: "AI Coach",        icon: "🤖", sub: "System prompt that powers the in-course AI coach for this video" },
 };
 
 export function findItem(row: ContentVideoRow, kind: ContentKindKey): ContentItem | null {

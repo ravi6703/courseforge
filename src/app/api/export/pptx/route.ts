@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
 
   const { data: course, error: courseErr } = await supabase
     .from("courses")
-    .select("id, title, description, org_id, orgs!inner(name, brand_kit)")
+    .select("id, title, description, org_id, profile, company_logo_url, orgs!inner(name, brand_kit)")
     .eq("id", courseId)
     .single();
 
@@ -61,13 +61,21 @@ export async function GET(req: NextRequest) {
   if (!slides || slides.length === 0)
     return NextResponse.json({ error: "No slides to export" }, { status: 404 });
 
-  const orgRow = (course as { orgs?: { name?: string; brand_kit?: { primary_hex?: string } } }).orgs;
+  const orgRow = (course as { orgs?: { name?: string; brand_kit?: { primary_hex?: string; secondary_hex?: string; accent_hex?: string; font_family?: string; logo_url?: string } } }).orgs;
+  const profile = ((course as { profile?: { brand?: { primary_color?: string; secondary_color?: string; accent_color?: string; typography?: string; logo_url?: string } } }).profile) ?? {};
+  const cLogo = (course as { company_logo_url?: string }).company_logo_url;
+
   const buf = await renderSlidesToPptx(
     {
       title: course.title,
       description: course.description,
       org_name: orgRow?.name ?? null,
-      brand_color_hex: orgRow?.brand_kit?.primary_hex ?? null,
+      // Per-course profile.brand wins over org brand kit; org is the fallback.
+      brand_color_hex:     profile.brand?.primary_color   ?? orgRow?.brand_kit?.primary_hex   ?? null,
+      brand_secondary_hex: profile.brand?.secondary_color ?? orgRow?.brand_kit?.secondary_hex ?? null,
+      brand_accent_hex:    profile.brand?.accent_color    ?? orgRow?.brand_kit?.accent_hex    ?? null,
+      brand_font_family:   profile.brand?.typography      ?? orgRow?.brand_kit?.font_family   ?? null,
+      brand_logo_url:      cLogo ?? profile.brand?.logo_url ?? orgRow?.brand_kit?.logo_url    ?? null,
     },
     videoId
       ? (slides[0] as { videos?: { title?: string } }).videos?.title || "Lecture"

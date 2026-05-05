@@ -142,6 +142,9 @@ export const GenerateBriefSchema = z.object({
     call_to_action: z.string().max(2000).optional(),
     glossary_terms: z.string().max(5000).optional(),
   }).optional(),
+  toneOverride: z.string().max(60).optional(),
+  intensity: z.enum(["theory", "mixed", "lab"]).optional(),
+  regenerateSection: z.enum(["talking_points", "visual_cues", "key_takeaways", "script_outline"]).optional(),
 });
 
 export const GenerateContentSchema = z.object({

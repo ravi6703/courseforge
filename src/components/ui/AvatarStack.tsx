@@ -1,11 +1,11 @@
-// Small initialed avatars with a navy→blue gradient (BI hub pattern).
-// `b` variant uses a violet→pink gradient for visual variety.
+// Small initialed avatars with a soft slate→blue gradient (soothing theme).
+// `b` variant uses a soft sage→sky gradient for visual variety.
 
 interface Avatar { name: string; variant?: "a" | "b" }
 
 const VARIANTS: Record<string, string> = {
-  a: "bg-gradient-to-br from-bi-navy-700 to-bi-blue-600",
-  b: "bg-gradient-to-br from-violet-600 to-fuchsia-500",
+  a: "bg-gradient-to-br from-bi-navy-700 to-bi-blue-500",
+  b: "bg-gradient-to-br from-emerald-400 to-bi-blue-400",
 };
 
 function initials(name: string) {

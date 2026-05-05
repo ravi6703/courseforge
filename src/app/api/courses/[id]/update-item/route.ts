@@ -15,6 +15,8 @@ function pickFields(table: Tbl, body: Record<string, unknown>): Record<string, u
   if (Array.isArray(body.content_types))         out.content_types = body.content_types;
   if (typeof body.duration_minutes === "number") out.duration_minutes = body.duration_minutes;
   if (typeof body.is_capstone === "boolean")     out.is_capstone = body.is_capstone;
+  if (typeof body.lesson_id === "string" && table === "videos") out.lesson_id = body.lesson_id;
+  if (typeof body.module_id === "string" && table === "lessons") out.module_id = body.module_id;
   if (table === "courses") {
     if (typeof body.company_logo_url === "string") out.company_logo_url = body.company_logo_url;
     if (typeof body.ppt_template_url === "string") out.ppt_template_url = body.ppt_template_url;

@@ -70,6 +70,7 @@ export async function POST(req: NextRequest) {
     duration_weeks: (body.duration_weeks as number) ?? 6,
     hours_per_week: (body.hours_per_week as number) ?? 6,
     domain: (body.domain as string) ?? null,
+    prerequisites: (body.prerequisites as string) ?? null,
     target_job_roles: (body.target_job_roles as string[]) ?? [],
     certification_goal: (body.certification_goal as string) ?? null,
     theory_handson_ratio: (body.theory_handson_ratio as number) ?? 60,
@@ -84,8 +85,30 @@ export async function POST(req: NextRequest) {
     ...(body.content_format_defaults? { content_format_defaults: body.content_format_defaults } : {}),
   };
 
-  const { error: cErr } = await supabase.from("courses").upsert(courseRow, { onConflict: "id" });
-  if (cErr) return NextResponse.json({ error: cErr.message }, { status: 500 });
+  // First attempt: write everything. If the DB is missing the newer columns
+  // (i.e. the 20260505100000_course_settings migration hasn't been applied
+  // to this project yet), Postgres fails with "column X does not exist".
+  // Rather than 500-ing, retry with just the legacy fields and surface a
+  // clearer hint so the operator knows to run migrations.
+  let { error: cErr } = await supabase.from("courses").upsert(courseRow, { onConflict: "id" });
+  if (cErr && /column .* does not exist/i.test(cErr.message)) {
+    const legacyRow = { ...courseRow };
+    delete (legacyRow as Record<string, unknown>).hierarchy_preset;
+    delete (legacyRow as Record<string, unknown>).company_logo_url;
+    delete (legacyRow as Record<string, unknown>).ppt_template_url;
+    delete (legacyRow as Record<string, unknown>).learning_objectives;
+    delete (legacyRow as Record<string, unknown>).content_format_defaults;
+    const retry = await supabase.from("courses").upsert(legacyRow, { onConflict: "id" });
+    cErr = retry.error;
+  }
+  if (cErr) {
+    return NextResponse.json({
+      error: cErr.message,
+      hint: cErr.message.includes("column")
+        ? "A required Supabase migration may not be applied. Run `supabase db push` or apply migrations 20260505100000 and 20260505200000 in the Supabase dashboard."
+        : undefined,
+    }, { status: 500 });
+  }
 
   // PROD-2: surface this in the PM dashboard activity feed.
   await recordActivity(supabase, {
