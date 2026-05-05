@@ -21,6 +21,8 @@ export const dynamic = "force-dynamic";
 interface ReqBody {
   videoId: string;
   courseId: string;
+  toneOverride?: string;
+  regenerateSection?: "talking_points" | "visual_cues" | "key_takeaways" | "script_outline";
   coachInput?: {
     key_topics?: string;
     examples?: string;
@@ -100,6 +102,26 @@ export async function POST(req: NextRequest) {
     else { aiError = r.error; brief = canned(video.title); }
   } else {
     brief = canned(video.title);
+  }
+
+  // Per-section regenerate — keep the rest of the existing brief intact
+  if (body.regenerateSection) {
+    const { data: existing } = await supabase
+      .from("content_briefs")
+      .select("talking_points, visual_cues, key_takeaways, script_outline, estimated_duration")
+      .eq("video_id", body.videoId)
+      .maybeSingle();
+    if (existing) {
+      const sec = body.regenerateSection;
+      const merged: BriefShape = {
+        talking_points:    sec === "talking_points"    ? brief.talking_points    : (existing.talking_points    ?? brief.talking_points),
+        visual_cues:       sec === "visual_cues"       ? brief.visual_cues       : (existing.visual_cues       ?? brief.visual_cues),
+        key_takeaways:     sec === "key_takeaways"     ? brief.key_takeaways     : (existing.key_takeaways     ?? brief.key_takeaways),
+        script_outline:    sec === "script_outline"    ? brief.script_outline    : (existing.script_outline    ?? brief.script_outline),
+        estimated_duration: existing.estimated_duration ?? brief.estimated_duration,
+      };
+      brief = merged;
+    }
   }
 
   // Upsert (video_id UNIQUE → 1 brief per video)
