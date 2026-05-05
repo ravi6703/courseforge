@@ -30,12 +30,15 @@ export function aiMode(): AIMode {
   return hasAIProvider() ? "live" : "fallback";
 }
 
-/** Standard headers to attach to AI responses so the client can detect mode. */
-export function aiHeaders(mode: AIMode): Record<string, string> {
+/** Standard headers to attach to AI responses so the client can detect mode.
+ *  Pass `provider` to surface what the router actually selected; otherwise
+ *  we fall back to env detection. */
+export function aiHeaders(mode: AIMode, provider?: string): Record<string, string> {
   return {
     "x-cf-ai-mode": mode,
     "x-cf-ai-provider":
-      process.env.ANTHROPIC_API_KEY
+      provider ??
+      (process.env.ANTHROPIC_API_KEY
         ? "anthropic"
         : process.env.OPENAI_API_KEY
         ? "openai"
@@ -43,6 +46,6 @@ export function aiHeaders(mode: AIMode): Record<string, string> {
         ? "azure"
         : process.env.AWS_BEDROCK_REGION
         ? "bedrock"
-        : "fallback",
+        : "fallback"),
   };
 }

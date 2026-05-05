@@ -3,6 +3,7 @@ import { aiHeaders, aiMode } from "@/lib/ai/fallback";
 import { checkRateLimit, rateLimitResponse } from "@/lib/ratelimit";
 import { getServerSupabase, requireUser } from "@/lib/supabase/server";
 import { recordActivity } from "@/lib/activity";
+import { captureException } from "@/lib/observability/sentry";
 import { Module } from "@/types";
 
 interface ImproveTOCRequest {
@@ -233,7 +234,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, modules }, { headers: aiHeaders(aiMode()) });
   } catch (error) {
-    console.error("Error in /api/ai/improve-toc:", error);
+    await captureException(error, {
+      source: "api/ai/improve-toc",
+      tags: { org: auth.orgId },
+      level: "error",
+    });
     return NextResponse.json(
       { success: false, error: "Failed to improve TOC" },
       { status: 500, headers: aiHeaders(aiMode()) }

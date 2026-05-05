@@ -19,6 +19,7 @@ import { PreviewSCORM } from "./previews/PreviewSCORM";
 import { PreviewAICoach } from "./previews/PreviewAICoach";
 import { PreviewDiscussion } from "./previews/PreviewDiscussion";
 import { PreviewWorkedExample } from "./previews/PreviewWorkedExample";
+import { AssessmentComposer } from "./AssessmentComposer";
 
 interface Props {
   row: ContentVideoRow;
@@ -153,6 +154,24 @@ export function VideoWorkspace({ row, activeKind, onKindChange }: Props) {
 
         {bulkError && (
           <div className="mb-3 text-[12px] text-red-700 bg-red-50 border border-red-100 rounded-md px-2.5 py-1.5">{bulkError}</div>
+        )}
+
+        {/* Assessment composer — only for PQ + GQ kinds. The composer
+            persists its spec on the content_items.payload via
+            /api/content/generate's generation_config. Lesson objectives
+            are surfaced in the TOC editor; the composer falls back to
+            a friendly hint when none exist yet. */}
+        {(activeKind === "pq" || activeKind === "gq") && (
+          <div className="mb-4">
+            <AssessmentComposer
+              contentItemId={item?.id ?? null}
+              videoId={row.videoId}
+              objectives={[]}
+              kind={activeKind}
+              initial={(item?.payload as { generation_config?: import("@/types/assessment-composer").AssessmentComposerSpec } | undefined)?.generation_config}
+              onGenerated={() => startTransition(() => router.refresh())}
+            />
+          </div>
         )}
 
         {/* Preview + side rail */}

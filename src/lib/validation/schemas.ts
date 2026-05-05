@@ -300,6 +300,10 @@ export type AICoachPayload = z.infer<typeof AICoachPayloadSchema>;
 export const GenerateContentItemSchema = z.object({
   video_id: uuid,
   kind: ContentKindSchema,
+  // Composer spec — opaque to this schema; downstream prompt builders read
+  // it. We allow `unknown` so adding new fields to the composer doesn't
+  // require a schema migration.
+  generation_config: z.unknown().optional(),
 });
 export type GenerateContentItemInput = z.infer<typeof GenerateContentItemSchema>;
 
