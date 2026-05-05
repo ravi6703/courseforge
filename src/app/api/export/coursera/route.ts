@@ -192,3 +192,50 @@ export async function GET(req: NextRequest) {
     },
   });
 }
+
+// POST records the publish attempt in coursera_publishes and returns a
+// download URL. The actual zip lives behind the GET endpoint above.
+//
+// This is the "Coursera placeholder" — no OAuth handshake, no live upload.
+// When you have Coursera partnership credentials, the upload step can be
+// inserted here; until then, the workflow is package → download → upload
+// manually via Coursera Course Builder.
+export async function POST(req: NextRequest) {
+  const auth = await requireUser();
+  if (auth instanceof NextResponse) return auth;
+
+  const body = await req.json().catch(() => ({}));
+  const courseId: string = body.courseId;
+  if (!courseId) return NextResponse.json({ error: "courseId required" }, { status: 400 });
+
+  const sb = await getServerSupabase();
+  const { data: ownerRow } = await sb.from("courses").select("org_id, title").eq("id", courseId).maybeSingle();
+  if (!ownerRow || ownerRow.org_id !== auth.orgId) {
+    return NextResponse.json({ error: "course not found" }, { status: 404 });
+  }
+
+  const { data: rec, error } = await sb.from("coursera_publishes")
+    .insert({
+      org_id: auth.orgId,
+      course_id: courseId,
+      status: "ready",
+      zip_url: `/api/export/coursera?courseId=${courseId}`,
+      manifest: { trigger: "manual", note: "Download the pack and upload via Coursera Course Builder." },
+      created_by: auth.profileId,
+    })
+    .select("id, status, zip_url, created_at")
+    .single();
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Mark the course as having been published-to-Coursera at least once.
+  await sb.from("courses")
+    .update({ coursera_published_at: new Date().toISOString() })
+    .eq("id", courseId);
+
+  return NextResponse.json({
+    ok: true,
+    publish: rec,
+    download_url: `/api/export/coursera?courseId=${courseId}`,
+    instructions: "Download the .zip, then upload via Coursera Course Builder → Import. We'll automate this once Coursera partnership credentials are configured.",
+  });
+}

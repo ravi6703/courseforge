@@ -48,6 +48,13 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "in_production" | "review" | "draft" | "published">("in_production");
+  const [snapshots, setSnapshots] = useState<Array<{
+    recorded_on: string;
+    courses_in_prod: number;
+    reviews_pending: number;
+    courses_published: number;
+    health_score_avg: number;
+  }>>([]);
 
   useEffect(() => {
     const init = async () => {
@@ -61,6 +68,14 @@ export default function DashboardPage() {
       });
       const res = await fetch("/api/courses");
       if (res.ok) setCourses((await res.json()).courses ?? []);
+
+      // Record today's KPIs and load the trailing snapshots so the cards
+      // can show real deltas vs. yesterday / last 7 days.
+      fetch("/api/admin/snapshot", { method: "POST" }).catch(() => {});
+      fetch("/api/admin/snapshot")
+        .then((r) => r.ok ? r.json() : null)
+        .then((d) => { if (d?.snapshots) setSnapshots(d.snapshots); })
+        .catch(() => {});
       setLoading(false);
     };
     init();
@@ -77,6 +92,22 @@ export default function DashboardPage() {
   const inProduction = courses.filter((c) => !["draft","published"].includes(c.status));
   const published    = courses.filter((c) => c.status === "published");
   const queue        = inProduction.filter((c) => c.status.includes("review")).slice(0,3);
+
+  // Real KPI deltas: compare today's snapshot to the snapshot ~7 days ago.
+  // Falls back to empty string when there isn't enough history yet.
+  const formatDelta = (current: number, prior?: number): string => {
+    if (prior == null) return "";
+    const d = current - prior;
+    if (d === 0) return "± 0 vs last week";
+    const sign = d > 0 ? "+" : "";
+    return `${sign}${d} vs last week`;
+  };
+  const weekAgo = snapshots.find((s, i) => i >= 6) ?? snapshots[snapshots.length - 1];
+  const deltaInProd     = weekAgo ? formatDelta(inProduction.length, weekAgo.courses_in_prod)   : "";
+  const deltaQueue      = weekAgo ? formatDelta(queue.length,         weekAgo.reviews_pending)  : "";
+  const deltaPublished  = weekAgo ? formatDelta(published.length,     weekAgo.courses_published): "";
+  const healthAvg = courses.length ? Math.round(courses.reduce((s,c) => s + pseudoHealth(c), 0) / courses.length) : 0;
+  const deltaHealth     = weekAgo ? formatDelta(healthAvg, Math.round(weekAgo.health_score_avg)) : "";
 
   const greet = (() => {
     const h = new Date().getHours();
@@ -119,13 +150,13 @@ export default function DashboardPage() {
 
       {/* KPI strip */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-5">
-        <KpiCard label="Courses in production" value={inProduction.length} icon={BookOpen} tone="blue" />
-        <KpiCard label="Awaiting your review"  value={queue.length} icon={Clock} tone="amber" />
+        <KpiCard label="Courses in production" value={inProduction.length} icon={BookOpen} tone="blue"    delta={deltaInProd} />
+        <KpiCard label="Awaiting your review"  value={queue.length}        icon={Clock}    tone="amber"   delta={deltaQueue} />
         <div className="relative">
-          <KpiCard label="Health score · avg"    value={courses.length ? Math.round(courses.reduce((s,c) => s + pseudoHealth(c), 0) / courses.length) : 0} icon={Heart} tone="emerald" delta={courses.length ? "B grade" : ""} />
+          <KpiCard label="Health score · avg" value={healthAvg} icon={Heart} tone="emerald" delta={deltaHealth || (courses.length ? "B grade" : "")} />
           <span className="absolute top-2.5 right-2.5"><HealthScoreInfo compact /></span>
         </div>
-        <KpiCard label="Published"             value={published.length} icon={Zap} tone="violet" />
+        <KpiCard label="Published"             value={published.length}    icon={Zap}      tone="violet"  delta={deltaPublished} />
       </div>
 
       {/* Recent + Queue side by side */}
