@@ -223,3 +223,73 @@ select:disabled {
   background: rgba(89, 144, 192, 0.22);
   color: var(--color-bi-navy-900);
 }
+
+/* ── Soothing button system ─────────────────────────────────────────────
+   Default in earlier iterations was a heavy dark-slate pill, which felt
+   harsh on the warm cream canvas. The new system is soft-tinted: primary
+   uses a calm brand-blue tint, secondary is a quiet white outline.
+   Components opt in via .btn / .btn-primary / .btn-secondary. ─────── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-primary {
+  background: var(--color-bi-blue-100);
+  color: var(--color-bi-blue-700);
+  border: 1px solid var(--color-bi-blue-200);
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-bi-blue-200);
+  color: var(--color-bi-blue-800);
+}
+
+.btn-secondary {
+  background: var(--color-surface);
+  color: var(--color-bi-navy-700);
+  border: 1px solid var(--color-bi-navy-200);
+}
+.btn-secondary:hover:not(:disabled) {
+  background: var(--color-bi-navy-50);
+  border-color: var(--color-bi-navy-300);
+}
+
+.btn-success {
+  background: rgba(111, 184, 156, 0.15);
+  color: #2F7A5C;
+  border: 1px solid rgba(111, 184, 156, 0.4);
+}
+.btn-success:hover:not(:disabled) {
+  background: rgba(111, 184, 156, 0.25);
+}
+
+.btn-danger {
+  background: rgba(216, 117, 117, 0.12);
+  color: #A04B4B;
+  border: 1px solid rgba(216, 117, 117, 0.35);
+}
+.btn-danger:hover:not(:disabled) {
+  background: rgba(216, 117, 117, 0.20);
+}
+
+/* When a saturated dark button is genuinely needed (Publish, the Generate
+   CTA on the empty Create screen), still use a softened slate, not the
+   former jet-black. */
+.btn-emphasis {
+  background: var(--color-bi-navy-700);
+  color: #fff;
+  border: 1px solid var(--color-bi-navy-700);
+}
+.btn-emphasis:hover:not(:disabled) {
+  background: var(--color-bi-navy-800);
+}

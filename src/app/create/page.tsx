@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/shell/AppShell";
 import { User, Platform, ContentType, Course, HIERARCHY_PRESETS, HierarchyPreset, ContentFormatDefaults } from "@/types";
 import { createClient } from "@/lib/supabase/client";
+import { TocGenerationProgress } from "./TocGenerationProgress";
 import {
   BookOpen,
   Globe,
@@ -66,23 +67,11 @@ const CONTENT_TYPES: { id: ContentType; label: string }[] = [
   { id: "peer_review", label: "Peer Review" },
 ];
 
-const SAMPLE_AI_PROJECTS = [
-  {
-    title: "Build an AI-Powered Chatbot",
-    description: "Create a fully functional chatbot using prompt engineering and API integration",
-    difficulty: "Intermediate",
-  },
-  {
-    title: "Analyze Business Documents",
-    description: "Use LLMs to extract insights and summaries from business documents",
-    difficulty: "Beginner",
-  },
-  {
-    title: "Automation Workflow Implementation",
-    description: "Build an end-to-end automation workflow using AI tools and integrations",
-    difficulty: "Advanced",
-  },
-];
+interface ProjectIdea {
+  title: string;
+  description: string;
+  difficulty: "Beginner" | "Intermediate" | "Advanced";
+}
 
 const STEP_NAMES = ["Platform & Reference", "Course Details", "Content Configuration", "Review & Generate"];
 
@@ -153,6 +142,8 @@ export default function CreateCoursePage() {
 
   const [currentJobRoleInput, setCurrentJobRoleInput] = useState("");
   const [generatedModules, setGeneratedModules] = useState<any[]>([]);
+  const [suggestedProjects, setSuggestedProjects] = useState<ProjectIdea[]>([]);
+  const [projectsLoading, setProjectsLoading] = useState(false);
 
   // Auth check
   useEffect(() => {
@@ -175,6 +166,32 @@ export default function CreateCoursePage() {
 
   // Calculate total hours from module hours
   const totalHours = Object.values(formState.moduleHours).reduce((a, b) => a + b, 0) || formState.durationWeeks * formState.hoursPerWeek;
+
+  // When project-based gets toggled on (and we have a title), ask the AI
+  // for project ideas tailored to this course rather than showing the old
+  // hardcoded list.
+  useEffect(() => {
+    if (!formState.projectBased || !formState.title.trim()) {
+      setSuggestedProjects([]);
+      return;
+    }
+    setProjectsLoading(true);
+    fetch("/api/ai/suggest-projects", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: formState.title,
+        domain: formState.domain,
+        audience_level: formState.audienceLevel,
+        outcome: formState.description,
+      }),
+    })
+      .then((r) => r.ok ? r.json() : { projects: [] })
+      .then((d) => setSuggestedProjects(d.projects ?? []))
+      .catch(() => setSuggestedProjects([]))
+      .finally(() => setProjectsLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formState.projectBased, formState.title]);
 
   // When the platform changes, swap the hierarchy preset to a sensible
   // default for that platform unless the coach has already overridden it.
@@ -339,7 +356,8 @@ export default function CreateCoursePage() {
       router.push(`/course/${courseId}`);
     } catch (err) {
       console.error("Course creation error:", err);
-      setGenerationError("Failed to create course. Please try again.");
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      setGenerationError(`Failed to create course: ${msg}. If this references a missing column, ask the operator to apply the latest Supabase migrations.`);
       setIsSaving(false);
     }
   };
@@ -537,7 +555,7 @@ export default function CreateCoursePage() {
 
                     <div className="space-y-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Duration (Weeks)</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Estimated learner time (weeks)</label>
                         <input
                           type="number"
                           min="1"
@@ -546,6 +564,10 @@ export default function CreateCoursePage() {
                           onChange={(e) => updateFormField("durationWeeks", parseInt(e.target.value) || 6)}
                           className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                         />
+                        <p className="text-[11px] text-gray-500 mt-1">
+                          A learner-time budget, not a 1:1 mapping to modules. The AI uses this to size the course;
+                          modules are drafted by topic.
+                        </p>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Hours per Week</label>
@@ -787,58 +809,51 @@ export default function CreateCoursePage() {
                   </div>
                 </div>
 
-                {/* AI-Suggested Projects */}
+                {/* AI-Suggested Projects (context-aware, generated from
+                    your title + domain + audience + outcome). */}
                 {formState.projectBased && (
-                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200 p-6 mb-6">
+                  <div className="bg-bi-blue-50 rounded-xl border border-bi-blue-100 p-6 mb-6">
                     <div className="flex items-start gap-3 mb-4">
                       <Code className="w-5 h-5 text-bi-blue-600 flex-shrink-0 mt-1" />
                       <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900">AI-Suggested Projects</h3>
-                        <p className="text-sm text-gray-600 mt-1">Consider these project ideas for your course</p>
+                        <h3 className="font-semibold text-bi-navy-900">Project ideas for this course</h3>
+                        <p className="text-sm text-bi-navy-500 mt-1">
+                          {projectsLoading
+                            ? "Asking the AI for project ideas tailored to your course title and domain…"
+                            : suggestedProjects.length
+                              ? "Tailored to your title, domain and audience. You can carry these into the capstone later."
+                              : "Add a course title above and we'll suggest projects."}
+                        </p>
                       </div>
                     </div>
                     <div className="space-y-3">
-                      {SAMPLE_AI_PROJECTS.map((project, idx) => (
-                        <div key={idx} className="bg-white rounded-lg p-4">
+                      {suggestedProjects.map((project, idx) => (
+                        <div key={idx} className="bg-white rounded-lg p-4 border border-bi-navy-100">
                           <div className="flex items-start justify-between mb-2">
-                            <h4 className="font-medium text-gray-900 text-sm">{project.title}</h4>
-                            <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs rounded-full font-medium">
+                            <h4 className="font-medium text-bi-navy-900 text-sm">{project.title}</h4>
+                            <span className="px-2 py-0.5 bg-bi-accent-100 text-bi-accent-800 text-xs rounded-full font-medium">
                               {project.difficulty}
                             </span>
                           </div>
-                          <p className="text-sm text-gray-600">{project.description}</p>
+                          <p className="text-sm text-bi-navy-600">{project.description}</p>
                         </div>
                       ))}
+                      {!projectsLoading && suggestedProjects.length === 0 && formState.title.trim() && (
+                        <div className="text-xs text-bi-navy-500 italic">
+                          Couldn&apos;t reach the AI. We&apos;ll retry once you&apos;re back online.
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
 
-                {/* Hierarchy preset */}
-                <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-                  <h3 className="font-semibold text-gray-900 mb-1">Course Hierarchy</h3>
-                  <p className="text-sm text-gray-600 mb-4">
-                    How this course is structured. Defaults to the convention used by the platform you picked — change it if you&apos;re importing from somewhere else.
-                  </p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {Object.entries(HIERARCHY_PRESETS).map(([key, preset]) => {
-                      const active = formState.hierarchyPresetKey === key;
-                      return (
-                        <button
-                          key={key}
-                          onClick={() => {
-                            const k = key as keyof typeof HIERARCHY_PRESETS;
-                            setFormState((prev) => ({ ...prev, hierarchyPresetKey: k, hierarchyPreset: HIERARCHY_PRESETS[k] }));
-                          }}
-                          className={`text-left p-4 rounded-lg border-2 transition-all ${active ? "border-blue-600 bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}
-                        >
-                          <div className="text-sm font-semibold text-gray-900">{preset.label}</div>
-                          <div className="text-[12px] text-gray-600 font-mono mt-1">
-                            {preset.levels.join(" → ")}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
+                {/* Hierarchy is auto-set from the chosen platform — the
+                    explicit picker created decision-fatigue without payoff.
+                    Power users can rename levels later from the TOC tab. */}
+                <div className="bg-bi-blue-50 rounded-xl border border-bi-blue-100 p-4 mb-6 text-[12.5px] text-bi-navy-700 leading-relaxed">
+                  <span className="font-semibold">Course structure: </span>
+                  <span className="font-mono text-[12px]">{formState.hierarchyPreset.levels.join(" → ")}</span>
+                  <span className="text-bi-navy-500"> — using the {formState.hierarchyPreset.label} convention. You can rename these levels later from the TOC tab.</span>
                 </div>
 
                 {/* Branding & template */}
@@ -999,39 +1014,14 @@ export default function CreateCoursePage() {
                   </div>
                 </div>
 
-                {/* Time Distribution */}
-                <div className="bg-white rounded-xl border border-gray-200 p-6">
-                  <h3 className="font-semibold text-gray-900 mb-4">Time Distribution Across Modules</h3>
-                  <p className="text-sm text-gray-600 mb-6">
-                    Total: {totalHours} hours ({formState.durationWeeks} weeks × {formState.hoursPerWeek} hours/week)
+                {/* Total time summary — module-level allocation moved to
+                    the TOC tab where it's driven by the actual structure. */}
+                <div className="bg-bi-blue-50 rounded-xl border border-bi-blue-100 p-4">
+                  <p className="text-[12.5px] text-bi-navy-700">
+                    <span className="font-semibold">Estimated total: </span>
+                    {totalHours} hours ({formState.durationWeeks} weeks × {formState.hoursPerWeek} hrs/week).
+                    You&apos;ll size each module&apos;s hours after the AI drafts the structure.
                   </p>
-                  <div className="space-y-4">
-                    {[0, 1, 2, 3].map((moduleIdx) => (
-                      <div key={moduleIdx}>
-                        <div className="flex items-center justify-between mb-2">
-                          <label className="text-sm font-medium text-gray-700">Module {moduleIdx + 1}</label>
-                          <span className="text-sm font-semibold text-bi-blue-600">{formState.moduleHours[moduleIdx] || 0} hours</span>
-                        </div>
-                        <input
-                          type="range"
-                          min="0"
-                          max={totalHours}
-                          value={formState.moduleHours[moduleIdx] || 0}
-                          onChange={(e) => {
-                            const newHours = { ...formState.moduleHours };
-                            newHours[moduleIdx] = parseInt(e.target.value);
-                            updateFormField("moduleHours", newHours);
-                          }}
-                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                    <p className="text-xs text-gray-600">
-                      <strong>Allocated:</strong> {Object.values(formState.moduleHours).reduce((a, b) => a + b, 0)} hours
-                    </p>
-                  </div>
                 </div>
               </div>
             </div>
@@ -1115,13 +1105,9 @@ export default function CreateCoursePage() {
 
                 {/* Generation Section */}
                 {!generatedModules.length ? (
-                  <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+                  <div className="bg-white rounded-xl border border-bi-navy-100 p-8">
                     {isGenerating ? (
-                      <div className="space-y-4">
-                        <div className="animate-spin w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full mx-auto" />
-                        <p className="text-gray-600 font-medium">Generating course structure with AI...</p>
-                        <p className="text-sm text-gray-500">Aligning to Bloom's Taxonomy and Board Infinity format</p>
-                      </div>
+                      <TocGenerationProgress active />
                     ) : (
                       <div className="space-y-6">
                         <div className="space-y-2">

@@ -111,7 +111,7 @@ export default function DashboardPage() {
           <p className="text-[13.5px] text-bi-navy-500 mt-0.5">Here&apos;s what needs your attention</p>
         </div>
         {user.role === "pm" && (
-          <Link href="/create" className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-bi-navy-900 text-white text-[13px] font-semibold hover:bg-bi-navy-800 transition-colors">
+          <Link href="/create" className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-bi-blue-100 text-bi-blue-700 border border-bi-blue-200 text-[13px] font-semibold hover:bg-bi-blue-200 hover:text-bi-blue-800 transition-colors">
             <Plus className="w-4 h-4" /> New course
           </Link>
         )}
