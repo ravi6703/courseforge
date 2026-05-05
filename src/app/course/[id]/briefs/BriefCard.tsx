@@ -416,7 +416,7 @@ export function BriefCard({
           />
           <p className="text-[10px] text-bi-navy-400 -mt-1">Leave blank to use the lesson's default learning objectives. Use this to focus the brief on a specific outcome.</p>
 
-          <button onClick={generate} disabled={loading} className="flex items-center gap-1.5 px-4 py-2 rounded-md bg-bi-navy-700 text-white text-xs hover:bg-bi-navy-800 disabled:opacity-50 transition-colors mt-1">
+          <button onClick={generate} disabled={loading} className="flex items-center gap-1.5 px-4 py-2 rounded-md bg-bi-blue-100 text-bi-blue-700 border border-bi-blue-200 text-xs hover:bg-bi-blue-200 disabled:opacity-50 transition-colors mt-1">
             <Sparkles className="w-3.5 h-3.5" />
             {loading ? "Generating…" : brief ? "Regenerate brief" : "Generate brief"}
           </button>

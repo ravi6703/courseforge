@@ -911,7 +911,7 @@ export default function CreateCoursePage() {
                             }
                             className={`px-3 py-1.5 rounded-md border text-sm font-semibold capitalize ${
                               formState.formatDefaults.reading?.format === fmt
-                                ? "bg-bi-navy-900 text-white border-bi-navy-900"
+                                ? "bg-bi-blue-100 text-bi-blue-700 border border-bi-blue-200 border-bi-navy-900"
                                 : "border-gray-200 text-gray-700 hover:bg-gray-50"
                             }`}
                           >
@@ -1002,7 +1002,7 @@ export default function CreateCoursePage() {
                             }
                             className={`px-3 py-1.5 rounded-md border text-sm font-semibold ${
                               formState.formatDefaults.scorm?.version === v
-                                ? "bg-bi-navy-900 text-white border-bi-navy-900"
+                                ? "bg-bi-blue-100 text-bi-blue-700 border border-bi-blue-200 border-bi-navy-900"
                                 : "border-gray-200 text-gray-700 hover:bg-gray-50"
                             }`}
                           >

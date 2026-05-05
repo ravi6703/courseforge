@@ -175,7 +175,7 @@ export function AiEditPanel({
           <button
             onClick={send}
             disabled={busy !== null || !prompt.trim()}
-            className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-bi-navy-900 text-white text-[12px] font-semibold hover:bg-bi-navy-800 disabled:opacity-40"
+            className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-bi-blue-100 text-bi-blue-700 border border-bi-blue-200 text-[12px] font-semibold hover:bg-bi-blue-200 disabled:opacity-40"
           >
             {busy === "send" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
             Send (⌘↵)

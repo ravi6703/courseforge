@@ -77,7 +77,7 @@ export function ContentFormatBar({
                 <button
                   key={fmt}
                   onClick={() => setState({ ...state, reading: { format: fmt } })}
-                  className={`px-2.5 py-1 rounded-md border text-[12px] font-semibold ${reading === fmt ? "bg-bi-navy-900 text-white border-bi-navy-900" : "border-bi-navy-200 text-bi-navy-700 hover:bg-bi-navy-50"}`}
+                  className={`px-2.5 py-1 rounded-md border text-[12px] font-semibold ${reading === fmt ? "bg-bi-blue-100 text-bi-blue-700 border border-bi-blue-200 border-bi-navy-900" : "border-bi-navy-200 text-bi-navy-700 hover:bg-bi-navy-50"}`}
                 >
                   {fmt === "rte" ? "Rich-text editor" : fmt === "markdown" ? "Markdown" : "Word document"}
                 </button>
@@ -144,7 +144,7 @@ export function ContentFormatBar({
                 <button
                   key={v}
                   onClick={() => setState({ ...state, scorm: { version: v } })}
-                  className={`px-2.5 py-1 rounded-md border text-[12px] font-semibold ${scorm === v ? "bg-bi-navy-900 text-white border-bi-navy-900" : "border-bi-navy-200 text-bi-navy-700 hover:bg-bi-navy-50"}`}
+                  className={`px-2.5 py-1 rounded-md border text-[12px] font-semibold ${scorm === v ? "bg-bi-blue-100 text-bi-blue-700 border border-bi-blue-200 border-bi-navy-900" : "border-bi-navy-200 text-bi-navy-700 hover:bg-bi-navy-50"}`}
                 >
                   SCORM {v}
                 </button>
@@ -156,7 +156,7 @@ export function ContentFormatBar({
             <button
               onClick={save}
               disabled={saving}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-md bg-bi-navy-900 text-white text-[12.5px] font-semibold hover:bg-bi-navy-800 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-md bg-bi-blue-100 text-bi-blue-700 border border-bi-blue-200 text-[12.5px] font-semibold hover:bg-bi-blue-200 disabled:opacity-50"
             >
               {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
               Save defaults

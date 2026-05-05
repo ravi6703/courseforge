@@ -204,7 +204,7 @@ export function RecordingView({
         ) : (
           <a
             href="/api/zoom/auth/start"
-            className="text-xs px-3 py-1.5 rounded-md bg-bi-navy-700 text-white hover:bg-bi-navy-800 inline-flex items-center gap-1.5"
+            className="text-xs px-3 py-1.5 rounded-md bg-bi-blue-100 text-bi-blue-700 border border-bi-blue-200 hover:bg-bi-blue-200 inline-flex items-center gap-1.5"
             title="Connect a Zoom account so recordings auto-import"
           >
             <ExternalLink className="w-3.5 h-3.5" /> Connect Zoom

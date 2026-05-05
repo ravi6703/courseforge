@@ -131,7 +131,7 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
     >
       {/* Brand */}
       <Link href="/dashboard" className="flex items-center gap-2.5 px-4 h-14 border-b border-bi-navy-100 shrink-0">
-        <div className="w-8 h-8 rounded-full bg-bi-navy-700 text-white grid place-items-center font-black text-sm shrink-0">∞</div>
+        <div className="w-8 h-8 rounded-full bg-bi-blue-100 text-bi-blue-700 border border-bi-blue-200 grid place-items-center font-black text-sm shrink-0">∞</div>
         <span className={`font-bold text-bi-navy-900 tracking-tight text-[15px] truncate ${collapsed ? "hidden" : ""}`}>
           Course<span className="text-bi-blue-600">Forge</span>
         </span>
@@ -164,7 +164,7 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
                         href={href}
                         className={`flex items-center gap-3 px-2.5 py-2 rounded-lg text-[13.5px] font-medium transition-colors whitespace-nowrap ${
                           active
-                            ? "bg-bi-navy-700 text-white hover:bg-bi-navy-700"
+                            ? "bg-bi-blue-100 text-bi-blue-700 border border-bi-blue-200 hover:bg-bi-blue-200"
                             : "text-bi-navy-700 hover:bg-bi-navy-50"
                         }`}
                       >

@@ -99,7 +99,7 @@ export default function SignupPage() {
                     onClick={() => setRole(r)}
                     className={`px-4 py-2.5 rounded-md border text-sm font-medium transition-colors ${
                       role === r
-                        ? "bg-bi-navy-700 border-bi-navy-900 text-white"
+                        ? "bg-bi-blue-100 border-bi-blue-300 text-bi-blue-800"
                         : "border-bi-navy-300 text-bi-navy-700 hover:bg-bi-navy-50"
                     }`}
                   >

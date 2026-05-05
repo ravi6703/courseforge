@@ -133,7 +133,7 @@ export function ApprovalBar({
             <button
               onClick={regenerate}
               disabled={busy !== null}
-              className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-white bg-bi-navy-700 hover:bg-bi-navy-800 rounded disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-bi-blue-700 bg-bi-blue-100 text-bi-blue-700 border border-bi-blue-200 hover:bg-bi-blue-200 rounded disabled:opacity-50"
             >
               {busy === "regen" ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
               Generate

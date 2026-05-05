@@ -83,7 +83,7 @@ export async function CourseHeader({ courseId }: { courseId: string }) {
           </Link>
           <button
             disabled={phase !== "Final review" && phase !== "Published"}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-bi-navy-900 text-white text-[13px] font-semibold hover:bg-bi-navy-800 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-bi-blue-100 text-bi-blue-700 border border-bi-blue-200 text-[13px] font-semibold hover:bg-bi-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Send className="w-3.5 h-3.5" />Publish
           </button>

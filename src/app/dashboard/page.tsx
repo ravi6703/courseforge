@@ -159,17 +159,22 @@ export default function DashboardPage() {
         <KpiCard label="Published"             value={published.length}    icon={Zap}      tone="violet"  delta={deltaPublished} />
       </div>
 
-      {/* Recent + Queue side by side */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5 mb-5">
-        <RecentCourses courses={inProduction.slice(0,3)} />
-        <YourQueue courses={queue} />
-      </div>
+      {/* Needs your attention — single quiet list combining "Recent" + "Queue" */}
+      <NeedsAttention
+        attention={[
+          ...queue.map((c) => ({ course: c, reason: "Awaiting your review", href: `/course/${c.id}/review` as const })),
+          ...inProduction
+            .filter((c) => !queue.find((q) => q.id === c.id))
+            .slice(0, 3)
+            .map((c) => ({ course: c, reason: STATUS_LABEL[c.status] ?? "In production", href: `/course/${c.id}/toc` as const })),
+        ].slice(0, 6)}
+      />
 
       {/* All courses */}
-      <div className="bg-white border border-bi-navy-100 rounded-[10px] shadow-bi-sm overflow-hidden">
+      <div className="mt-5 bg-white border border-bi-navy-100 rounded-lg overflow-hidden">
         <div className="px-5 py-4 border-b border-bi-navy-100 flex items-center justify-between gap-4 flex-wrap">
           <div>
-            <h2 className="text-[15px] font-bold text-bi-navy-900 tracking-tight">All courses</h2>
+            <h2 className="text-[14px] font-semibold text-bi-navy-900">All courses</h2>
             <div className="text-[12px] text-bi-navy-500 mt-0.5">{courses.length} total · {inProduction.length} in production · {published.length} published</div>
           </div>
           <div className="flex items-center gap-2">
@@ -399,60 +404,36 @@ function StatusFilter({
   );
 }
 
-function RecentCourses({ courses }: { courses: Course[] }) {
+function NeedsAttention({ attention }: {
+  attention: Array<{ course: Course; reason: string; href: string }>;
+}) {
   return (
-    <div className="bg-white border border-bi-navy-100 rounded-[10px] shadow-bi-sm overflow-hidden">
-      <div className="px-5 py-4 border-b border-bi-navy-100 flex items-center justify-between">
-        <div>
-          <h2 className="text-[15px] font-bold text-bi-navy-900 tracking-tight">Recent courses</h2>
-          <div className="text-[12px] text-bi-navy-500 mt-0.5">In production</div>
-        </div>
-        <Link href="/dashboard" className="text-[12px] font-semibold text-bi-navy-500 hover:text-bi-navy-900">View all →</Link>
+    <div className="bg-white border border-bi-navy-100 rounded-lg overflow-hidden">
+      <div className="px-5 py-3.5 border-b border-bi-navy-100 flex items-center justify-between">
+        <h2 className="text-[14px] font-semibold text-bi-navy-900">Needs your attention</h2>
+        <span className="text-[11px] text-bi-navy-500">
+          {attention.length === 0 ? "All clear" : `${attention.length} item${attention.length === 1 ? "" : "s"}`}
+        </span>
       </div>
-      <div className="px-5 py-2">
-        {courses.length === 0 && <div className="py-8 text-center text-[13px] text-bi-navy-500">Nothing in production right now.</div>}
-        {courses.map((c) => (
-          <Link key={c.id} href={`/course/${c.id}/toc`}
-                className="flex items-center justify-between py-2.5 border-b border-bi-navy-50 last:border-0 hover:bg-bi-navy-50 -mx-2 px-2 rounded-md">
-            <div className="min-w-0">
-              <div className="font-semibold text-[13.5px] text-bi-navy-900 truncate">{c.title}</div>
-              <div className="text-[11.5px] mt-0.5"><Tag tone="blue">{c.platform || "internal"}</Tag></div>
-            </div>
-            <div className="text-right shrink-0 ml-3">
-              <div className="font-bold text-[13px] text-bi-navy-900">{STATUS_PCT[c.status] ?? 0}%</div>
-              <div className="text-[11px] text-bi-navy-500">{STATUS_LABEL[c.status] ?? "Draft"}</div>
-            </div>
-          </Link>
+      <ul>
+        {attention.length === 0 ? (
+          <li className="px-5 py-8 text-center text-[12.5px] text-bi-navy-500">Nothing requires you right now.</li>
+        ) : attention.map(({ course, reason, href }) => (
+          <li key={course.id}>
+            <Link
+              href={href}
+              className="flex items-center gap-3 px-5 py-2.5 border-t border-bi-navy-50 first:border-t-0 hover:bg-bi-navy-50/60"
+            >
+              <div className="flex-1 min-w-0">
+                <div className="text-[13px] font-medium text-bi-navy-900 truncate">{course.title}</div>
+                <div className="text-[11px] text-bi-navy-500 mt-0.5">{reason}</div>
+              </div>
+              <span className="text-[11px] tabular-nums text-bi-navy-500 shrink-0">{STATUS_PCT[course.status] ?? 0}%</span>
+              <ChevronRight className="w-3.5 h-3.5 text-bi-navy-300 shrink-0" />
+            </Link>
+          </li>
         ))}
-      </div>
-    </div>
-  );
-}
-
-function YourQueue({ courses }: { courses: Course[] }) {
-  return (
-    <div className="bg-white border border-bi-navy-100 rounded-[10px] shadow-bi-sm overflow-hidden">
-      <div className="px-5 py-4 border-b border-bi-navy-100">
-        <h2 className="text-[15px] font-bold text-bi-navy-900 tracking-tight">Your queue</h2>
-        <div className="text-[12px] text-bi-navy-500 mt-0.5">
-          {courses.length === 0 ? "Nothing waiting on you" : `${courses.length} item${courses.length > 1 ? "s" : ""} waiting on you`}
-        </div>
-      </div>
-      <div className="px-5 py-2">
-        {courses.length === 0 ? (
-          <div className="py-10 text-center text-[13px] text-bi-navy-500">Inbox zero ✨</div>
-        ) : courses.map((c) => (
-          <Link key={c.id} href={`/course/${c.id}/review`}
-                className="flex items-center gap-3 py-2.5 border-b border-bi-navy-50 last:border-0 hover:bg-bi-navy-50 -mx-2 px-2 rounded-md">
-            <Tag tone="amber">{STATUS_LABEL[c.status] ?? "Review"}</Tag>
-            <div className="flex-1 min-w-0">
-              <div className="font-semibold text-[13px] text-bi-navy-900 truncate">{c.title}</div>
-              <div className="text-[11px] text-bi-navy-500 mt-0.5">{c.platform || "internal"}</div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-bi-navy-300" />
-          </Link>
-        ))}
-      </div>
+      </ul>
     </div>
   );
 }

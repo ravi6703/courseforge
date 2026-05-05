@@ -115,7 +115,7 @@ ${markdownToHtml(md)}
           <button
             onClick={handleSave}
             disabled={saving}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-bi-navy-900 text-white text-[11.5px] font-semibold hover:bg-bi-navy-800 disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-bi-blue-100 text-bi-blue-700 border border-bi-blue-200 text-[11.5px] font-semibold hover:bg-bi-blue-200 disabled:opacity-50"
           >
             {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
             Save

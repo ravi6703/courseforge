@@ -127,7 +127,7 @@ export function PptTrackerClient({ courseId, courseHref, initialRows, waitingOnA
             )}
             <button
               onClick={exportFull}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-bi-navy-700 text-white text-xs hover:bg-bi-navy-800"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-bi-blue-100 text-bi-blue-700 border border-bi-blue-200 text-xs hover:bg-bi-blue-200"
             >
               <Download className="w-3.5 h-3.5" /> Export full course .pptx
             </button>
