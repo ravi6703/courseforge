@@ -22,7 +22,7 @@ export function PreviewSCORM({ payload }: { payload: Record<string, unknown> | n
 
   return (
     <div className="rounded-lg border border-bi-navy-200 p-4 flex items-center gap-4">
-      <div className="text-3xl">📦</div>
+      <div className="w-12 h-12 rounded-lg bg-teal-50 text-teal-700 grid place-items-center text-[11px] font-bold tracking-wider shrink-0">SC</div>
       <div className="flex-1 min-w-0">
         <div className="font-semibold text-bi-navy-900 truncate">{p.filename}</div>
         <div className="text-xs text-bi-navy-500 mt-0.5">

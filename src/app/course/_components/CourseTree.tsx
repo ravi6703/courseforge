@@ -48,11 +48,8 @@ export interface CourseTreeData {
   healthScore?: number | null;
 }
 
-// 5 artifact kinds, in the order the rail renders them
+// 5 artifact kinds, used to compute the per-video completion dot.
 const KINDS = ["reading", "pq", "gq", "scorm", "ai_coach"] as const;
-const KIND_GLYPH: Record<string, string> = {
-  reading: "📖", pq: "✏️", gq: "📝", scorm: "📦", ai_coach: "🤖",
-};
 
 function loadExpanded(courseId: string): Record<string, boolean> {
   if (typeof window === "undefined") return {};
@@ -358,21 +355,28 @@ function Row({
 }
 
 function ArtifactPips({ artifacts }: { artifacts: Record<string, "approved" | "draft" | "missing"> }) {
+  // Per coach feedback: 5 emoji pips per video read as clutter, not info.
+  // Collapse to a single completion dot — green = all approved,
+  // amber = at least one draft (in progress), gray = nothing yet.
+  const states = KINDS.map((k) => artifacts[k] ?? "missing");
+  const all = states.length;
+  const approved = states.filter((s) => s === "approved").length;
+  const draft = states.filter((s) => s === "draft").length;
+  const tone =
+    approved === all     ? "bg-emerald-400" :
+    approved + draft > 0 ? "bg-amber-400"   :
+                            "bg-slate-200";
+  const label =
+    approved === all     ? "All artifacts approved" :
+    approved + draft > 0 ? `${approved}/${all} approved · ${draft} draft` :
+                            "No artifacts yet";
   return (
-    <span className="flex items-center gap-0.5 shrink-0">
-      {KINDS.map((k) => {
-        const status = artifacts[k] ?? "missing";
-        const cls = status === "approved" ? "bg-emerald-100 text-emerald-700"
-                  : status === "draft"    ? "bg-amber-100 text-amber-700"
-                                           : "bg-slate-100 text-slate-300";
-        return (
-          <span
-            key={k}
-            className={`w-4 h-4 rounded-sm grid place-items-center text-[9px] font-bold ${cls}`}
-            title={`${k}: ${status}`}
-          >{KIND_GLYPH[k]}</span>
-        );
-      })}
+    <span
+      className="shrink-0 inline-flex items-center gap-1.5"
+      title={label}
+    >
+      <span className={`w-2 h-2 rounded-full ${tone}`} />
+      <span className="text-[10px] font-mono tabular-nums text-slate-400">{approved}/{all}</span>
     </span>
   );
 }

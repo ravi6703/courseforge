@@ -32,18 +32,24 @@ export default async function PptVideoEditorPage({
   const { id, videoId } = await params;
   const sb = await getServerSupabase();
 
-  const { data: video } = await sb
-    .from("videos")
-    .select("id, title, course_id")
-    .eq("id", videoId)
-    .maybeSingle();
+  const [{ data: video }, { data: course }, { data: slides }] = await Promise.all([
+    sb.from("videos").select("id, title, course_id").eq("id", videoId).maybeSingle(),
+    sb.from("courses").select("profile").eq("id", id).maybeSingle(),
+    sb.from("ppt_slides")
+      .select("id, slide_number, title, content, speaker_notes, layout_type, status, image_url")
+      .eq("video_id", videoId)
+      .order("slide_number", { ascending: true }),
+  ]);
   if (!video || video.course_id !== id) notFound();
 
-  const { data: slides } = await sb
-    .from("ppt_slides")
-    .select("id, slide_number, title, content, speaker_notes, layout_type, status, image_url")
-    .eq("video_id", videoId)
-    .order("slide_number", { ascending: true });
+  // Pull brand colors + font from the course profile so the canvas
+  // mirrors what the .pptx exporter actually produces.
+  const profileBrand = (course as { profile?: { brand?: { primary_color?: string; accent_color?: string; typography?: string } } } | null)?.profile?.brand;
+  const brand = {
+    primary: profileBrand?.primary_color,
+    accent:  profileBrand?.accent_color,
+    font:    profileBrand?.typography,
+  };
 
   return (
     <div className="space-y-3">
@@ -66,6 +72,7 @@ export default async function PptVideoEditorPage({
         courseId={id}
         videoId={videoId}
         videoTitle={video.title}
+        brand={brand}
         initialSlides={(slides ?? []) as SlideRow[]}
       />
     </div>

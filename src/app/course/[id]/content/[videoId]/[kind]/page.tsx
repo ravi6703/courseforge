@@ -44,8 +44,9 @@ export default async function ContentArtifactPage({
         >
           <ChevronLeft className="w-3.5 h-3.5" /> {video.title}
         </Link>
-        <div className="text-[11.5px] text-bi-navy-500">
-          {KIND_META[k].icon} {KIND_META[k].label}
+        <div className="text-[11.5px] text-bi-navy-500 inline-flex items-center gap-1.5">
+          <span className={`text-[9.5px] font-bold tracking-wider px-1.5 py-0.5 rounded ${KIND_META[k].tone}`}>{KIND_META[k].icon}</span>
+          {KIND_META[k].label}
         </div>
       </header>
 
