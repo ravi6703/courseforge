@@ -298,7 +298,11 @@ export type AICoachPayload = z.infer<typeof AICoachPayloadSchema>;
 
 // Generate Content Item Request Schema
 export const GenerateContentItemSchema = z.object({
-  video_id: uuid,
+  // Either lesson_id (preferred — non-video artifacts live at lesson
+  // scope) or video_id (legacy — we resolve to its lesson). Exactly one
+  // must be supplied; the route handler enforces this.
+  lesson_id: uuid.optional(),
+  video_id: uuid.optional(),
   kind: ContentKindSchema,
   // Composer spec — opaque to this schema; downstream prompt builders read
   // it. We allow `unknown` so adding new fields to the composer doesn't

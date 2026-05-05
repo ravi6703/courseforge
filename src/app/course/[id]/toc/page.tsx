@@ -12,6 +12,7 @@
 import Link from "next/link";
 import { TocTree } from "./TocTree";
 import { DepthSlider } from "./DepthSlider";
+import { FinalToc } from "./FinalToc";
 import { getServerSupabase } from "@/lib/supabase/server";
 
 export default async function TocTab({
@@ -22,40 +23,47 @@ export default async function TocTab({
   const { id } = await params;
   const supabase = await getServerSupabase();
 
-  const [{ data: modules }, { data: lessons }, { data: videos }, { data: comments }, { data: research }, { data: course }] =
-    await Promise.all([
-      supabase
-        .from("modules")
-        .select("id, title, description, order, learning_objectives")
-        .eq("course_id", id)
-        .order("order", { ascending: true }),
-      supabase
-        .from("lessons")
-        .select("id, module_id, title, description, order, content_types, learning_objectives")
-        .eq("course_id", id)
-        .order("order", { ascending: true }),
-      supabase
-        .from("videos")
-        .select("id, lesson_id, title, order")
-        .eq("course_id", id)
-        .order("order", { ascending: true }),
-      supabase
-        .from("comments")
-        .select("id, target_type, target_id, text, author_name, author_role, resolved, is_ai_flag, created_at")
-        .eq("course_id", id)
-        .in("target_type", ["module", "lesson", "video", "toc"])
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("course_research")
-        .select("competitor_courses, why_better, positioning_statement, sources")
-        .eq("course_id", id)
-        .single(),
-      supabase
-        .from("courses")
-        .select("title, learning_objectives, profile")
-        .eq("id", id)
-        .single(),
-    ]);
+  const [
+    { data: modules }, { data: lessons }, { data: videos },
+    { data: comments }, { data: research }, { data: course }, { data: lessonItems },
+  ] = await Promise.all([
+    supabase
+      .from("modules")
+      .select("id, title, description, order, learning_objectives")
+      .eq("course_id", id)
+      .order("order", { ascending: true }),
+    supabase
+      .from("lessons")
+      .select("id, module_id, title, description, order, content_types, learning_objectives")
+      .eq("course_id", id)
+      .order("order", { ascending: true }),
+    supabase
+      .from("videos")
+      .select("id, lesson_id, title, order")
+      .eq("course_id", id)
+      .order("order", { ascending: true }),
+    supabase
+      .from("comments")
+      .select("id, target_type, target_id, text, author_name, author_role, resolved, is_ai_flag, created_at")
+      .eq("course_id", id)
+      .in("target_type", ["module", "lesson", "video", "toc"])
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("course_research")
+      .select("competitor_courses, why_better, positioning_statement, sources")
+      .eq("course_id", id)
+      .single(),
+    supabase
+      .from("courses")
+      .select("title, learning_objectives, profile")
+      .eq("id", id)
+      .single(),
+    supabase
+      .from("content_items")
+      .select("id, lesson_id, kind, status")
+      .eq("course_id", id)
+      .not("lesson_id", "is", null),
+  ]);
 
   const profile = (course as unknown as { profile?: { difficulty_arc?: "beginner_only" | "beginner_to_intermediate" | "mixed" | "advanced" } } | null)?.profile;
   const initialArc = profile?.difficulty_arc ?? "mixed";
@@ -95,6 +103,19 @@ export default async function TocTab({
         videos={videos || []}
         comments={comments || []}
         videoCountByModule={videosByModule}
+      />
+
+      {/* Final TOC — read-only ordered view of the whole course as it
+          will appear to a learner: every video first, then every
+          non-video lesson artifact, in proper order. Per coach
+          feedback the editor (above) is for outcomes; this section
+          is the canonical "what the course looks like." */}
+      <FinalToc
+        courseId={id}
+        modules={modules || []}
+        lessons={lessons || []}
+        videos={videos || []}
+        items={(lessonItems || []).map((i) => ({ id: i.id, lesson_id: i.lesson_id, kind: i.kind, status: i.status }))}
       />
     </div>
   );

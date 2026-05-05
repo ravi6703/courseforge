@@ -10,6 +10,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AlertTriangle, AlertCircle, Info, ArrowRight, Loader2, ShieldCheck } from "lucide-react";
+import { StatusPill } from "@/components/ui/StatusPill";
 
 interface AuditFinding {
   rule_id: string;
@@ -97,11 +98,11 @@ export function AuditFindings({ courseId }: { courseId: string }) {
             <ShieldCheck className="w-4 h-4 text-bi-navy-700" />
             Course audit
           </h2>
-          <div className="text-[12px] text-bi-navy-500 mt-0.5">
-            Score <span className="font-bold text-bi-navy-900">{audit.score}</span> ·{" "}
-            <span className="text-red-700">{audit.critical} critical</span> ·{" "}
-            <span className="text-amber-700">{audit.major} major</span> ·{" "}
-            <span className="text-bi-blue-700">{audit.minor} minor</span>
+          <div className="text-[12px] text-bi-navy-500 mt-1 inline-flex items-center gap-1.5 flex-wrap">
+            <StatusPill variant="info"     size="sm" label="Score"    count={audit.score} />
+            <StatusPill variant="error"    size="sm" label="Critical" count={audit.critical} />
+            <StatusPill variant="pending"  size="sm" label="Major"    count={audit.major} />
+            <StatusPill variant="draft"    size="sm" label="Minor"    count={audit.minor} />
           </div>
         </div>
         <div className="flex items-center gap-2">
