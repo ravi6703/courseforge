@@ -14,11 +14,30 @@ import { vocabCheck } from "@/lib/format/vocabCheck";
 type Section = "talking_points" | "visual_cues" | "key_takeaways" | "script_outline";
 
 interface BriefShape {
-  talking_points: string[];
-  visual_cues: string[];
-  key_takeaways: string[];
-  script_outline: string;
-  estimated_duration: string;
+  // Stored as jsonb upstream; can be string[] at runtime, but the
+  // local Brief type in BriefCard widens to `unknown` — we accept
+  // that and coerce defensively.
+  talking_points: unknown;
+  visual_cues: unknown;
+  key_takeaways: unknown;
+  script_outline?: string | unknown;
+  estimated_duration?: string | unknown;
+}
+
+// Coerce a possibly-jsonb field to a string[] at the use site.
+function asList(v: unknown): string[] {
+  if (Array.isArray(v)) return v.map((x) => String(x ?? ""));
+  if (typeof v === "string" && v.length > 0) {
+    try {
+      const j = JSON.parse(v);
+      if (Array.isArray(j)) return j.map((x) => String(x ?? ""));
+    } catch { /* not JSON; fall through */ }
+    return [v];
+  }
+  return [];
+}
+function asString(v: unknown): string {
+  return typeof v === "string" ? v : "";
 }
 
 export function BriefControls({
@@ -36,10 +55,10 @@ export function BriefControls({
 
   // Build the searchable text used for reading-level + vocab check.
   const allText = brief ? [
-    ...(brief.talking_points || []),
-    ...(brief.visual_cues || []),
-    ...(brief.key_takeaways || []),
-    brief.script_outline || "",
+    ...asList(brief.talking_points),
+    ...asList(brief.visual_cues),
+    ...asList(brief.key_takeaways),
+    asString(brief.script_outline),
   ].join(" ") : "";
 
   const fk = readability(allText);

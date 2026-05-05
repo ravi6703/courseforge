@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
 
   // Per-section regenerate — keep the rest of the existing brief intact
   if (body.regenerateSection) {
-    const { data: existing } = await supabase
+    const { data: existing } = await sb
       .from("content_briefs")
       .select("talking_points, visual_cues, key_takeaways, script_outline, estimated_duration")
       .eq("video_id", body.videoId)
