@@ -43,7 +43,7 @@ export default function Landing() {
       <header className="border-b border-bi-navy-100 sticky top-0 bg-white/95 backdrop-blur z-10">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-md bg-bi-navy-900 text-white grid place-items-center font-black text-[13px]">∞</div>
+            <div className="w-7 h-7 rounded-md bg-bi-blue-100 text-bi-blue-700 border border-bi-blue-200 grid place-items-center font-black text-[13px]">∞</div>
             <span className="font-bold text-bi-navy-900 tracking-tight text-[15px]">
               Course<span className="text-bi-blue-700">Forge</span>
             </span>
@@ -81,7 +81,7 @@ export default function Landing() {
             <div className="mt-7 flex items-center gap-3">
               <Link
                 href="/signup"
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-bi-navy-900 text-white text-[14px] font-semibold hover:bg-bi-navy-800"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-bi-blue-100 text-bi-blue-700 border border-bi-blue-200 text-[14px] font-semibold hover:bg-bi-blue-200"
               >
                 Start free <ArrowRight className="w-4 h-4" />
               </Link>
@@ -244,21 +244,21 @@ export default function Landing() {
 
       {/* CTA */}
       <section className="max-w-4xl mx-auto px-6 pb-24">
-        <div className="rounded-2xl border border-bi-navy-200 bg-gradient-to-br from-bi-navy-900 to-bi-navy-800 text-white p-10 text-center">
-          <h2 className="text-[28px] font-extrabold tracking-tight">Build your first branded course this afternoon.</h2>
-          <p className="mt-3 text-[14px] text-white/70 max-w-xl mx-auto leading-relaxed">
+        <div className="rounded-2xl border border-bi-blue-100 bg-gradient-to-br from-bi-blue-50 to-bi-accent-50 text-bi-navy-900 p-10 text-center">
+          <h2 className="text-[28px] font-semibold tracking-tight">Build your first branded course this afternoon.</h2>
+          <p className="mt-3 text-[14px] text-bi-navy-600 max-w-xl mx-auto leading-relaxed">
             Free while you&apos;re building your first course. Bring your own Anthropic / OpenAI key when you&apos;re ready to publish.
           </p>
           <div className="mt-6 flex items-center justify-center gap-3">
             <Link
               href="/signup"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-white text-bi-navy-900 text-[14px] font-bold hover:bg-bi-navy-50"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-white text-bi-blue-700 border border-bi-blue-200 text-[14px] font-semibold hover:bg-bi-blue-50"
             >
               Start free <ArrowRight className="w-4 h-4" />
             </Link>
             <Link
               href="/login"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-white/30 text-white text-[14px] font-semibold hover:bg-white/10"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-bi-navy-200 text-bi-navy-700 text-[14px] font-semibold hover:bg-white"
             >
               Sign in
             </Link>

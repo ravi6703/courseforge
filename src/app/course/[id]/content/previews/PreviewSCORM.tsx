@@ -33,7 +33,7 @@ export function PreviewSCORM({ payload }: { payload: Record<string, unknown> | n
         href={p.url}
         target="_blank"
         rel="noreferrer"
-        className="px-3 py-1.5 text-sm font-semibold text-white bg-bi-navy-700 hover:bg-bi-navy-800 rounded-md"
+        className="px-3 py-1.5 text-sm font-semibold text-bi-blue-700 bg-bi-blue-100 text-bi-blue-700 border border-bi-blue-200 hover:bg-bi-blue-200 rounded-md"
       >
         Download .zip
       </a>

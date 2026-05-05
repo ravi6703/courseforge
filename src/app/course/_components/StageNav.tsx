@@ -35,7 +35,7 @@ export function StageNav({ courseId }: { courseId: string }) {
             href={`/course/${courseId}/${s.slug}`}
             className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[12px] font-semibold whitespace-nowrap transition-colors ${
               isCurrent
-                ? "bg-bi-navy-900 text-white"
+                ? "bg-bi-blue-100 text-bi-blue-700 border border-bi-blue-200"
                 : "text-bi-navy-600 hover:bg-bi-navy-100"
             }`}
           >

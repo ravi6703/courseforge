@@ -243,7 +243,7 @@ export function AssessmentComposer({
                 onClick={() => setSpec((s) => ({ ...s, mode: m.id }))}
                 className={`px-2.5 py-1 rounded-md border text-[11.5px] font-semibold ${
                   spec.mode === m.id
-                    ? "bg-bi-navy-900 text-white border-bi-navy-900"
+                    ? "bg-bi-blue-100 text-bi-blue-700 border border-bi-blue-200 border-bi-navy-900"
                     : "border-bi-navy-200 text-bi-navy-700 hover:bg-bi-navy-50"
                 }`}
               >{m.label}</button>

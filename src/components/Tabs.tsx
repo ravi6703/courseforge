@@ -42,7 +42,7 @@ const Tabs: React.FC<TabsProps> = ({
   const tabTriggerStyles = (isActive: boolean) => {
     if (variant === 'pills') {
       return isActive
-        ? 'px-4 py-2 rounded-md bg-bi-navy-700 text-white font-medium text-sm'
+        ? 'px-4 py-2 rounded-md bg-bi-blue-100 text-bi-blue-700 border border-bi-blue-200 font-medium text-sm'
         : 'px-4 py-2 rounded-md text-bi-navy-700 hover:bg-gray-200 text-sm';
     }
     return isActive

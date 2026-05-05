@@ -108,7 +108,7 @@ export default async function PublicHealthScorePage({ params }: PageProps) {
   return (
     <main className="min-h-screen bg-bi-navy-50">
       {/* Header */}
-      <header className="bg-bi-navy-700 text-white">
+      <header className="bg-bi-blue-100 text-bi-blue-700 border border-bi-blue-200">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/" className="text-lg font-bold tracking-tight">CourseForge</Link>
           <div className="text-xs text-white/70">Verified Pedagogy Score</div>
@@ -196,7 +196,7 @@ export default async function PublicHealthScorePage({ params }: PageProps) {
         <h2 className="text-xl font-bold text-bi-navy-700 mb-3">Embed this badge</h2>
         <div className="bg-white border border-bi-navy-100 rounded-lg p-5 flex flex-col md:flex-row md:items-center gap-5">
           <img src={badgeUrl} alt="CourseForge Pedagogy Score badge" className="h-10" />
-          <pre className="flex-1 text-xs bg-bi-navy-900 text-white p-3 rounded overflow-auto">{embedHtml}</pre>
+          <pre className="flex-1 text-xs bg-bi-blue-100 text-bi-blue-700 border border-bi-blue-200 p-3 rounded overflow-auto">{embedHtml}</pre>
         </div>
       </section>
 

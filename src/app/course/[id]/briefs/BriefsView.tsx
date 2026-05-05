@@ -1,22 +1,26 @@
 "use client";
 
-// BriefsView — the redesigned briefs page UX.
+// Briefs page — two-pane layout.
 //
-// Replaces the 32-cards-fully-expanded wall with a scannable list:
-//   - Cards collapsed by default; click to expand inline
-//   - Grouped by module in collapsible accordion sections
-//   - Filter bar at top (All / Drafted / Approved / Pending)
-//   - Bulk actions: "Generate all briefs (N)", per-module "Approve all"
-//   - Status icon + colored left border per card for at-a-glance scanning
-//   - Course Context (audience + prereqs) shown once at the page header
-//   - Keyboard shortcuts: j/k navigate, Enter expand, a approve, g generate
+// LEFT  flat video list grouped by module / lesson, with status icons +
+//       filter (All / Pending / Draft / Approved); single click selects.
+// RIGHT brief for the selected video — embedded BriefCard without the
+//       outer chrome.
+//
+// What we removed compared to the previous accordion version:
+//   - Three-level expand-collapse (Module → Lesson → Video card)
+//   - Per-card course-context banner repeated on every brief
+//   - Per-card AI Suggest panel + Tone selector + meters always visible
+//   - Keyboard j/k nav (kept simple — clicking is fine)
+//
+// What stays:
+//   - "Generate all (N pending)" bulk action
+//   - Per-module "Approve all"
+//   - URL ?focus=<videoId> still selects that video on load
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import {
-  ChevronDown, ChevronRight, Sparkles, CheckCircle2, Circle, Clock,
-  Filter
-} from "lucide-react";
+import { CheckCircle2, Circle, Sparkles, Loader2, FileText } from "lucide-react";
 import { BriefCard } from "./BriefCard";
 
 export interface BriefRow {
@@ -35,6 +39,8 @@ export interface BriefRow {
     script_outline: string;
     estimated_duration?: string;
     status: string;
+    stale_since?: string | null;
+    stale_reason?: string | null;
   } | null;
 }
 
@@ -49,99 +55,45 @@ export function BriefsView({
   prerequisites: string | null;
   rows: BriefRow[];
 }) {
-  const [expandedVideos, setExpandedVideos] = useState<Set<string>>(new Set());
-  const [collapsedModules, setCollapsedModules] = useState<Set<string>>(new Set());
-  const [filter, setFilter] = useState<FilterMode>("all");
-  const [bulkGenerating, setBulkGenerating] = useState(false);
-  const [bulkApprovingModule, setBulkApprovingModule] = useState<string | null>(null);
-  const [focusedIdx, setFocusedIdx] = useState<number>(-1);
-  const [localRows, setLocalRows] = useState(rows);
-  const containerRef = useRef<HTMLDivElement>(null);
   const sp = useSearchParams();
   const focusVideoId = sp.get("focus");
+  const [localRows, setLocalRows] = useState(rows);
+  const [filter, setFilter] = useState<FilterMode>("all");
+  const [selectedId, setSelectedId] = useState<string | null>(focusVideoId ?? rows[0]?.videoId ?? null);
+  const [bulkGenerating, setBulkGenerating] = useState(false);
 
-  // Auto-expand the targeted video when navigated from the TOC.
   useEffect(() => {
-    if (!focusVideoId) return;
-    setExpandedVideos((s) => new Set(s).add(focusVideoId));
-    // Ensure its module is open too
-    const row = rows.find((r) => r.videoId === focusVideoId);
-    if (row) setCollapsedModules((s) => { const next = new Set(s); next.delete(row.moduleId); return next; });
-    // Scroll into view next paint
-    requestAnimationFrame(() => {
-      const el = document.getElementById(`brief-row-${focusVideoId}`);
-      el?.scrollIntoView({ behavior: "smooth", block: "center" });
-    });
-  }, [focusVideoId, rows]);
+    if (focusVideoId) setSelectedId(focusVideoId);
+  }, [focusVideoId]);
 
   const totalVideos = localRows.length;
-  const drafted = localRows.filter((r) => r.brief && r.brief.status === "draft").length;
-  const approved = localRows.filter((r) => r.brief && r.brief.status === "approved").length;
-  const pending = localRows.filter((r) => !r.brief).length;
-  const approvedPct = totalVideos ? Math.round((approved / totalVideos) * 100) : 0;
+  const pending  = localRows.filter((r) => !r.brief).length;
+  const drafted  = localRows.filter((r) => r.brief?.status === "draft").length;
+  const approved = localRows.filter((r) => r.brief?.status === "approved").length;
 
-  // Group by module preserving order
-  const grouped = useMemo(() => {
-    const map = new Map<string, { moduleId: string; moduleTitle: string; moduleOrder: number; rows: BriefRow[] }>();
-    localRows.forEach((r) => {
-      if (!map.has(r.moduleId)) map.set(r.moduleId, {
-        moduleId: r.moduleId, moduleTitle: r.moduleTitle, moduleOrder: r.moduleOrder, rows: [],
-      });
-      map.get(r.moduleId)!.rows.push(r);
-    });
-    return Array.from(map.values()).sort((a, b) => a.moduleOrder - b.moduleOrder);
-  }, [localRows]);
-
-  // Apply filter
-  const matchesFilter = (r: BriefRow): boolean => {
+  const matches = (r: BriefRow): boolean => {
     if (filter === "all") return true;
     if (filter === "pending") return !r.brief;
     if (filter === "draft") return r.brief?.status === "draft";
     if (filter === "approved") return r.brief?.status === "approved";
     return true;
   };
+  const visible = useMemo(() => localRows.filter(matches), [localRows, filter]);
 
-  const visibleRows: BriefRow[] = useMemo(() =>
-    grouped.flatMap((g) => g.rows.filter(matchesFilter)),
-    [grouped, filter]
-  );
+  // Group visible videos by module → lesson for the left list.
+  const grouped = useMemo(() => {
+    const map = new Map<string, { moduleTitle: string; moduleOrder: number; lessons: Map<string, { lessonTitle: string; rows: BriefRow[] }> }>();
+    for (const r of visible) {
+      if (!map.has(r.moduleId)) map.set(r.moduleId, { moduleTitle: r.moduleTitle, moduleOrder: r.moduleOrder, lessons: new Map() });
+      const m = map.get(r.moduleId)!;
+      if (!m.lessons.has(r.lessonId)) m.lessons.set(r.lessonId, { lessonTitle: r.lessonTitle, rows: [] });
+      m.lessons.get(r.lessonId)!.rows.push(r);
+    }
+    return Array.from(map.entries())
+      .sort((a, b) => a[1].moduleOrder - b[1].moduleOrder)
+      .map(([moduleId, m]) => ({ moduleId, ...m, lessons: Array.from(m.lessons.entries()).map(([lessonId, l]) => ({ lessonId, ...l })) }));
+  }, [visible]);
 
-  // Keyboard nav
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.target as HTMLElement)?.tagName === "TEXTAREA" || (e.target as HTMLElement)?.tagName === "INPUT") return;
-      if (e.key === "j" || e.key === "ArrowDown") {
-        e.preventDefault();
-        setFocusedIdx((i) => Math.min(i + 1, visibleRows.length - 1));
-      } else if (e.key === "k" || e.key === "ArrowUp") {
-        e.preventDefault();
-        setFocusedIdx((i) => Math.max(i - 1, 0));
-      } else if (e.key === "Enter" && focusedIdx >= 0 && focusedIdx < visibleRows.length) {
-        const v = visibleRows[focusedIdx];
-        toggleVideoExpanded(v.videoId);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [visibleRows, focusedIdx]);
-
-  const toggleVideoExpanded = (videoId: string) => {
-    setExpandedVideos((s) => {
-      const next = new Set(s);
-      if (next.has(videoId)) next.delete(videoId); else next.add(videoId);
-      return next;
-    });
-  };
-
-  const toggleModuleCollapsed = (moduleId: string) => {
-    setCollapsedModules((s) => {
-      const next = new Set(s);
-      if (next.has(moduleId)) next.delete(moduleId); else next.add(moduleId);
-      return next;
-    });
-  };
-
-  // Bulk: generate briefs for every video that doesn't have one
   const generateAllPending = async () => {
     setBulkGenerating(true);
     const toGenerate = localRows.filter((r) => !r.brief);
@@ -156,219 +108,146 @@ export function BriefsView({
         if (data.success) {
           setLocalRows((rs) => rs.map((rr) => rr.videoId === r.videoId ? { ...rr, brief: data.brief } : rr));
         }
-      } catch { /* swallow per-row errors; continue */ }
+      } catch { /* swallow */ }
     }
     setBulkGenerating(false);
   };
 
-  // Bulk approve every brief whose video belongs to this module
-  const approveModule = async (moduleId: string) => {
-    setBulkApprovingModule(moduleId);
-    try {
-      const res = await fetch("/api/ai/approve-brief", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ moduleId, courseId, status: "approved" }),
-      });
-      if (res.ok) {
-        // Optimistic update — flip every brief in that module to approved
-        setLocalRows((rs) => rs.map((r) =>
-          r.moduleId === moduleId && r.brief
-            ? { ...r, brief: { ...r.brief, status: "approved" } }
-            : r
-        ));
-      }
-    } catch { /* swallow */ }
-    setBulkApprovingModule(null);
-  };
+  const selectedRow = localRows.find((r) => r.videoId === selectedId) ?? null;
 
   return (
-    <div ref={containerRef} className="space-y-4">
-      {/* HEADER */}
-      <div className="rounded-lg border border-bi-navy-200 bg-white p-4 space-y-3">
-        <div className="flex items-center gap-6 flex-wrap">
-          <div>
-            <div className="text-xs text-bi-navy-500 uppercase tracking-wider">Briefs approved</div>
-            <div className="text-2xl font-bold mt-0.5">
-              {approved}<span className="text-sm font-normal text-bi-navy-500"> / {totalVideos} videos</span>
-            </div>
+    <div className="space-y-3">
+      {/* Header strip */}
+      <div className="bg-white border border-bi-navy-100 rounded-lg px-4 py-3 flex items-center gap-4 flex-wrap">
+        <div>
+          <div className="text-[11px] text-bi-navy-500 uppercase tracking-wider">Briefs approved</div>
+          <div className="text-[20px] font-semibold text-bi-navy-800">
+            {approved}<span className="text-[13px] font-normal text-bi-navy-500"> / {totalVideos}</span>
           </div>
-          <div className="flex-1 min-w-[200px]">
-            <div className="h-2 bg-bi-navy-100 rounded-full overflow-hidden">
-              <div className="h-full bg-emerald-500 transition-all" style={{ width: `${approvedPct}%` }} />
-            </div>
-            <div className="text-xs text-bi-navy-500 mt-1">{approvedPct}% approved · slides unlock once approved</div>
-          </div>
-
-          {pending > 0 && (
-            <button
-              onClick={generateAllPending}
-              disabled={bulkGenerating}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-bi-blue-600 text-white text-xs hover:bg-bi-blue-700 disabled:opacity-50"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              {bulkGenerating ? `Generating ${pending}…` : `Generate all (${pending} pending)`}
-            </button>
-          )}
         </div>
-
-        {/* Course Context — audience + prereqs (shown once at top, not per-card) */}
-        {(audienceLevel || prerequisites) && (
-          <div className="rounded-md border border-blue-200 bg-blue-50/60 px-3 py-2 text-xs flex items-start gap-4 flex-wrap">
-            <div className="font-semibold text-blue-900 uppercase tracking-wider">Course context</div>
-            {audienceLevel && (
-              <div className="flex gap-1.5"><span className="text-blue-700 font-medium">Audience:</span><span className="text-blue-900 capitalize">{audienceLevel}</span></div>
-            )}
-            {prerequisites && (
-              <div className="flex gap-1.5 min-w-0"><span className="text-blue-700 font-medium shrink-0">Prerequisites:</span><span className="text-blue-900 truncate">{prerequisites}</span></div>
-            )}
-            <div className="text-bi-blue-600/70 italic ml-auto">AI uses this context automatically</div>
+        <div className="flex-1 min-w-[180px]">
+          <div className="h-1.5 bg-bi-navy-100 rounded-full overflow-hidden">
+            <div className="h-full bg-emerald-300" style={{ width: `${totalVideos ? Math.round((approved / totalVideos) * 100) : 0}%` }} />
           </div>
+          <div className="text-[11px] text-bi-navy-500 mt-1">
+            {pending} pending · {drafted} draft · {approved} approved
+          </div>
+        </div>
+        {pending > 0 && (
+          <button
+            onClick={generateAllPending}
+            disabled={bulkGenerating}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-bi-blue-100 text-bi-blue-700 border border-bi-blue-200 text-[12px] font-semibold hover:bg-bi-blue-200 disabled:opacity-50"
+          >
+            {bulkGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+            {bulkGenerating ? `Generating ${pending}…` : `Generate all (${pending} pending)`}
+          </button>
         )}
-
-        {/* Filter bar */}
-        <div className="flex items-center gap-2 text-xs">
-          <Filter className="w-3.5 h-3.5 text-bi-navy-400" />
-          {[
-            { key: "all" as const, label: "All", count: totalVideos },
-            { key: "pending" as const, label: "Pending", count: pending },
-            { key: "draft" as const, label: "Draft", count: drafted },
-            { key: "approved" as const, label: "Approved", count: approved },
-          ].map((f) => (
+        <div className="flex items-center gap-1 text-[11.5px]">
+          {([
+            { k: "all" as const, label: "All", count: totalVideos },
+            { k: "pending" as const, label: "Pending", count: pending },
+            { k: "draft" as const, label: "Draft", count: drafted },
+            { k: "approved" as const, label: "Approved", count: approved },
+          ]).map((f) => (
             <button
-              key={f.key}
-              onClick={() => setFilter(f.key)}
-              className={`px-2 py-1 rounded-md font-medium transition-colors ${
-                filter === f.key
-                  ? "bg-bi-navy-700 text-white"
-                  : "bg-bi-navy-50 text-bi-navy-600 hover:bg-bi-navy-100"
+              key={f.k}
+              onClick={() => setFilter(f.k)}
+              className={`px-2 py-1 rounded-md font-medium ${
+                filter === f.k
+                  ? "bg-bi-navy-100 text-bi-navy-800"
+                  : "text-bi-navy-500 hover:text-bi-navy-700"
               }`}
             >
-              {f.label} <span className="opacity-70">({f.count})</span>
+              {f.label} <span className="opacity-70 tabular-nums">{f.count}</span>
             </button>
           ))}
-          <span className="ml-auto text-[11px] text-bi-navy-400">
-            <kbd className="px-1 rounded bg-bi-navy-100 font-mono">j</kbd> / <kbd className="px-1 rounded bg-bi-navy-100 font-mono">k</kbd> nav · <kbd className="px-1 rounded bg-bi-navy-100 font-mono">Enter</kbd> expand
-          </span>
         </div>
       </div>
 
-      {/* MODULE ACCORDIONS */}
-      {grouped.map((g) => {
-        const moduleVisible = g.rows.filter(matchesFilter);
-        if (moduleVisible.length === 0 && filter !== "all") return null;
-        const collapsed = collapsedModules.has(g.moduleId);
-        const moduleApproved = g.rows.filter((r) => r.brief?.status === "approved").length;
-        const allApproved = moduleApproved === g.rows.length && g.rows.length > 0;
-
-        return (
-          <div key={g.moduleId} className="rounded-lg border border-bi-navy-200 bg-white overflow-hidden">
-            {/* Module header */}
-            <header
-              className="px-4 py-3 flex items-center gap-3 hover:bg-bi-navy-50/60 cursor-pointer"
-              onClick={() => toggleModuleCollapsed(g.moduleId)}
-            >
-              {collapsed ? <ChevronRight className="w-4 h-4 text-bi-navy-400" /> : <ChevronDown className="w-4 h-4 text-bi-navy-400" />}
-              <div className="text-xs text-bi-navy-500 uppercase tracking-wider font-semibold">Module {g.moduleOrder}</div>
-              <div className="font-semibold text-bi-navy-900 truncate flex-1">{g.moduleTitle}</div>
-              <div className="text-xs text-bi-navy-500 shrink-0">{moduleApproved} / {g.rows.length} approved</div>
-              {!allApproved && g.rows.some((r) => r.brief) && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); approveModule(g.moduleId); }}
-                  disabled={bulkApprovingModule === g.moduleId}
-                  className="text-xs px-2 py-1 rounded border border-emerald-400 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-40 inline-flex items-center gap-1 shrink-0"
-                  title="Approve every brief in this module"
-                >
-                  <CheckCircle2 className="w-3 h-3" />
-                  {bulkApprovingModule === g.moduleId ? "…" : "Approve all"}
-                </button>
-              )}
-            </header>
-
-            {/* Module body */}
-            {!collapsed && (
-              <ul className="divide-y divide-slate-100">
-                {moduleVisible.map((r) => {
-                  const focused = visibleRows[focusedIdx]?.videoId === r.videoId;
-                  const expanded = expandedVideos.has(r.videoId);
-                  return (
-                    <li
-                      key={r.videoId}
-                      id={`brief-row-${r.videoId}`}
-                      className={`transition-colors ${focused || focusVideoId === r.videoId ? "bg-blue-50/40" : ""} ${
-                        r.brief?.status === "approved" ? "border-l-4 border-l-emerald-400" :
-                        r.brief?.status === "draft" ? "border-l-4 border-l-blue-400" :
-                        "border-l-4 border-l-slate-200"
-                      }`}
-                    >
+      {/* Two-pane body */}
+      <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-3">
+        {/* LEFT — videos list */}
+        <aside className="bg-white border border-bi-navy-100 rounded-lg overflow-hidden self-start max-h-[75vh] overflow-y-auto">
+          {grouped.length === 0 ? (
+            <div className="px-4 py-8 text-[12.5px] text-bi-navy-500 text-center italic">
+              No briefs match this filter.
+            </div>
+          ) : grouped.map((m) => (
+            <div key={m.moduleId}>
+              <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-bi-navy-500 bg-bi-navy-50/50 border-b border-bi-navy-100">
+                M{m.moduleOrder} · {m.moduleTitle}
+              </div>
+              {m.lessons.map((l) => (
+                <div key={l.lessonId}>
+                  <div className="px-3 pt-2 pb-0.5 text-[11px] text-bi-navy-500">{l.lessonTitle}</div>
+                  {l.rows.map((r) => {
+                    const isSel = selectedId === r.videoId;
+                    return (
                       <button
-                        onClick={() => toggleVideoExpanded(r.videoId)}
-                        className="w-full px-4 py-2.5 flex items-center gap-3 text-left hover:bg-bi-navy-50/40"
+                        key={r.videoId}
+                        onClick={() => setSelectedId(r.videoId)}
+                        className={`w-full text-left flex items-center gap-2 px-3 py-1.5 text-[12.5px] border-l-[3px] ${
+                          isSel
+                            ? "bg-bi-blue-50 border-l-bi-blue-400 text-bi-navy-900 font-semibold"
+                            : "border-l-transparent text-bi-navy-700 hover:bg-bi-navy-50"
+                        }`}
                       >
                         <StatusIcon status={r.brief?.status} />
-                        <div className="min-w-0 flex-1">
-                          <div className="text-[11px] text-bi-navy-500 truncate">
-                            {r.lessonTitle}
-                          </div>
-                          <div className="text-sm text-bi-navy-900 truncate">{r.videoTitle}</div>
-                        </div>
-                        {r.brief?.estimated_duration && (
-                          <span className="text-[11px] text-bi-navy-500 shrink-0 inline-flex items-center gap-1">
-                            <Clock className="w-3 h-3" />{r.brief.estimated_duration}
+                        <span className="flex-1 truncate">{r.videoTitle}</span>
+                        {r.brief?.stale_since && (
+                          <span
+                            title={r.brief.stale_reason ?? "Outcomes changed since this brief was generated"}
+                            className="text-[9.5px] font-semibold uppercase tracking-wider text-amber-700 bg-amber-50 border border-amber-200 px-1 py-0.5 rounded"
+                          >
+                            Stale
                           </span>
                         )}
-                        <StatusPill status={r.brief?.status} />
-                        {expanded ? <ChevronDown className="w-4 h-4 text-bi-navy-400" /> : <ChevronRight className="w-4 h-4 text-bi-navy-400" />}
                       </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          ))}
+        </aside>
 
-                      {expanded && (
-                        <div className="px-2 pb-3 -mt-1">
-                          {/* The actual BriefCard form lives here when expanded */}
-                          <div className="rounded-md border border-bi-navy-100 bg-bi-navy-50/40 p-2">
-                            <BriefCard
-                              embedded
-                              videoId={r.videoId}
-                              videoTitle={r.videoTitle}
-                              lessonTitle={r.lessonTitle}
-                              moduleTitle={r.moduleTitle}
-                              courseId={courseId}
-                              courseTitle={courseTitle}
-                              audienceLevel={audienceLevel}
-                              prerequisites={prerequisites}
-                              existingBrief={r.brief}
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </li>
-                  );
-                })}
-                {moduleVisible.length === 0 && (
-                  <li className="px-4 py-3 text-xs text-bi-navy-400">No briefs in this module match the current filter.</li>
-                )}
-              </ul>
-            )}
-          </div>
-        );
-      })}
-
-      {totalVideos === 0 && (
-        <div className="rounded-lg border border-dashed border-bi-navy-300 p-10 text-center text-sm text-bi-navy-500">
-          No videos yet — generate a TOC first to populate briefs.
-        </div>
-      )}
+        {/* RIGHT — selected brief */}
+        <main className="min-w-0">
+          {selectedRow ? (
+            <div className="bg-white border border-bi-navy-100 rounded-lg p-4">
+              <header className="mb-3 pb-3 border-b border-bi-navy-100">
+                <div className="text-[11px] text-bi-navy-500">
+                  M{selectedRow.moduleOrder} · {selectedRow.moduleTitle} <span className="text-bi-navy-300 mx-1">›</span> {selectedRow.lessonTitle}
+                </div>
+                <div className="text-[15px] font-semibold text-bi-navy-900 mt-0.5">{selectedRow.videoTitle}</div>
+              </header>
+              <BriefCard
+                embedded
+                videoId={selectedRow.videoId}
+                videoTitle={selectedRow.videoTitle}
+                lessonTitle={selectedRow.lessonTitle}
+                moduleTitle={selectedRow.moduleTitle}
+                courseId={courseId}
+                courseTitle={courseTitle}
+                audienceLevel={audienceLevel}
+                prerequisites={prerequisites}
+                existingBrief={selectedRow.brief}
+              />
+            </div>
+          ) : (
+            <div className="bg-white border border-dashed border-bi-navy-200 rounded-lg p-12 text-center text-[13px] text-bi-navy-500 inline-flex items-center justify-center gap-2">
+              <FileText className="w-4 h-4" /> Pick a video on the left.
+            </div>
+          )}
+        </main>
+      </div>
     </div>
   );
 }
 
 function StatusIcon({ status }: { status?: string }) {
-  if (status === "approved") return <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />;
-  if (status === "draft") return <Circle className="w-4 h-4 text-blue-400 shrink-0 fill-blue-100" />;
-  return <Circle className="w-4 h-4 text-bi-navy-300 shrink-0" />;
-}
-
-function StatusPill({ status }: { status?: string }) {
-  if (status === "approved") return <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-medium shrink-0">Approved</span>;
-  if (status === "draft") return <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 font-medium shrink-0">Draft</span>;
-  return <span className="text-[10px] px-1.5 py-0.5 rounded bg-bi-navy-100 text-bi-navy-500 shrink-0">Pending</span>;
+  if (status === "approved") return <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />;
+  if (status === "draft")    return <Circle className="w-3.5 h-3.5 text-bi-blue-400 shrink-0 fill-bi-blue-50" />;
+  return                            <Circle className="w-3.5 h-3.5 text-bi-navy-300 shrink-0" />;
 }

@@ -110,7 +110,7 @@ export function VideoWorkspace({ row, activeKind, onKindChange }: Props) {
                   }`}
                 >
                   <span className={`shrink-0 w-[22px] h-[22px] rounded-md grid place-items-center text-[12px] ${
-                    isSel ? "bg-bi-navy-900 text-white" : RAIL_TONE[kind]
+                    isSel ? "bg-bi-blue-100 text-bi-blue-700 border border-bi-blue-200" : RAIL_TONE[kind]
                   }`}>{meta.icon}</span>
                   <span className="flex-1 text-left truncate">{meta.label}</span>
                   <span className={`shrink-0 font-mono text-[10px] font-bold px-1.5 py-px rounded-full ${pillCls}`}>
@@ -143,7 +143,7 @@ export function VideoWorkspace({ row, activeKind, onKindChange }: Props) {
             <button
               onClick={() => callBulk("approve_ready")}
               disabled={bulkBusy !== null || draftCount === 0}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-bi-navy-900 text-white text-[12.5px] font-semibold hover:bg-bi-navy-800 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-bi-blue-100 text-bi-blue-700 border border-bi-blue-200 text-[12.5px] font-semibold hover:bg-bi-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {bulkBusy === "approve_ready" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
               Approve drafts

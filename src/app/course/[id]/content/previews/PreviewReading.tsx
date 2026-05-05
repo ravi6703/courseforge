@@ -46,7 +46,7 @@ export function PreviewReading({ payload }: { payload: Record<string, unknown> |
         <div className="flex justify-center">
           <button
             onClick={() => setMode("edit")}
-            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-bi-navy-900 text-white text-[12px] font-semibold hover:bg-bi-navy-800"
+            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-bi-blue-100 text-bi-blue-700 border border-bi-blue-200 text-[12px] font-semibold hover:bg-bi-blue-200"
           >
             <Pencil className="w-3 h-3" /> Open editor
           </button>

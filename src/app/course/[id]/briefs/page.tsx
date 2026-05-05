@@ -20,7 +20,8 @@ export default async function BriefsTab({
     supabase.from("content_briefs").select("*").eq("course_id", id),
   ]);
 
-  // Build the flat row list grouped by module
+  // Build the flat row list grouped by module. Stale-flag columns are
+  // optional; tolerate older DBs that haven't applied 20260507100000.
   const briefByVideo: Record<string, BriefRow["brief"]> = {};
   (briefs || []).forEach((b) => {
     if (b.video_id) briefByVideo[b.video_id] = {
@@ -31,6 +32,8 @@ export default async function BriefsTab({
       script_outline: b.script_outline,
       estimated_duration: b.estimated_duration,
       status: b.status,
+      stale_since:  (b as { stale_since?: string  | null }).stale_since  ?? null,
+      stale_reason: (b as { stale_reason?: string | null }).stale_reason ?? null,
     };
   });
 

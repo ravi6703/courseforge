@@ -27,7 +27,7 @@ export function PillTabs<T extends string>({
             onClick={() => onChange(t.id)}
             className={`px-3.5 py-1.5 rounded-[7px] text-[12.5px] font-semibold transition-all flex items-center gap-1.5 ${
               isSel
-                ? "bg-bi-navy-900 text-white shadow-[0_1px_2px_rgba(11,31,77,.15)]"
+                ? "bg-bi-blue-100 text-bi-blue-700 border border-bi-blue-200 shadow-[0_1px_2px_rgba(11,31,77,.15)]"
                 : "text-bi-navy-700 hover:bg-bi-navy-200"
             }`}
           >
