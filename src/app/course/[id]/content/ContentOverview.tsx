@@ -20,7 +20,7 @@ interface OverviewRow {
   lessonTitle: string;
   moduleTitle: string;
   moduleOrder: number;
-  contentItems: Array<{ id: string; kind: string; status: string }>;
+  contentItems: Array<{ id: string; kind: string; status: string; stale_since?: string | null }>;
 }
 
 export function ContentOverview({
@@ -109,14 +109,15 @@ export function ContentOverview({
               {CONTENT_KINDS.map((k) => {
                 const item = r.contentItems.find((i) => i.kind === k);
                 const status = item?.status ?? "missing";
+                const stale = !!item?.stale_since;
                 return (
                   <Link
                     key={k}
                     href={`/course/${courseId}/content/${r.videoId}/${k}`}
                     className="grid place-items-center"
-                    title={`${KIND_META[k].label} · ${status}`}
+                    title={`${KIND_META[k].label} · ${status}${stale ? " · stale" : ""}`}
                   >
-                    <Cell status={status} />
+                    <Cell status={status} stale={stale} />
                   </Link>
                 );
               })}
@@ -128,8 +129,9 @@ export function ContentOverview({
   );
 }
 
-function Cell({ status }: { status: string }) {
-  if (status === "approved") return <span className="w-3 h-3 rounded-full bg-emerald-400" />;
-  if (status === "draft")    return <span className="w-3 h-3 rounded-full bg-bi-blue-300" />;
-  return                            <span className="w-3 h-3 rounded-full border border-bi-navy-200 bg-white" />;
+function Cell({ status, stale }: { status: string; stale?: boolean }) {
+  const ring = stale ? "ring-2 ring-amber-300 ring-offset-1" : "";
+  if (status === "approved") return <span className={`w-3 h-3 rounded-full bg-emerald-400 ${ring}`} />;
+  if (status === "draft")    return <span className={`w-3 h-3 rounded-full bg-bi-blue-300 ${ring}`} />;
+  return                            <span className={`w-3 h-3 rounded-full border border-bi-navy-200 bg-white ${ring}`} />;
 }

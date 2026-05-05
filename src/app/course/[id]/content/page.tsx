@@ -27,7 +27,7 @@ export default async function ContentTab({
           id, title, order,
           videos(
             id, title, order,
-            content_items(id, kind, status)
+            content_items(id, kind, status, stale_since)
           )
         )
       )
@@ -59,7 +59,7 @@ export default async function ContentTab({
           lessonTitle: lesson.title,
           moduleTitle: mod.title,
           moduleOrder: mod.order ?? 0,
-          contentItems: (video.content_items || []) as Array<{ id: string; kind: string; status: string }>,
+          contentItems: (video.content_items || []) as Array<{ id: string; kind: string; status: string; stale_since?: string | null }>,
         });
       }
     }

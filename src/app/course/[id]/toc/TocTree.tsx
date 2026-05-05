@@ -181,11 +181,19 @@ export function TocTree({
             setLocalLessons((p) => p.map((l) => l.id === selection.id ? { ...l, learning_objectives: next as unknown[] as LearningObjective[] } : l));
             await patch("lessons", selection.id, { learning_objectives: next });
           }
-          // Stale-flag downstream artifacts. Round D wires the per-stage
-          // display; for now we surface a confirmation hint so the coach
-          // knows the change propagates on next regenerate.
-          setStaleHint("Saved. Briefs, slides and content will pick up these outcomes the next time you regenerate them.");
-          setTimeout(() => setStaleHint(null), 6000);
+          // Stale-flag downstream artifacts so each stage tab can render
+          // a "Stale" pill + Regenerate CTA. Soft mark; nothing is rewritten
+          // until the coach explicitly regenerates.
+          await fetch(`/api/courses/${courseId}/flag-stale`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              scope: selection.kind,
+              targetId: selection.kind === "course" ? undefined : selection.id,
+            }),
+          }).catch(() => {});
+          setStaleHint("Saved. Briefs, slides, and content for the affected videos are now flagged stale — regenerate them when ready.");
+          setTimeout(() => setStaleHint(null), 8000);
         }}
         onSuggest={async () => {
           // Single-shot AI suggest based on the current node's title.

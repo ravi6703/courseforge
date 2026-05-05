@@ -5,7 +5,8 @@
 // generations finish so the user gets immediate feedback.
 
 import { useState, useTransition } from "react";
-import { Sparkles, Download, AlertCircle, CheckCircle2, Wand2, Loader2 } from "lucide-react";
+import Link from "next/link";
+import { Sparkles, Download, AlertCircle, CheckCircle2, Wand2, Loader2, PencilLine } from "lucide-react";
 
 export interface TrackerRow {
   videoId: string;
@@ -153,10 +154,15 @@ export function PptTrackerClient({ courseId, courseHref, initialRows, waitingOnA
                 <td className="px-4 py-2 align-top text-bi-navy-900">{r.videoTitle}</td>
                 <td className="px-4 py-2 align-top">
                   {r.slidesTotal > 0 ? (
-                    <span className="inline-flex items-center gap-1 text-emerald-700">
+                    <Link
+                      href={`/course/${courseId}/ppts/${r.videoId}`}
+                      className="inline-flex items-center gap-1 text-emerald-700 hover:underline"
+                      title="Open editor"
+                    >
                       <CheckCircle2 className="w-3.5 h-3.5" />
                       {r.slidesTotal} slides
-                    </span>
+                      <PencilLine className="w-3 h-3" />
+                    </Link>
                   ) : (
                     <span className="text-bi-navy-400">none</span>
                   )}

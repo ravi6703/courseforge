@@ -39,6 +39,8 @@ export interface BriefRow {
     script_outline: string;
     estimated_duration?: string;
     status: string;
+    stale_since?: string | null;
+    stale_reason?: string | null;
   } | null;
 }
 
@@ -193,6 +195,14 @@ export function BriefsView({
                       >
                         <StatusIcon status={r.brief?.status} />
                         <span className="flex-1 truncate">{r.videoTitle}</span>
+                        {r.brief?.stale_since && (
+                          <span
+                            title={r.brief.stale_reason ?? "Outcomes changed since this brief was generated"}
+                            className="text-[9.5px] font-semibold uppercase tracking-wider text-amber-700 bg-amber-50 border border-amber-200 px-1 py-0.5 rounded"
+                          >
+                            Stale
+                          </span>
+                        )}
                       </button>
                     );
                   })}

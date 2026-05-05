@@ -4,7 +4,8 @@
 // generate/regenerate transcript actions.
 
 import { useState } from "react";
-import { Loader2, RotateCcw, Eye, Sparkles, BookOpen, Download, Languages } from "lucide-react";
+import { Loader2, RotateCcw, Eye, Sparkles, BookOpen, Download, Languages, ArrowRight } from "lucide-react";
+import Link from "next/link";
 
 export interface TranscriptVideoRow {
   videoId: string;
@@ -291,6 +292,13 @@ export function TranscriptView({
                                     >
                                       <Download className="w-3 h-3" /> VTT
                                     </button>
+                                    <Link
+                                      href={`/course/${courseId}/content/${row.videoId}`}
+                                      className="text-xs px-2 py-1 rounded bg-bi-blue-100 text-bi-blue-700 border border-bi-blue-200 hover:bg-bi-blue-200 inline-flex items-center gap-1 font-semibold"
+                                      title="Open this video's content workspace"
+                                    >
+                                      Send to Content <ArrowRight className="w-3 h-3" />
+                                    </Link>
                                     <button
                                       onClick={() => handleGenerateTranscript(row)}
                                       className="text-xs px-2 py-1 rounded border border-bi-navy-300 text-bi-navy-700 bg-bi-navy-50 hover:bg-bi-navy-100 inline-flex items-center gap-1"

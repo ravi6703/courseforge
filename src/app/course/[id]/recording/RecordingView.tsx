@@ -9,7 +9,8 @@
 // the Transcript tab populates without coach action.
 
 import { useState } from "react";
-import { Upload, Video, CheckCircle2, AlertCircle, Loader2, Link2, ExternalLink } from "lucide-react";
+import { Upload, Video, CheckCircle2, AlertCircle, Loader2, Link2, ExternalLink, Mic } from "lucide-react";
+import { RecordInBrowser } from "./RecordInBrowser";
 
 export interface RecordingRow {
   videoId: string;
@@ -48,6 +49,7 @@ export function RecordingView({
   const [localRows, setLocalRows] = useState(rows);
   const [uploading, setUploading] = useState<Record<string, boolean>>({});
   const [transcribing, setTranscribing] = useState<Record<string, boolean>>({});
+  const [recordingFor, setRecordingFor] = useState<RecordingRow | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showInbox, setShowInbox] = useState(false);
   const [linkingId, setLinkingId] = useState<string | null>(null);
@@ -293,7 +295,14 @@ export function RecordingView({
                   </td>
                   <td className="px-4 py-2 text-right align-top">
                     <div className="inline-flex gap-1">
-                      <label className="text-xs px-2 py-1 rounded border border-blue-300 text-blue-700 bg-blue-50 hover:bg-bi-blue-100 cursor-pointer inline-flex items-center gap-1">
+                      <button
+                        onClick={() => setRecordingFor(row)}
+                        className="text-xs px-2 py-1 rounded border border-bi-blue-200 text-bi-blue-700 bg-bi-blue-50 hover:bg-bi-blue-100 inline-flex items-center gap-1"
+                        title="Record narration in your browser"
+                      >
+                        <Mic className="w-3 h-3" /> Record
+                      </button>
+                      <label className="text-xs px-2 py-1 rounded border border-bi-navy-200 text-bi-navy-700 bg-white hover:bg-bi-navy-50 cursor-pointer inline-flex items-center gap-1">
                         <Upload className="w-3 h-3" /> {r ? "Replace" : "Upload"}
                         <input
                           type="file"
@@ -303,14 +312,14 @@ export function RecordingView({
                           onChange={(e) => {
                             const f = e.target.files?.[0];
                             if (f) handleUpload(row, f);
-                            e.target.value = ""; // allow re-upload of the same file
+                            e.target.value = "";
                           }}
                         />
                       </label>
                       {zoomConnected && (
                         <button
                           onClick={() => setShowInbox(true)}
-                          className="text-xs px-2 py-1 rounded border border-purple-300 text-purple-700 bg-purple-50 hover:bg-purple-100 inline-flex items-center gap-1"
+                          className="text-xs px-2 py-1 rounded border border-bi-navy-200 text-bi-navy-700 bg-white hover:bg-bi-navy-50 inline-flex items-center gap-1"
                           title="Link from Zoom inbox"
                           disabled={inboxCount === 0}
                         >
@@ -332,6 +341,22 @@ export function RecordingView({
           </div>
         )}
       </div>
+
+      {recordingFor && (
+        <RecordInBrowser
+          courseId={courseId}
+          videoId={recordingFor.videoId}
+          videoTitle={recordingFor.videoTitle}
+          onComplete={(recId) => {
+            setLocalRows((rs) => rs.map((rr) =>
+              rr.videoId === recordingFor.videoId
+                ? { ...rr, recording: { id: recId, type: "upload", status: "uploaded", durationSeconds: null } }
+                : rr,
+            ));
+          }}
+          onClose={() => setRecordingFor(null)}
+        />
+      )}
     </div>
   );
 }
