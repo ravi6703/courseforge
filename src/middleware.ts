@@ -40,6 +40,28 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
+  // First-run onboarding: when an authed user has no completed_at on their
+  // user_metadata.onboarding, push them through the wizard. They can skip,
+  // which writes an empty onboarding object so they don't land on the
+  // wizard again.
+  if (user && isProtected && path !== "/onboarding") {
+    const onboarding = (user.user_metadata as { onboarding?: { completed_at?: string } } | null)?.onboarding;
+    if (!onboarding?.completed_at && !onboarding) {
+      return NextResponse.redirect(new URL("/onboarding", request.url));
+    }
+  }
+
+  // Authed user explicitly visiting /onboarding after completion → bounce to dashboard
+  if (user && path === "/onboarding") {
+    const onboarding = (user.user_metadata as { onboarding?: { completed_at?: string } } | null)?.onboarding;
+    if (onboarding?.completed_at) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+  }
+  if (!user && path === "/onboarding") {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
   return supabaseResponse;
 }
 

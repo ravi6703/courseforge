@@ -1,4 +1,5 @@
 import { ProfileEditor } from "./ProfileEditor";
+import { Collaborators } from "./Collaborators";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { getProfile } from "@/lib/course-profile";
 
@@ -15,6 +16,7 @@ export default async function CourseProfilePage({
     <div className="space-y-4">
       <ProfilePurposeBanner />
       <ProfileEditor courseId={id} initial={profile} />
+      <Collaborators courseId={id} />
     </div>
   );
 }

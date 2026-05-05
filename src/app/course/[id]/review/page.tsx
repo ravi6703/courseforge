@@ -4,6 +4,8 @@
 import { CourseHealthPanel } from "@/components/CourseHealthPanel";
 import { ShareHealthScoreToggle } from "@/components/ShareHealthScoreToggle";
 import { AuditFindings } from "./AuditFindings";
+import { WcagFindings } from "./WcagFindings";
+import { CourseraPublish } from "./CourseraPublish";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { Tag } from "@/components/ui/Tag";
 import { Check, X, ArrowRight } from "lucide-react";
@@ -72,6 +74,12 @@ export default async function ReviewTab({ params }: { params: Promise<{ id: stri
 
       {/* Full audit findings + hard publish gate */}
       <AuditFindings courseId={id} />
+
+      {/* Accessibility (soft-warn) */}
+      <WcagFindings courseId={id} />
+
+      {/* Publish to Coursera */}
+      <CourseraPublish courseId={id} />
 
       {/* Completion checklist */}
       <section className="bg-white border border-bi-navy-100 rounded-[10px] shadow-bi-sm overflow-hidden">
