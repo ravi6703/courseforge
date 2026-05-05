@@ -67,7 +67,9 @@ export function BriefControls({
 
   // Slot is always 10 min for the demo; profile.pedagogy could override later.
   const slotMinutes = 10;
-  const briefMinutes = parseMinutes(brief?.estimated_duration);
+  // estimated_duration is widened to `string | unknown` upstream because it
+  // round-trips through Supabase jsonb; coerce before parsing.
+  const briefMinutes = parseMinutes(asString(brief?.estimated_duration) || undefined);
   const fitTone: "emerald" | "amber" | "red" =
     briefMinutes == null ? "emerald" :
     Math.abs(briefMinutes - slotMinutes) <= 2 ? "emerald" :
