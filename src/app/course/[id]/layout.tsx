@@ -1,10 +1,14 @@
 import Link from "next/link";
 import { ReactNode } from "react";
 import { CourseHeader } from "../_components/CourseHeader";
-import { CourseTabs } from "../_components/CourseTabs";
+import { CourseTree } from "../_components/CourseTree";
+import { loadCourseTreeData } from "../_components/loadCourseTree";
 import { AppShell } from "@/components/shell/AppShell";
 import { getServerSupabase } from "@/lib/supabase/server";
 
+// Course shell — replaces the old horizontal CourseTabs stage bar with
+// a persistent left rail (CourseTree). Stage navigation lives inside
+// the tree under "Stages"; the lesson hierarchy lives below.
 export default async function CourseLayout({
   children,
   params,
@@ -13,12 +17,12 @@ export default async function CourseLayout({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const supabase = await getServerSupabase();
-  const { data: course } = await supabase
-    .from("courses")
-    .select("title")
-    .eq("id", id)
-    .maybeSingle();
+  const sb = await getServerSupabase();
+
+  const [{ data: course }, treeData] = await Promise.all([
+    sb.from("courses").select("title").eq("id", id).maybeSingle(),
+    loadCourseTreeData(sb, id),
+  ]);
 
   const crumbs = [
     { label: "Courses", href: "/dashboard" },
@@ -29,9 +33,21 @@ export default async function CourseLayout({
     <AppShell crumbs={crumbs} fullBleed>
       <div className="bg-white">
         <CourseHeader courseId={id} />
-        <CourseTabs courseId={id} />
       </div>
-      <div className="max-w-[1320px] mx-auto px-7 py-6">{children}</div>
+      <div className="max-w-[1480px] mx-auto px-7 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-5">
+          {treeData ? (
+            <div className="lg:sticky lg:top-[120px] lg:self-start" style={{ maxHeight: "calc(100vh - 140px)" }}>
+              <CourseTree data={treeData} />
+            </div>
+          ) : (
+            <div className="bg-white border border-slate-200 rounded-[10px] p-4 text-[13px] text-slate-500">
+              Course tree unavailable.
+            </div>
+          )}
+          <div className="min-w-0">{children}</div>
+        </div>
+      </div>
       <ExportBar courseId={id} />
     </AppShell>
   );
@@ -39,13 +55,13 @@ export default async function CourseLayout({
 
 function ExportBar({ courseId }: { courseId: string }) {
   return (
-    <div className="border-t border-bi-navy-100 bg-white">
-      <div className="max-w-[1320px] mx-auto px-7 py-3 flex items-center gap-3 text-[13px]">
-        <span className="font-semibold text-bi-navy-700">Export:</span>
-        <Link href={`/api/export/pptx?courseId=${courseId}`}     className="px-3 py-1.5 rounded-md border border-bi-navy-100 text-bi-navy-700 hover:bg-bi-navy-50 font-medium">PowerPoint</Link>
-        <Link href={`/api/export/scorm?courseId=${courseId}`}    className="px-3 py-1.5 rounded-md border border-bi-navy-100 text-bi-navy-700 hover:bg-bi-navy-50 font-medium">SCORM 1.2</Link>
-        <Link href={`/api/export/coursera?courseId=${courseId}`} className="px-3 py-1.5 rounded-md border border-bi-navy-100 text-bi-navy-700 hover:bg-bi-navy-50 font-medium">Coursera</Link>
-        <span className="text-[11.5px] text-bi-navy-500 ml-auto">Udemy &amp; xAPI exports coming soon</span>
+    <div className="border-t border-slate-200 bg-white">
+      <div className="max-w-[1480px] mx-auto px-7 py-3 flex items-center gap-3 text-[13px]">
+        <span className="font-semibold text-slate-700">Export:</span>
+        <Link href={`/api/export/pptx?courseId=${courseId}`}     className="px-3 py-1.5 rounded-md border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium">PowerPoint</Link>
+        <Link href={`/api/export/scorm?courseId=${courseId}`}    className="px-3 py-1.5 rounded-md border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium">SCORM 1.2</Link>
+        <Link href={`/api/export/coursera?courseId=${courseId}`} className="px-3 py-1.5 rounded-md border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium">Coursera</Link>
+        <span className="text-[11.5px] text-slate-500 ml-auto">Udemy &amp; xAPI exports coming soon</span>
       </div>
     </div>
   );
