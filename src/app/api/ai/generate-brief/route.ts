@@ -106,19 +106,22 @@ export async function POST(req: NextRequest) {
 
   // Per-section regenerate — keep the rest of the existing brief intact
   if (body.regenerateSection) {
-    const { data: existing } = await supabase
+    const { data: existing } = await sb
       .from("content_briefs")
       .select("talking_points, visual_cues, key_takeaways, script_outline, estimated_duration")
       .eq("video_id", body.videoId)
       .maybeSingle();
     if (existing) {
       const sec = body.regenerateSection;
+      const ex = existing as { talking_points?: unknown; visual_cues?: unknown; key_takeaways?: unknown; script_outline?: unknown; estimated_duration?: unknown };
+      const list = (v: unknown, fallback: string[]): string[] => Array.isArray(v) ? v.map((x) => String(x ?? "")) : fallback;
+      const str  = (v: unknown, fallback: string): string => typeof v === "string" ? v : fallback;
       const merged: BriefShape = {
-        talking_points:    sec === "talking_points"    ? brief.talking_points    : (existing.talking_points    ?? brief.talking_points),
-        visual_cues:       sec === "visual_cues"       ? brief.visual_cues       : (existing.visual_cues       ?? brief.visual_cues),
-        key_takeaways:     sec === "key_takeaways"     ? brief.key_takeaways     : (existing.key_takeaways     ?? brief.key_takeaways),
-        script_outline:    sec === "script_outline"    ? brief.script_outline    : (existing.script_outline    ?? brief.script_outline),
-        estimated_duration: existing.estimated_duration ?? brief.estimated_duration,
+        talking_points:    sec === "talking_points"    ? brief.talking_points    : list(ex.talking_points,    brief.talking_points),
+        visual_cues:       sec === "visual_cues"       ? brief.visual_cues       : list(ex.visual_cues,       brief.visual_cues),
+        key_takeaways:     sec === "key_takeaways"     ? brief.key_takeaways     : list(ex.key_takeaways,     brief.key_takeaways),
+        script_outline:    sec === "script_outline"    ? brief.script_outline    : str(ex.script_outline,     brief.script_outline),
+        estimated_duration: str(ex.estimated_duration, brief.estimated_duration),
       };
       brief = merged;
     }
