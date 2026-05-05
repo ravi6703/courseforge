@@ -1,79 +1,96 @@
 @import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
+/* ════════════════════════════════════════════════════════════════════════════
+   Soothing light theme.
+
+   Palette philosophy:
+     - Warm cream canvas (#FAF8F4) instead of cool gray, so the eye relaxes.
+     - No pure black anywhere — the deepest tone is a soft slate (#1A243A).
+     - Brand blue desaturated toward dusty sky-blue, still AA-contrast on
+       white. Royal blues feel corporate and tense; this dialled-back tone
+       reads as calm.
+     - Accent shifts from a saturated #FFB800 gold to warm honey, so it
+       coexists with the slate/blue without shouting.
+     - Borders moved from cold #E5E7EB to warm #ECE7DF so cards feel softer.
+     - Semantic colors muted toward sage/coral/dusty so banners don't bark.
+
+   Tailwind class names (`bg-bi-navy-50`, `text-bi-blue-600`, etc.) didn't
+   change — only the underlying hex values — so the entire app rethemes from
+   one file with no component-level edits. ════════════════════════════════ */
+
 @theme {
-  /* Board Infinity Brand Colors */
-  /* Primary Navy */
-  --color-bi-navy-50: #F8FAFC;
-  --color-bi-navy-100: #EFF1F5;
-  --color-bi-navy-200: #D9DFE8;
-  --color-bi-navy-300: #B3C0D6;
-  --color-bi-navy-400: #7B8FB3;
-  --color-bi-navy-500: #4A5C7F;
-  --color-bi-navy-600: #2B3E5F;
-  --color-bi-navy-700: #0B1F4D;
-  --color-bi-navy-800: #0A2540;
-  --color-bi-navy-900: #06192A;
+  /* Primary slate (formerly navy) — softer, never pure black */
+  --color-bi-navy-50:  #F4F6FA;
+  --color-bi-navy-100: #E8ECF3;
+  --color-bi-navy-200: #D2D9E5;
+  --color-bi-navy-300: #ADB8CC;
+  --color-bi-navy-400: #7A8AA8;
+  --color-bi-navy-500: #5A6B8C;
+  --color-bi-navy-600: #3F4F6E;
+  --color-bi-navy-700: #2D3A52;
+  --color-bi-navy-800: #243049;
+  --color-bi-navy-900: #1A243A;
 
-  /* Secondary Blue */
-  --color-bi-blue-50: #F0F5FF;
-  --color-bi-blue-100: #E0EBFF;
-  --color-bi-blue-200: #C1D7FE;
-  --color-bi-blue-300: #A1C3FE;
-  --color-bi-blue-400: #6BA3FD;
-  --color-bi-blue-500: #4084FC;
-  --color-bi-blue-600: #2B6FED;
-  --color-bi-blue-700: #1C5AE0;
-  --color-bi-blue-800: #144BC4;
-  --color-bi-blue-900: #0D3BA8;
+  /* Secondary blue — soothing dusty sky, still readable as blue */
+  --color-bi-blue-50:  #F1F7FB;
+  --color-bi-blue-100: #DEEAF5;
+  --color-bi-blue-200: #C0D7EB;
+  --color-bi-blue-300: #9CC1DD;
+  --color-bi-blue-400: #74A8CD;
+  --color-bi-blue-500: #5990C0;
+  --color-bi-blue-600: #3F6FA8;
+  --color-bi-blue-700: #345C8C;
+  --color-bi-blue-800: #294A72;
+  --color-bi-blue-900: #1F3858;
 
-  /* Accent Golden Yellow */
-  --color-bi-accent-50: #FFFBF0;
-  --color-bi-accent-100: #FFF5E0;
-  --color-bi-accent-200: #FFE8C1;
-  --color-bi-accent-300: #FFDAA2;
-  --color-bi-accent-400: #FFC764;
-  --color-bi-accent-500: #FFB42B;
-  --color-bi-accent-600: #FFB800;
-  --color-bi-accent-700: #F5A700;
-  --color-bi-accent-800: #E09200;
-  --color-bi-accent-900: #B87400;
+  /* Accent honey — warm, not loud */
+  --color-bi-accent-50:  #FBF7EE;
+  --color-bi-accent-100: #F5ECD6;
+  --color-bi-accent-200: #ECDAA8;
+  --color-bi-accent-300: #E1C77A;
+  --color-bi-accent-400: #D6B554;
+  --color-bi-accent-500: #C9A33D;
+  --color-bi-accent-600: #B68F2A;
+  --color-bi-accent-700: #97772A;
+  --color-bi-accent-800: #7A6024;
+  --color-bi-accent-900: #5C481B;
 
-  /* Neutrals */
-  --color-surface: #FFFFFF;
-  --color-bg: #F8F9FB;
-  --color-border: #E5E7EB;
-  --color-border-muted: #D1D5DB;
-  --color-text: #1F2937;
-  --color-text-muted: #6B7280;
-  --color-text-light: #9CA3AF;
+  /* Neutrals — warm canvas */
+  --color-surface:      #FFFFFF;
+  --color-bg:           #FAF8F4;
+  --color-border:       #ECE7DF;
+  --color-border-muted: #D8D0C3;
+  --color-text:         #2C3340;
+  --color-text-muted:   #6B7180;
+  --color-text-light:   #A0A4AC;
 
-  /* Semantic */
-  --color-success: #10B981;
-  --color-warning: #F59E0B;
-  --color-danger: #EF4444;
-  --color-info: #3B82F6;
+  /* Semantic — muted, soothing */
+  --color-success: #6FB89C;
+  --color-warning: #D9A96A;
+  --color-danger:  #D87575;
+  --color-info:    #7AA9CC;
 
   /* Legacy aliases for backward compatibility */
-  --color-primary: #0B1F4D;
-  --color-primary-dark: #0A2540;
-  --color-primary-light: #DBEAFE;
-  --color-secondary: #1F2937;
-  --color-accent: #FFB800;
-  --color-muted: #6B7280;
+  --color-primary:       #2D3A52;
+  --color-primary-dark:  #243049;
+  --color-primary-light: #DEEAF5;
+  --color-secondary:     #2C3340;
+  --color-accent:        #B68F2A;
+  --color-muted:         #6B7180;
 }
 
 :root {
   /* CSS Variables for dynamic theming */
-  --bi-primary: #0B1F4D;
-  --bi-primary-dark: #0A2540;
-  --bi-accent: #FFB800;
-  --bi-accent-alt: #FF6B00;
-  --bi-bg: #F8F9FB;
-  --bi-surface: #FFFFFF;
-  --bi-border: #E5E7EB;
-  --bi-text: #1F2937;
-  --bi-text-muted: #6B7280;
+  --bi-primary:       #2D3A52;
+  --bi-primary-dark:  #243049;
+  --bi-accent:        #B68F2A;
+  --bi-accent-alt:    #C58F4D;
+  --bi-bg:            #FAF8F4;
+  --bi-surface:       #FFFFFF;
+  --bi-border:        #ECE7DF;
+  --bi-text:          #2C3340;
+  --bi-text-muted:    #6B7180;
 }
 
 html {
@@ -86,72 +103,52 @@ body {
   color: var(--color-text);
   font-size: 14px;
   line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 h1, h2, h3, h4, h5, h6 {
   font-family: 'Space Grotesk', 'Inter', sans-serif;
   font-weight: 600;
+  color: var(--color-bi-navy-800);
+  letter-spacing: -0.005em;
 }
 
-h1 {
-  font-size: 32px;
-  line-height: 1.2;
-  font-weight: 700;
-}
+h1 { font-size: 32px; line-height: 1.2; font-weight: 700; }
+h2 { font-size: 24px; line-height: 1.3; font-weight: 600; }
+h3 { font-size: 18px; line-height: 1.4; font-weight: 600; }
+h4 { font-size: 16px; line-height: 1.4; font-weight: 600; }
 
-h2 {
-  font-size: 24px;
-  line-height: 1.3;
-  font-weight: 600;
-}
+small, .text-sm { font-size: 12px; }
+.text-xs        { font-size: 11px; }
 
-h3 {
-  font-size: 18px;
-  line-height: 1.4;
-  font-weight: 600;
-}
-
-h4 {
-  font-size: 16px;
-  line-height: 1.4;
-  font-weight: 600;
-}
-
-small, .text-sm {
-  font-size: 12px;
-}
-
-.text-xs {
-  font-size: 11px;
-}
-
-/* Focus ring for accessibility */
+/* Softer focus ring — gentler glow instead of a sharp double border */
 :focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(43, 111, 237, 0.1), 0 0 0 3px #2B6FED;
+  box-shadow: 0 0 0 3px rgba(63, 111, 168, 0.18);
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar { width: 6px; }
+/* Custom scrollbar — warm-tinted, low contrast */
+::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+::-webkit-scrollbar-thumb { background: #D8D0C3; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #B5ABA0; }
 
-/* Utility classes for shadows */
+/* Utility classes for shadows — softer, warmer than pure-black drop shadows */
 .shadow-bi-sm {
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 2px 0 rgba(45, 58, 82, 0.04);
 }
 
 .shadow-bi-md {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px -1px rgba(45, 58, 82, 0.06), 0 2px 4px -2px rgba(45, 58, 82, 0.05);
 }
 
 .shadow-bi-lg {
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 15px -3px rgba(45, 58, 82, 0.07), 0 4px 6px -4px rgba(45, 58, 82, 0.05);
 }
 
 .shadow-bi-xl {
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 20px 25px -5px rgba(45, 58, 82, 0.08), 0 8px 10px -6px rgba(45, 58, 82, 0.05);
 }
 
 /* Rounded border radius tokens */
@@ -159,26 +156,28 @@ small, .text-sm {
   border-radius: 12px;
 }
 
-/* Link styling */
+/* Link styling — soft brand blue */
 a {
   color: var(--color-bi-blue-600);
   text-decoration: none;
 }
 
 a:hover {
-  color: var(--color-bi-navy-700);
+  color: var(--color-bi-blue-700);
   text-decoration: underline;
 }
 
-/* Input styling */
+/* Input styling — soft borders, calm focus */
 input[type="text"],
 input[type="email"],
 input[type="password"],
 input[type="number"],
+input[type="url"],
+input[type="search"],
 textarea,
 select {
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 10px 12px;
   font-family: inherit;
   font-size: 14px;
@@ -191,20 +190,24 @@ input[type="text"]:focus,
 input[type="email"]:focus,
 input[type="password"]:focus,
 input[type="number"]:focus,
+input[type="url"]:focus,
+input[type="search"]:focus,
 textarea:focus,
 select:focus {
   outline: none;
-  border-color: var(--color-bi-blue-600);
-  box-shadow: 0 0 0 3px rgba(43, 111, 237, 0.1);
+  border-color: var(--color-bi-blue-500);
+  box-shadow: 0 0 0 3px rgba(89, 144, 192, 0.15);
 }
 
 input[type="text"]:disabled,
 input[type="email"]:disabled,
 input[type="password"]:disabled,
 input[type="number"]:disabled,
+input[type="url"]:disabled,
+input[type="search"]:disabled,
 textarea:disabled,
 select:disabled {
-  background-color: #F3F4F6;
+  background-color: #F4F1EB;
   color: var(--color-text-muted);
   cursor: not-allowed;
 }
@@ -212,4 +215,11 @@ select:disabled {
 /* Placeholder styling */
 ::placeholder {
   color: var(--color-text-light);
+  opacity: 1;
+}
+
+/* Selection — soft brand blue tint */
+::selection {
+  background: rgba(89, 144, 192, 0.22);
+  color: var(--color-bi-navy-900);
 }
