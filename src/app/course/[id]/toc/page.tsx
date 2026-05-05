@@ -11,6 +11,7 @@
 
 import Link from "next/link";
 import { TocTree } from "./TocTree";
+import { DepthSlider } from "./DepthSlider";
 import { getServerSupabase } from "@/lib/supabase/server";
 
 export default async function TocTab({
@@ -51,10 +52,13 @@ export default async function TocTab({
         .single(),
       supabase
         .from("courses")
-        .select("title, learning_objectives")
+        .select("title, learning_objectives, profile")
         .eq("id", id)
         .single(),
     ]);
+
+  const profile = (course as unknown as { profile?: { difficulty_arc?: "beginner_only" | "beginner_to_intermediate" | "mixed" | "advanced" } } | null)?.profile;
+  const initialArc = profile?.difficulty_arc ?? "mixed";
 
   const moduleCount = (modules || []).length;
   const lessonCount = (lessons || []).length;
@@ -70,6 +74,7 @@ export default async function TocTab({
   return (
     <div className="space-y-6">
       <ResearchPanel research={research} />
+      <DepthSlider courseId={id} initial={initialArc} />
       <div className="rounded-lg border border-bi-navy-200 bg-bi-navy-50 px-4 py-3 text-sm text-bi-navy-700 flex items-center gap-6 flex-wrap">
         <div><span className="font-semibold">{moduleCount}</span> <span className="text-bi-navy-500">modules</span></div>
         <div><span className="font-semibold">{lessonCount}</span> <span className="text-bi-navy-500">lessons</span></div>

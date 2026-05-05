@@ -10,7 +10,7 @@
 
 import { useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { Bold, Heading2, Link as LinkIcon, Image as ImageIcon, Download, Save, Loader2 } from "lucide-react";
+import { Bold, Heading2, Link as LinkIcon, Image as ImageIcon, Download, Save, Loader2, Sparkles } from "lucide-react";
 
 interface Props {
   initialMarkdown?: string;
@@ -25,7 +25,25 @@ export function ReadingEditor({
 }: Props) {
   const [md, setMd] = useState(initialMarkdown);
   const [saving, setSaving] = useState(false);
+  const [genImg, setGenImg] = useState(false);
   const wordCount = useMemo(() => md.trim().split(/\s+/).filter(Boolean).length, [md]);
+
+  const generateImage = async () => {
+    const desc = window.prompt("Describe the image to generate (e.g. 'flat illustration of a workflow with three nodes connected by arrows'):");
+    if (!desc?.trim()) return;
+    setGenImg(true);
+    try {
+      const res = await fetch("/api/ai/generate-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: desc.trim(), style: "illustration" }),
+      });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        setMd((prev) => `${prev}${prev.endsWith("\n") || prev === "" ? "" : "\n"}![${desc.trim()}](${data.url})\n`);
+      }
+    } finally { setGenImg(false); }
+  };
 
   const insertAt = (snippet: string) => {
     setMd((prev) => `${prev}${prev.endsWith("\n") || prev === "" ? "" : "\n"}${snippet}\n`);
@@ -84,6 +102,14 @@ ${markdownToHtml(md)}
         <ToolbarButton onClick={() => insertAt("**bold**")}       icon={Bold}><span className="hidden sm:inline">Bold</span></ToolbarButton>
         <ToolbarButton onClick={() => insertAt("[link](https://)")} icon={LinkIcon}><span className="hidden sm:inline">Link</span></ToolbarButton>
         <ToolbarButton onClick={() => insertAt(`![alt](${companyLogoUrl || "https://"})`)} icon={ImageIcon}><span className="hidden sm:inline">Image</span></ToolbarButton>
+        <button
+          onClick={generateImage}
+          disabled={genImg}
+          className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-purple-200 bg-purple-50 text-[11.5px] font-semibold text-purple-700 hover:bg-purple-100 disabled:opacity-50"
+        >
+          {genImg ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+          <span className="hidden sm:inline">Generate</span>
+        </button>
         <span className="ml-auto text-[11px] text-bi-navy-500">{wordCount} words</span>
         {onSave && (
           <button

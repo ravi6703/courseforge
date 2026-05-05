@@ -3,6 +3,7 @@
 
 import { CourseHealthPanel } from "@/components/CourseHealthPanel";
 import { ShareHealthScoreToggle } from "@/components/ShareHealthScoreToggle";
+import { AuditFindings } from "./AuditFindings";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { Tag } from "@/components/ui/Tag";
 import { Check, X, ArrowRight } from "lucide-react";
@@ -68,6 +69,9 @@ export default async function ReviewTab({ params }: { params: Promise<{ id: stri
         <CourseHealthPanel courseId={id} />
         <ShareHealthScoreToggle courseId={id} initialPublic={Boolean(courseRow?.public_health_score)} />
       </div>
+
+      {/* Full audit findings + hard publish gate */}
+      <AuditFindings courseId={id} />
 
       {/* Completion checklist */}
       <section className="bg-white border border-bi-navy-100 rounded-[10px] shadow-bi-sm overflow-hidden">

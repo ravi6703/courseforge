@@ -5,7 +5,7 @@
 // generations finish so the user gets immediate feedback.
 
 import { useState, useTransition } from "react";
-import { Sparkles, Download, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Sparkles, Download, AlertCircle, CheckCircle2, Wand2, Loader2 } from "lucide-react";
 
 export interface TrackerRow {
   videoId: string;
@@ -24,7 +24,26 @@ export function PptTrackerClient({ courseId, courseHref, initialRows, waitingOnA
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [toneBusy, setToneBusy] = useState<Record<string, boolean>>({});
   const [, startTransition] = useTransition();
+
+  const rewriteTone = async (videoId: string) => {
+    const tone = window.prompt("Describe the rewrite (e.g. 'more punchy and concrete', 'more academic', 'shorten bullets to one line'):");
+    if (!tone?.trim()) return;
+    setToneBusy((t) => ({ ...t, [videoId]: true }));
+    try {
+      const res = await fetch(`/api/ppt/by-video/${videoId}/rewrite`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ instructions: tone.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) setErrors((e) => ({ ...e, [videoId]: data.error ?? `HTTP ${res.status}` }));
+      else startTransition(() => location.reload());
+    } finally {
+      setToneBusy((t) => ({ ...t, [videoId]: false }));
+    }
+  };
 
   const generateOne = async (row: TrackerRow): Promise<boolean> => {
     setBusy((b) => ({ ...b, [row.videoId]: true }));
@@ -161,6 +180,15 @@ export function PptTrackerClient({ courseId, courseHref, initialRows, waitingOnA
                     >
                       <Sparkles className="w-3 h-3" />
                       {busy[r.videoId] ? "…" : (r.slidesTotal > 0 ? "Regen" : "Generate")}
+                    </button>
+                    <button
+                      onClick={() => rewriteTone(r.videoId)}
+                      disabled={r.slidesTotal === 0 || toneBusy[r.videoId]}
+                      className="text-xs px-2 py-1 rounded border border-purple-300 text-purple-700 bg-purple-50 hover:bg-purple-100 disabled:opacity-40 inline-flex items-center gap-1"
+                      title={r.slidesTotal === 0 ? "Generate slides first" : "Rewrite this deck with a coach instruction"}
+                    >
+                      {toneBusy[r.videoId] ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
+                      Tone
                     </button>
                     <button
                       onClick={() => exportOne(r.videoId)}

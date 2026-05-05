@@ -10,11 +10,15 @@ import { Loader2, RotateCcw, Check, FileText, AlertCircle } from "lucide-react";
 import type { ContentVideoRow, ContentKindKey } from "./types";
 import { CONTENT_KINDS, KIND_META, findItem } from "./types";
 import { ApprovalBar } from "./ApprovalBar";
+import { AiEditPanel } from "./AiEditPanel";
+import { SuggestionsRail } from "./SuggestionsRail";
 import { PreviewReading } from "./previews/PreviewReading";
 import { PreviewPQ } from "./previews/PreviewPQ";
 import { PreviewGQ } from "./previews/PreviewGQ";
 import { PreviewSCORM } from "./previews/PreviewSCORM";
 import { PreviewAICoach } from "./previews/PreviewAICoach";
+import { PreviewDiscussion } from "./previews/PreviewDiscussion";
+import { PreviewWorkedExample } from "./previews/PreviewWorkedExample";
 
 interface Props {
   row: ContentVideoRow;
@@ -23,11 +27,13 @@ interface Props {
 }
 
 const RAIL_TONE: Record<ContentKindKey, string> = {
-  reading:  "bg-violet-50 text-violet-700",
-  pq:       "bg-bi-blue-50 text-bi-blue-700",
-  gq:       "bg-bi-accent-50 text-bi-accent-700",
-  scorm:    "bg-teal-50 text-teal-700",
-  ai_coach: "bg-orange-50 text-orange-700",
+  reading:        "bg-violet-50 text-violet-700",
+  pq:             "bg-bi-blue-50 text-bi-blue-700",
+  gq:             "bg-bi-accent-50 text-bi-accent-700",
+  worked_example: "bg-emerald-50 text-emerald-700",
+  discussion:     "bg-pink-50 text-pink-700",
+  scorm:          "bg-teal-50 text-teal-700",
+  ai_coach:       "bg-orange-50 text-orange-700",
 };
 
 export function VideoWorkspace({ row, activeKind, onKindChange }: Props) {
@@ -186,32 +192,15 @@ export function VideoWorkspace({ row, activeKind, onKindChange }: Props) {
 
           {/* Side rail */}
           <aside className="space-y-3">
-            <div className="bg-white border border-bi-navy-100 rounded-[10px] overflow-hidden">
-              <div className="px-3.5 py-2.5 border-b border-bi-navy-100 flex items-center justify-between">
-                <span className="text-[10.5px] font-bold uppercase tracking-[.05em] text-bi-navy-700 inline-flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-bi-accent-600" /> AI Edit
-                </span>
-                <span className="text-[10px] text-bi-navy-500 font-medium">P2 · soon</span>
-              </div>
-              <div className="p-3.5 text-[12.5px] text-bi-navy-600 leading-relaxed">
-                Describe an edit in plain English; accept the diff; revert anytime. Coming next.
-              </div>
-              <button disabled className="w-full mx-3.5 mb-3.5 py-1.5 rounded-md bg-bi-navy-100 text-bi-navy-500 text-[11.5px] font-semibold cursor-not-allowed" style={{ width: "calc(100% - 1.75rem)" }}>
-                Open chat
-              </button>
-            </div>
-
-            <div className="bg-white border border-bi-navy-100 rounded-[10px] overflow-hidden">
-              <div className="px-3.5 py-2.5 border-b border-bi-navy-100 flex items-center justify-between">
-                <span className="text-[10.5px] font-bold uppercase tracking-[.05em] text-bi-navy-700 inline-flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-bi-blue-600" /> Suggestions
-                </span>
-                <span className="text-[10px] text-bi-navy-500 font-medium">P3 · soon</span>
-              </div>
-              <div className="p-3.5 text-[12.5px] text-bi-navy-600 leading-relaxed">
-                Pedagogy lint findings (uncovered LO, weight imbalance, reading-level drift) with one-click apply.
-              </div>
-            </div>
+            <AiEditPanel
+              contentItemId={item?.id ?? null}
+              onApplied={() => startTransition(() => router.refresh())}
+            />
+            <SuggestionsRail
+              contentItemId={item?.id ?? null}
+              kind={activeKind}
+              onApplied={() => startTransition(() => router.refresh())}
+            />
 
             <div className="bg-bi-navy-50 border border-dashed border-bi-navy-200 rounded-[10px] p-3.5">
               <div className="text-[10.5px] font-bold uppercase tracking-[.05em] text-bi-navy-700">Format spec</div>
@@ -233,10 +222,12 @@ export function VideoWorkspace({ row, activeKind, onKindChange }: Props) {
 
 function Preview({ kind, payload }: { kind: ContentKindKey; payload: Record<string, unknown> | null }) {
   switch (kind) {
-    case "reading":  return <PreviewReading  payload={payload} />;
-    case "pq":       return <PreviewPQ       payload={payload} />;
-    case "gq":       return <PreviewGQ       payload={payload} />;
-    case "scorm":    return <PreviewSCORM    payload={payload} />;
-    case "ai_coach": return <PreviewAICoach  payload={payload} />;
+    case "reading":        return <PreviewReading       payload={payload} />;
+    case "pq":             return <PreviewPQ            payload={payload} />;
+    case "gq":             return <PreviewGQ            payload={payload} />;
+    case "scorm":          return <PreviewSCORM         payload={payload} />;
+    case "ai_coach":       return <PreviewAICoach       payload={payload} />;
+    case "discussion":     return <PreviewDiscussion    payload={payload} />;
+    case "worked_example": return <PreviewWorkedExample payload={payload} />;
   }
 }

@@ -32,7 +32,19 @@ export type CourseMetaForExport = {
   description?: string | null;
   org_name?: string | null;
   brand_color_hex?: string | null; // e.g. "1F2937"
+  brand_secondary_hex?: string | null;
+  brand_accent_hex?: string | null;
+  brand_font_family?: string | null;
+  brand_logo_url?: string | null; // company logo (PNG/JPG/SVG-as-PNG only)
 };
+
+/** Sanitize an incoming hex string to plain "RRGGBB" (pptxgenjs doesn't want
+ *  the leading hash and is case-insensitive). Returns undefined if invalid. */
+function hex(input: string | null | undefined, fallback: string): string {
+  if (!input) return fallback;
+  const cleaned = input.replace(/^#/, "").trim();
+  return /^[0-9a-f]{6}$/i.test(cleaned) ? cleaned.toUpperCase() : fallback;
+}
 
 /** Build a .pptx for a single video. Returns the file as a Uint8Array (works in
  *  both Next.js Edge and Node runtimes). */
@@ -47,53 +59,53 @@ export async function renderSlidesToPptx(
   pptx.title = `${course.title} — ${videoTitle}`;
   pptx.layout = "LAYOUT_WIDE"; // 13.33 x 7.5 inches, matches Coursera/Udemy template
 
-  const brand = course.brand_color_hex || "1F2937";
-  const accent = "0EA5E9";
-  const ink = "0F172A";
-  const muted = "64748B";
+  const brand   = hex(course.brand_color_hex,     "1F2937");
+  const accent  = hex(course.brand_accent_hex,    "0EA5E9");
+  const secondary = hex(course.brand_secondary_hex, "2B6FED");
+  const ink     = "0F172A";
+  const muted   = "64748B";
+  const font    = course.brand_font_family || "Inter";
 
-  // Master with footer
+  // Set theme-wide font so every default text element inherits the brand face
+  pptx.theme = { headFontFace: font, bodyFontFace: font };
+
+  // Header logo (top-left) — only embedded if a usable URL is provided.
+  // pptxgenjs accepts http(s) URLs; data URLs work too. SVG isn't supported,
+  // so the brand kit guidance asks for PNG ≥256×256.
+  const logoObjects: Array<Record<string, unknown>> = [];
+  if (course.brand_logo_url && /^https?:|^data:image\//.test(course.brand_logo_url) && !/\.svg(\?|$)/i.test(course.brand_logo_url)) {
+    logoObjects.push({
+      image: {
+        path: course.brand_logo_url,
+        x: 0.5, y: 0.25, w: 1.4, h: 0.5,
+        sizing: { type: "contain", w: 1.4, h: 0.5 },
+      },
+    });
+  }
+
+  // Master with footer + optional logo
   pptx.defineSlideMaster({
     title: "CF_MASTER",
     background: { color: "FFFFFF" },
     objects: [
-      {
-        rect: {
-          x: 0,
-          y: 7.0,
-          w: 13.33,
-          h: 0.05,
-          fill: { color: brand },
-        },
-      },
+      ...logoObjects,
+      // Top accent bar in the secondary brand color
+      { rect: { x: 0, y: 0, w: 13.33, h: 0.06, fill: { color: secondary } } },
+      // Bottom rule in the primary brand color
+      { rect: { x: 0, y: 7.0, w: 13.33, h: 0.05, fill: { color: brand } } },
       {
         text: {
           text: course.title,
-          options: {
-            x: 0.5,
-            y: 7.1,
-            w: 8,
-            h: 0.3,
-            fontSize: 9,
-            color: muted,
-          },
+          options: { x: 0.5, y: 7.1, w: 8, h: 0.3, fontSize: 9, color: muted, fontFace: font },
         },
       },
       {
         text: {
           text: `Slide {slidenum} / ${slides.length}`,
-          options: {
-            x: 11.5,
-            y: 7.1,
-            w: 1.5,
-            h: 0.3,
-            fontSize: 9,
-            color: muted,
-            align: "right",
-          },
+          options: { x: 11.5, y: 7.1, w: 1.5, h: 0.3, fontSize: 9, color: muted, align: "right", fontFace: font },
         },
       },
-    ],
+    ] as Parameters<typeof pptx.defineSlideMaster>[0]["objects"],
   });
 
   // Sort by slide_number to be safe

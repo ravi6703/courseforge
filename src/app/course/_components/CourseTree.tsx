@@ -170,8 +170,38 @@ export function CourseTree({ data }: { data: CourseTreeData }) {
                 subtitle={`Module ${mi + 1}`}
                 bold
                 actions={[
-                  { label: "Re-pitch with different tone", onClick: () => alert("PATCH 5: re-pitch flow not wired yet") },
-                  { label: "Reorder modules",              onClick: () => alert("PATCH 5: reorder UI not wired yet") },
+                  {
+                    label: "Re-pitch with different audience",
+                    onClick: async () => {
+                      const persona = window.prompt("Describe the new audience (e.g. 'Product managers, no engineering background, evaluating AI tools'):");
+                      if (!persona?.trim()) return;
+                      await fetch("/api/ai/improve-toc", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          courseId: data.courseId,
+                          comments: [{
+                            target_type: "module", target_id: mod.id,
+                            text: `Re-pitch this module's title, description and learning objectives for a different audience: ${persona.trim()}.`,
+                          }],
+                          courseTitle: data.courseTitle,
+                        }),
+                      });
+                      location.reload();
+                    },
+                  },
+                  {
+                    label: mi === 0 ? "Move down" : "Move up",
+                    onClick: async () => {
+                      const newOrder = mi === 0 ? 1 : mi - 1;
+                      await fetch(`/api/courses/${data.courseId}/update-item`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ table: "modules", id: mod.id, order: newOrder }),
+                      });
+                      location.reload();
+                    },
+                  },
                 ]}
               />
               {isOpen && mod.lessons.map((lesson, li) => {
@@ -179,6 +209,7 @@ export function CourseTree({ data }: { data: CourseTreeData }) {
                 const lOpen = expanded[lKey] ?? li === 0;
                 const visibleVideos = lesson.videos.filter((v) => isMatch(v.title) || isMatch(lesson.title));
                 if (search && visibleVideos.length === 0 && !isMatch(lesson.title)) return null;
+                const prevLesson = mod.lessons[li - 1];
                 return (
                   <div key={lesson.id}>
                     <Row
@@ -188,8 +219,54 @@ export function CourseTree({ data }: { data: CourseTreeData }) {
                       title={lesson.title}
                       subtitle={`Lesson ${li + 1}`}
                       actions={[
-                        { label: "Split into 2 lessons", onClick: () => alert("PATCH 5: split flow not wired yet") },
-                        { label: "Merge with previous",  onClick: () => alert("PATCH 5: merge flow not wired yet") },
+                        {
+                          label: "Split into two lessons",
+                          onClick: async () => {
+                            if (!confirm(`Split "${lesson.title}" into two lessons? The AI will draft titles for both halves.`)) return;
+                            await fetch("/api/ai/improve-toc", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                courseId: data.courseId,
+                                comments: [{
+                                  target_type: "lesson", target_id: lesson.id,
+                                  text: `Split this lesson into two distinct lessons that together cover the same scope. Give each a focused title and description.`,
+                                }],
+                                courseTitle: data.courseTitle,
+                              }),
+                            });
+                            location.reload();
+                          },
+                        },
+                        {
+                          label: prevLesson ? `Merge with "${prevLesson.title}"` : "Merge with previous",
+                          onClick: async () => {
+                            if (!prevLesson) { alert("This is the first lesson — nothing to merge with."); return; }
+                            if (!confirm(`Merge "${lesson.title}" into "${prevLesson.title}"? Videos move into the previous lesson and this lesson is deleted.`)) return;
+                            // Move every video to the previous lesson, then delete this lesson row.
+                            await Promise.all(lesson.videos.map((v) =>
+                              fetch(`/api/courses/${data.courseId}/update-item`, {
+                                method: "PATCH",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ table: "videos", id: v.id, lesson_id: prevLesson.id }),
+                              }).catch(() => null)
+                            ));
+                            await fetch(`/api/courses/${data.courseId}/update-item?table=lessons&itemId=${lesson.id}`, { method: "DELETE" });
+                            location.reload();
+                          },
+                        },
+                        {
+                          label: li === 0 ? "Move down" : "Move up",
+                          onClick: async () => {
+                            const newOrder = li === 0 ? 1 : li - 1;
+                            await fetch(`/api/courses/${data.courseId}/update-item`, {
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ table: "lessons", id: lesson.id, order: newOrder }),
+                            });
+                            location.reload();
+                          },
+                        },
                       ]}
                     />
                     {lOpen && visibleVideos.map((vid, vi) => {

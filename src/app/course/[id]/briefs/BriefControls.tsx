@@ -21,6 +21,17 @@ interface BriefShape {
   estimated_duration: string;
 }
 
+// Convert "12 min" / "12-15 min" / "PT12M" to a single minute count we can
+// compare against the slot. Returns null when we can't parse it.
+function parseMinutes(s?: string): number | null {
+  if (!s) return null;
+  const m = s.match(/(\d+)\s*(?:-\s*\d+)?\s*min/i);
+  if (m) return parseInt(m[1], 10);
+  const iso = s.match(/PT(\d+)M/);
+  if (iso) return parseInt(iso[1], 10);
+  return null;
+}
+
 export function BriefControls({
   videoId, courseId, brief, profile, onGenerated,
 }: {
@@ -31,8 +42,17 @@ export function BriefControls({
   onGenerated?: () => void;
 }) {
   const [tone, setTone] = useState<ToneId | "">(""); // "" = use course default
+  const [intensity, setIntensity] = useState<"theory" | "mixed" | "lab">("mixed");
   const [busy, setBusy] = useState<Section | "all" | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Slot is always 10 min for the demo; profile.pedagogy could override later.
+  const slotMinutes = 10;
+  const briefMinutes = parseMinutes(brief?.estimated_duration);
+  const fitTone: "emerald" | "amber" | "red" =
+    briefMinutes == null ? "emerald" :
+    Math.abs(briefMinutes - slotMinutes) <= 2 ? "emerald" :
+    Math.abs(briefMinutes - slotMinutes) <= 4 ? "amber" : "red";
 
   // Build the searchable text used for reading-level + vocab check.
   const allText = brief ? [
@@ -63,6 +83,7 @@ export function BriefControls({
         body: JSON.stringify({
           videoId, courseId,
           toneOverride: tone || undefined,
+          intensity,
           regenerateSection: section === "all" ? undefined : section,
         }),
       });
@@ -113,9 +134,29 @@ export function BriefControls({
         </div>
       </div>
 
+      {/* Hands-on intensity toggle */}
+      <div className="mb-3">
+        <div className="text-[11px] font-bold uppercase tracking-[.05em] text-slate-700 mb-1.5">Hands-on intensity</div>
+        <div className="flex gap-1.5">
+          {[
+            { id: "theory" as const, label: "Theory" },
+            { id: "mixed"  as const, label: "Mixed" },
+            { id: "lab"    as const, label: "Lab-heavy" },
+          ].map((i) => (
+            <button
+              key={i.id}
+              onClick={() => setIntensity(i.id)}
+              className={`px-2.5 py-1 rounded-md border text-[11.5px] font-semibold ${intensity === i.id ? "bg-slate-900 text-white border-slate-900" : "border-slate-200 text-slate-700 hover:bg-white"}`}
+            >
+              {i.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Quality meters — only render once we have a brief to score */}
       {brief && (
-        <div className="grid grid-cols-2 gap-2 mb-3">
+        <div className="grid grid-cols-3 gap-2 mb-3">
           <Meter
             label="Reading level"
             value={`Grade ${fk.fleschKincaid.toFixed(1)} · ${fk.level}`}
@@ -131,6 +172,16 @@ export function BriefControls({
               vc?.must_include_missing.length ? `Missing: ${vc.must_include_missing.join(", ")}` :
               "All required terms present"
             }
+          />
+          <Meter
+            label="Time fit"
+            value={briefMinutes == null ? "—" : `${briefMinutes} min`}
+            tone={fitTone}
+            note={briefMinutes == null
+              ? "no estimate"
+              : Math.abs(briefMinutes - slotMinutes) <= 2 ? `fits ~${slotMinutes} min slot`
+              : briefMinutes > slotMinutes ? `over by ${briefMinutes - slotMinutes} min`
+              : `under by ${slotMinutes - briefMinutes} min`}
           />
         </div>
       )}
