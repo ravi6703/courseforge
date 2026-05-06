@@ -26,6 +26,10 @@ interface CoachInput {
   hands_on_activity: string;    // suggested hands-on practice during/after
   call_to_action: string;       // what we want the learner to do at the end
   glossary_terms: string;       // pipe- or comma-separated glossary entries
+  // 2026-05 overhaul: declutter the brief form.
+  content_type: string;         // "" | theory|conceptual|practical|hands_on|mixed|project
+  script_required: boolean;     // generate a video script alongside the brief?
+  script_format: string;        // ""|storyboard|example_driven|hook_first|problem_solution|narrative
 }
 
 interface Brief {
@@ -61,7 +65,25 @@ const EMPTY_COACH: CoachInput = {
   slide_count: "", estimated_minutes: "", objective_override: "",
   target_outcome: "", prereq_check: "", learner_pitfalls: "",
   hands_on_activity: "", call_to_action: "", glossary_terms: "",
+  content_type: "", script_required: false, script_format: "",
 };
+
+const CONTENT_TYPES: Array<{ id: string; label: string; hint: string }> = [
+  { id: "theory",     label: "Theory",     hint: "Lecture-style explanation" },
+  { id: "conceptual", label: "Conceptual", hint: "Frameworks + thought experiments" },
+  { id: "practical",  label: "Practical",  hint: "Worked examples, demos" },
+  { id: "hands_on",   label: "Hands-on",   hint: "Learner does it alongside" },
+  { id: "mixed",      label: "Mixed",      hint: "Multiple modes" },
+  { id: "project",    label: "Project",    hint: "Capstone / extended build" },
+];
+
+const SCRIPT_FORMATS: Array<{ id: string; label: string; hint: string }> = [
+  { id: "storyboard",       label: "Storyboard",        hint: "Scene-by-scene with visuals" },
+  { id: "example_driven",   label: "Example-driven",    hint: "Concept → example → variation" },
+  { id: "hook_first",       label: "Hook-first",        hint: "Pattern interrupt, then content" },
+  { id: "problem_solution", label: "Problem→solution",  hint: "Set up the pain, then resolve" },
+  { id: "narrative",        label: "Narrative",         hint: "Story-led prose" },
+];
 
 export function BriefCard({
   videoId, videoTitle, lessonTitle, moduleTitle, courseId, audienceLevel, prerequisites, existingBrief, embedded = false,
@@ -139,6 +161,9 @@ export function BriefCard({
             hands_on_activity: coachInput.hands_on_activity || undefined,
             call_to_action:    coachInput.call_to_action    || undefined,
             glossary_terms:    coachInput.glossary_terms    || undefined,
+            content_type:      coachInput.content_type      || undefined,
+            script_required:   coachInput.script_required   || undefined,
+            script_format:     coachInput.script_required ? (coachInput.script_format || undefined) : undefined,
           } : undefined,
         }),
       });
@@ -237,9 +262,13 @@ export function BriefCard({
     return String(val).split("\n").filter((l) => l.trim());
   };
 
-  const hasCoachInput = (ci: CoachInput) => Object.values(ci).some((v) => v.trim().length > 0);
-  const updateCoach = (field: keyof CoachInput, value: string) =>
-    setCoachInput((prev) => ({ ...prev, [field]: value }));
+  const hasCoachInput = (ci: CoachInput) =>
+    Object.entries(ci).some(([, v]) => {
+      if (typeof v === "string") return v.trim().length > 0;
+      return Boolean(v);
+    });
+  const updateCoach = (field: keyof CoachInput, value: string | boolean) =>
+    setCoachInput((prev) => ({ ...prev, [field]: value as never }));
 
   return (
     <div className={embedded
@@ -373,48 +402,108 @@ export function BriefCard({
             </div>
           )}
 
-          <p className="text-xs font-semibold text-bi-navy-600 uppercase tracking-wider">Coach Input — Optional</p>
-          <p className="text-xs text-bi-navy-500">Fill in any guidance for the AI. Leave blank to use course context only.</p>
-
+          {/* ── REQUIRED ─ Just the 4 fields the AI most needs. ──────────────────── */}
+          <p className="text-xs font-semibold text-bi-navy-600 uppercase tracking-wider">Required</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <InputField label="Key Topics to Cover"          placeholder="e.g. STP framework, perceptual mapping, brand archetypes — list 3–5 anchor concepts the video must include" value={coachInput.key_topics} onChange={(v) => updateCoach("key_topics", v)} rows={2} />
-            <InputField label="Target Outcome"               placeholder="e.g. Learner can write a one-paragraph positioning statement for a SaaS product without prompting" value={coachInput.target_outcome} onChange={(v) => updateCoach("target_outcome", v)} rows={2} />
-            <InputField label="Examples & Case Studies"      placeholder="e.g. Tesla rebrand 2018, Slack vs Teams enterprise positioning, Notion onboarding redesign — at least one local-context example" value={coachInput.examples} onChange={(v) => updateCoach("examples", v)} rows={2} />
-            <InputField label="Visual Requirements"          placeholder="e.g. perceptual map (4-quadrant), brand archetype wheel, Slack/Teams comparison table — flag if the AI must produce a diagram" value={coachInput.visual_requirements} onChange={(v) => updateCoach("visual_requirements", v)} rows={2} />
-            <InputField label="Prerequisite Knowledge"       placeholder="e.g. 4Ps of marketing, basic SWOT analysis. Used to gauge depth — anything new gets explicit scaffolding." value={coachInput.prereq_check} onChange={(v) => updateCoach("prereq_check", v)} rows={2} />
-            <InputField label="Learner Pitfalls"             placeholder="e.g. Confusing positioning with branding; conflating segments with personas; treating a vision as a value-prop" value={coachInput.learner_pitfalls} onChange={(v) => updateCoach("learner_pitfalls", v)} rows={2} />
-            <InputField label="Hands-on Activity Suggestion" placeholder="e.g. Mini-exercise: pick a brand you love, write its perceptual map coordinates and defend them in 4 lines" value={coachInput.hands_on_activity} onChange={(v) => updateCoach("hands_on_activity", v)} rows={2} />
-            <InputField label="Difficulty & Pacing Notes"    placeholder="e.g. Audience knows marketing basics; slow on segmentation math; don't dwell on definitions for more than 30s" value={coachInput.difficulty_notes} onChange={(v) => updateCoach("difficulty_notes", v)} rows={2} />
+            <InputField label="Target Outcome" placeholder="What can the learner DO after this video?" value={coachInput.target_outcome} onChange={(v) => updateCoach("target_outcome", v)} rows={2} />
+            <InputField label="Key Topics" placeholder="3–5 anchor concepts the video must include." value={coachInput.key_topics} onChange={(v) => updateCoach("key_topics", v)} rows={2} />
           </div>
-          <InputField label="Glossary Terms" placeholder="e.g. STP, JTBD, NPS, ICP — comma-separated. AI will define them inline on first use." value={coachInput.glossary_terms} onChange={(v) => updateCoach("glossary_terms", v)} rows={1} />
-          <InputField label="Call-to-Action at End" placeholder="e.g. Submit your positioning statement to the discussion thread before the next module unlocks" value={coachInput.call_to_action} onChange={(v) => updateCoach("call_to_action", v)} rows={1} />
-          <InputField label="References & Resources" placeholder="e.g. 'Building a StoryBrand' (Donald Miller, 2017); HBR — 'Marketing Myopia'; A16Z 'Memo on Positioning'" value={coachInput.references} onChange={(v) => updateCoach("references", v)} rows={2} />
-
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[11.5px] font-semibold text-bi-navy-700 mb-1">Content type</label>
+              <div className="grid grid-cols-3 gap-1">
+                {CONTENT_TYPES.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => updateCoach("content_type", coachInput.content_type === c.id ? "" : c.id)}
+                    className={`px-1.5 py-1.5 text-[10.5px] rounded border font-semibold transition-all ${
+                      coachInput.content_type === c.id
+                        ? "bg-bi-blue-100 border-bi-blue-300 text-bi-blue-700"
+                        : "border-slate-200 text-slate-700 hover:bg-slate-50"
+                    }`}
+                    title={c.hint}
+                  >{c.label}</button>
+                ))}
+              </div>
+            </div>
             <NumberField
-              label="Number of Slides"
-              placeholder="e.g. 8"
-              value={coachInput.slide_count}
-              onChange={(v) => updateCoach("slide_count", v)}
-              hint="1-60. Leave blank for AI to choose."
-            />
-            <NumberField
-              label="Target Duration (minutes)"
-              placeholder="e.g. 12"
+              label="Target duration (min)"
+              placeholder="12"
               value={coachInput.estimated_minutes}
               onChange={(v) => updateCoach("estimated_minutes", v)}
-              hint="1-180. Drives slide count + script pacing."
+              hint="Drives slide count + script pacing."
             />
           </div>
 
-          <InputField
-            label="Learning Objective Override"
-            placeholder="e.g. After this video, learner should be able to write a positioning statement for a SaaS product"
-            value={coachInput.objective_override}
-            onChange={(v) => updateCoach("objective_override", v)}
-            rows={2}
-          />
-          <p className="text-[10px] text-bi-navy-400 -mt-1">Leave blank to use the lesson's default learning objectives. Use this to focus the brief on a specific outcome.</p>
+          {/* ── SCRIPT TOGGLE ──────────────────────────────────────────────────────── */}
+          <div className="rounded-lg border border-slate-200 p-3">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={coachInput.script_required}
+                onChange={(e) => updateCoach("script_required", e.target.checked as unknown as string)}
+                className="accent-bi-blue-600"
+              />
+              <span className="text-[12.5px] font-semibold text-bi-navy-800">Also generate a video script</span>
+              <span className="text-[11px] text-bi-navy-500">— for videos that need talk-track or narration.</span>
+            </label>
+            {coachInput.script_required && (
+              <div className="mt-2.5">
+                <div className="text-[10.5px] uppercase tracking-wider text-bi-navy-500 font-semibold mb-1">Script format</div>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-1">
+                  {SCRIPT_FORMATS.map((f) => (
+                    <button
+                      key={f.id}
+                      type="button"
+                      onClick={() => updateCoach("script_format", coachInput.script_format === f.id ? "" : f.id)}
+                      className={`px-2 py-1.5 text-[10.5px] rounded border font-semibold transition-all ${
+                        coachInput.script_format === f.id
+                          ? "bg-bi-blue-100 border-bi-blue-300 text-bi-blue-700"
+                          : "border-slate-200 text-slate-700 hover:bg-slate-50"
+                      }`}
+                      title={f.hint}
+                    >{f.label}</button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ── OPTIONAL ─ Collapsed by default. ──────────────────────────────────── */}
+          <details className="rounded-lg border border-slate-200">
+            <summary className="px-3 py-2 cursor-pointer list-none [&::-webkit-details-marker]:hidden text-[12px] font-semibold text-bi-navy-700 hover:bg-slate-50 flex items-center justify-between">
+              <span>Advanced — examples, visuals, pitfalls, references…</span>
+              <span className="text-[10.5px] text-bi-navy-500">click to expand</span>
+            </summary>
+            <div className="p-3 border-t border-slate-200 space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <InputField label="Examples & case studies"      placeholder="Real-world examples to include." value={coachInput.examples} onChange={(v) => updateCoach("examples", v)} rows={2} />
+                <InputField label="Visual requirements"          placeholder="Diagrams the AI must produce." value={coachInput.visual_requirements} onChange={(v) => updateCoach("visual_requirements", v)} rows={2} />
+                <InputField label="Prerequisite knowledge"       placeholder="What the learner already knows." value={coachInput.prereq_check} onChange={(v) => updateCoach("prereq_check", v)} rows={2} />
+                <InputField label="Learner pitfalls"             placeholder="Common misconceptions." value={coachInput.learner_pitfalls} onChange={(v) => updateCoach("learner_pitfalls", v)} rows={2} />
+                <InputField label="Hands-on activity"            placeholder="Mini-exercise during/after." value={coachInput.hands_on_activity} onChange={(v) => updateCoach("hands_on_activity", v)} rows={2} />
+                <InputField label="Difficulty & pacing notes"    placeholder="Slow / dwell / skip notes." value={coachInput.difficulty_notes} onChange={(v) => updateCoach("difficulty_notes", v)} rows={2} />
+              </div>
+              <InputField label="Glossary terms" placeholder="STP, JTBD, NPS, ICP — comma-separated." value={coachInput.glossary_terms} onChange={(v) => updateCoach("glossary_terms", v)} rows={1} />
+              <InputField label="Call-to-action at end" placeholder="What you want learners to do next." value={coachInput.call_to_action} onChange={(v) => updateCoach("call_to_action", v)} rows={1} />
+              <InputField label="References & resources" placeholder="Books, papers, links the AI can cite." value={coachInput.references} onChange={(v) => updateCoach("references", v)} rows={2} />
+              <NumberField
+                label="Slide count override"
+                placeholder="8"
+                value={coachInput.slide_count}
+                onChange={(v) => updateCoach("slide_count", v)}
+                hint="1-60. Leave blank for AI to choose."
+              />
+              <InputField
+                label="Learning objective override"
+                placeholder="Focus the brief on a specific outcome."
+                value={coachInput.objective_override}
+                onChange={(v) => updateCoach("objective_override", v)}
+                rows={2}
+              />
+            </div>
+          </details>
 
           <button onClick={generate} disabled={loading} className="flex items-center gap-1.5 px-4 py-2 rounded-md bg-bi-blue-100 text-bi-blue-700 border border-bi-blue-200 text-xs hover:bg-bi-blue-200 disabled:opacity-50 transition-colors mt-1">
             <Sparkles className="w-3.5 h-3.5" />
