@@ -7,6 +7,8 @@
 import Link from "next/link";
 import { Calendar, ArrowLeft, Sparkles } from "lucide-react";
 import { Gantt } from "../toc/Gantt";
+import { AutoAdjust } from "./AutoAdjust";
+import { CapacityWidget } from "./CapacityWidget";
 import { getServerSupabase } from "@/lib/supabase/server";
 
 export default async function TimelinePage({
@@ -67,6 +69,9 @@ export default async function TimelinePage({
       )}
 
       <Gantt courseId={id} lessons={lessonForGantt} />
+
+      <AutoAdjust courseId={id} />
+      <CapacityWidget />
 
       <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-[12px] text-slate-600">
         <span className="font-semibold text-slate-800">How this works:</span> when you click <em>Generate plan</em>,
