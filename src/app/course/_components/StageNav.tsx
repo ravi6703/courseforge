@@ -14,12 +14,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Settings, Layers, FileText, Presentation, Video, Mic, BookOpen, CheckCircle2, ChevronRight,
+  Settings, Layers, Calendar, FileText, Presentation, Video, Mic, BookOpen, CheckCircle2, ChevronRight,
 } from "lucide-react";
 
 const STAGES = [
   { slug: "profile",    label: "Profile",     icon: Settings       },
   { slug: "toc",        label: "TOC",         icon: Layers         },
+  { slug: "timeline",   label: "Timeline",    icon: Calendar       },
   { slug: "briefs",     label: "Briefs",      icon: FileText       },
   { slug: "ppts",       label: "Slides",      icon: Presentation   },
   { slug: "recording",  label: "Recording",   icon: Video          },
@@ -83,10 +84,10 @@ export function StageNav({ courseId, stageStatus = {} }: StageNavProps) {
                 }`}
               />
               <Icon className="w-3 h-3" />
-              <span className="hidden md:inline">{s.label}</span>
+              <span className="hidden xl:inline">{s.label}</span>
             </Link>
             {i < STAGES.length - 1 && (
-              <ChevronRight className="w-3 h-3 text-bi-navy-300 mx-0.5 shrink-0" />
+              <ChevronRight className="w-2.5 h-2.5 text-bi-navy-300 mx-0.5 shrink-0" />
             )}
           </span>
         );
