@@ -7,6 +7,7 @@ import { AvatarMini } from "@/components/ui/AvatarStack";
 import { StageNav } from "./StageNav";
 import { NotificationBell } from "./NotificationBell";
 import { CourseSettingsMenu } from "./CourseSettingsMenu";
+import { PresenceBar } from "./PresenceBar";
 import type { StageSlug, StageStatus } from "./loadStageStatus";
 
 const STATUS_PCT: Record<string, number> = {
@@ -134,6 +135,7 @@ export async function CourseHeader({
       <div className="mt-3 flex items-center gap-2 flex-wrap">
         <Tag tone={phase === "Published" ? "emerald" : "blue"}>{phase}</Tag>
         {course.audience_level && <Tag tone="navy">{course.audience_level}</Tag>}
+        <PresenceBar courseId={courseId} />
       </div>
 
       <div className="mt-3 pb-2">

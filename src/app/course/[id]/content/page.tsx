@@ -1,17 +1,18 @@
-// Content tab — overview grid: lessons × artifact-kinds.
+// Content tab — v3 cockpit.
 //
-// As of the lesson-scope migration the 7 non-video artifacts (Reading,
-// Practice quiz, Assessment, Worked example, Discussion, SCORM, AI
-// Coach) belong to the lesson, not the video. Per-video Briefs and PPT
-// slides remain on the Briefs / Slides tabs.
+// Coach feedback: previous grid was "cluttered, needs product-level
+// overhaul". Replaced with a 4-mode cockpit (Cockpit / By Lesson /
+// By Artifact / Stale) plus a single-line health strip.
 //
 // Routes:
-//   /content                                    — this overview
+//   /content                                    — this cockpit
+//   /content?view=lessons|artifacts|stale       — switches mode
 //   /content/lesson/[lessonId]                  — per-lesson workspace
 //   /content/lesson/[lessonId]/[kind]           — focused single-kind editor
 
 import { getServerSupabase } from "@/lib/supabase/server";
-import { ContentOverview } from "./ContentOverview";
+import { CockpitShell } from "./cockpit/CockpitShell";
+import type { OverviewRow } from "./cockpit/types";
 
 export default async function ContentTab({
   params,
@@ -21,13 +22,10 @@ export default async function ContentTab({
   const { id } = await params;
   const supabase = await getServerSupabase();
 
-  // Pull lessons (with module info), their videos for count, and the
-  // lesson-scoped content items. video_id is now NULL for these rows;
-  // we group by (lesson_id, kind).
   const { data: course } = await supabase
     .from("courses")
     .select(`
-      id, title,
+      id, title, target_completion_date, target_days, created_at,
       modules(
         id, title, order,
         lessons(
@@ -48,21 +46,15 @@ export default async function ContentTab({
     );
   }
 
-  type OverviewRow = {
-    lessonId: string;
-    lessonTitle: string;
-    moduleTitle: string;
-    moduleOrder: number;
-    videoCount: number;
-    contentItems: Array<{ id: string; kind: string; status: string; stale_since?: string | null }>;
-  };
-
   const rows: OverviewRow[] = [];
-  for (const mod of course.modules) {
-    for (const lesson of mod.lessons || []) {
+  const sortedModules = (course.modules ?? []).slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  for (const mod of sortedModules) {
+    const sortedLessons = (mod.lessons ?? []).slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    for (const lesson of sortedLessons) {
       rows.push({
         lessonId: lesson.id,
         lessonTitle: lesson.title,
+        moduleId: mod.id,
         moduleTitle: mod.title,
         moduleOrder: mod.order ?? 0,
         videoCount: (lesson.videos || []).length,
@@ -71,5 +63,13 @@ export default async function ContentTab({
     }
   }
 
-  return <ContentOverview courseId={id} rows={rows} />;
+  // Days-to-deadline for the health strip
+  let daysToDeadline: number | null = null;
+  if (course.target_completion_date) {
+    daysToDeadline = Math.round(
+      (new Date(course.target_completion_date).getTime() - Date.now()) / 86_400_000,
+    );
+  }
+
+  return <CockpitShell courseId={id} rows={rows} daysToDeadline={daysToDeadline} />;
 }
