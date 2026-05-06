@@ -17,6 +17,8 @@ import Link from "next/link";
 import { ArrowRight, Sparkles, AlertTriangle, CheckCircle2, FileText } from "lucide-react";
 import { CONTENT_KINDS, KIND_META, type ContentKindKey } from "../types";
 import { bucketOf, type OverviewRow, type AggregateStats } from "./types";
+import { FanoutPanel } from "./FanoutPanel";
+import { ConsistencyLint } from "./ConsistencyLint";
 
 interface ActionCard {
   id: string;
@@ -150,6 +152,8 @@ export function CockpitView({
 
   return (
     <div className="space-y-3">
+      <FanoutPanel courseId={courseId} missingCount={stats.missing} />
+      <ConsistencyLint courseId={courseId} />
       <div className="flex items-baseline justify-between">
         <h2 className="text-[15px] font-bold text-bi-navy-900">What needs your attention</h2>
         <span className="text-[11px] text-slate-500">Ranked by urgency · refreshes on every visit</span>

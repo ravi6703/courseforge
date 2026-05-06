@@ -11,6 +11,8 @@
 import { useState } from "react";
 import { Upload, Video, CheckCircle2, AlertCircle, Loader2, Link2, ExternalLink, Mic } from "lucide-react";
 import { RecordInBrowser } from "./RecordInBrowser";
+import { Teleprompter } from "./Teleprompter";
+import { SmartCuts } from "./SmartCuts";
 
 export interface RecordingRow {
   videoId: string;
@@ -50,6 +52,8 @@ export function RecordingView({
   const [uploading, setUploading] = useState<Record<string, boolean>>({});
   const [transcribing, setTranscribing] = useState<Record<string, boolean>>({});
   const [recordingFor, setRecordingFor] = useState<RecordingRow | null>(null);
+  const [tpOpen, setTpOpen] = useState(false);
+  const [smartCutsFor, setSmartCutsFor] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showInbox, setShowInbox] = useState(false);
   const [linkingId, setLinkingId] = useState<string | null>(null);
@@ -212,7 +216,21 @@ export function RecordingView({
             <ExternalLink className="w-3.5 h-3.5" /> Connect Zoom
           </a>
         )}
+        <button
+          onClick={() => setTpOpen(true)}
+          className="text-xs px-3 py-1.5 rounded-md bg-purple-100 text-purple-700 border border-purple-200 hover:bg-purple-200 inline-flex items-center gap-1.5"
+          title="Open browser teleprompter — auto-scrolls speaker notes while you record"
+        >
+          <Mic className="w-3.5 h-3.5" /> Teleprompter
+        </button>
       </div>
+
+      {tpOpen && (
+        <Teleprompter
+          videos={localRows.map((r) => ({ id: r.videoId, title: r.videoTitle, speakerNotes: "" }))}
+          onClose={() => setTpOpen(false)}
+        />
+      )}
 
       {/* Zoom inbox panel — collapsible */}
       {showInbox && inbox.length > 0 && (

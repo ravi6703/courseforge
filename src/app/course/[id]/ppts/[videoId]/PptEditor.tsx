@@ -262,13 +262,33 @@ export function PptEditor({
                 )}
               </div>
 
-              <textarea
-                value={active.speaker_notes ?? ""}
-                onChange={(e) => setActiveSlide({ speaker_notes: e.target.value })}
-                rows={2}
-                placeholder="Speaker notes — what the presenter says aloud."
-                className="w-full px-3 py-2 border border-bi-navy-200 rounded-md text-[12px]"
-              />
+              <div>
+                <textarea
+                  value={active.speaker_notes ?? ""}
+                  onChange={(e) => setActiveSlide({ speaker_notes: e.target.value })}
+                  rows={3}
+                  placeholder="Speaker notes — write what you'd actually SAY first; we extract bullets from it."
+                  className="w-full px-3 py-2 border border-bi-navy-200 rounded-md text-[12px]"
+                />
+                <button
+                  onClick={async () => {
+                    if (!active.speaker_notes?.trim()) return;
+                    const r = await fetch(`/api/ppts/slides/${active.id}/from-speaker-notes`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ speaker_notes: active.speaker_notes }),
+                    });
+                    if (r.ok) {
+                      const j = await r.json();
+                      setActiveSlide({ title: j.title, content: j.bullets });
+                    }
+                  }}
+                  className="mt-1.5 text-[11px] inline-flex items-center gap-1 px-2 py-1 rounded-md border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 font-semibold"
+                  title="Talk-first: derive title + bullets from the speaker notes"
+                >
+                  <Sparkles className="w-3 h-3" /> Extract title + bullets from notes
+                </button>
+              </div>
 
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-bi-navy-100">
                 {savedAt && <span className="text-[11px] text-emerald-700 mr-auto">Saved at {savedAt}</span>}

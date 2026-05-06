@@ -17,6 +17,8 @@ import { TocSummary } from "./TocSummary";
 import { Gantt } from "./Gantt";
 import { FinalToc } from "./FinalToc";
 import { ProfileChangedBanner } from "./ProfileChangedBanner";
+import { OutcomeCoverage } from "./OutcomeCoverage";
+import { CompetitorOverlay } from "./CompetitorOverlay";
 import { getServerSupabase } from "@/lib/supabase/server";
 
 export default async function TocTab({
@@ -135,6 +137,11 @@ export default async function TocTab({
         videoCount={videoCount}
         totalMinutes={totalMinutes}
         videoTypeBreakdown={typeBreakdown}
+      />
+      <OutcomeCoverage courseId={id} />
+      <CompetitorOverlay
+        courseId={id}
+        ownTopics={(modules || []).map((m) => m.title).concat((lessons || []).map((l) => l.title))}
       />
       <TocTree
         courseId={id}
