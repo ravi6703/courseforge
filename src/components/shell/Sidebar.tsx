@@ -14,7 +14,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  LayoutDashboard, BarChart, BookOpen, Plus,
+  LayoutDashboard, BarChart, BookOpen, Plus, Calendar,
   Heart, Beaker,
   Settings, Users, LogOut, ChevronDown,
 } from "lucide-react";
@@ -27,8 +27,9 @@ const SECTIONS: Section[] = [
   {
     id: "overview", label: "Overview",
     items: [
-      { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { label: "Metrics",   href: "/metrics",   icon: BarChart       },
+      { label: "Dashboard",     href: "/dashboard", icon: LayoutDashboard },
+      { label: "Project plan",  href: "/projects",  icon: Calendar       },
+      { label: "Metrics",       href: "/metrics",   icon: BarChart       },
     ],
   },
   {
