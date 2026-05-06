@@ -15,15 +15,16 @@ export default async function PresentationsTab({
   const { id } = await params;
   const supabase = await getServerSupabase();
 
-  const [{ data: videos }, { data: slides }, { data: uploads }, { data: briefs }] = await Promise.all([
+  const [{ data: videos }, { data: slides }, { data: uploads }, { data: briefs }, { data: course }] = await Promise.all([
     supabase
       .from("videos")
-      .select("id, title, lesson_id, status, order, lessons!inner(id, title, modules!inner(title, order))")
+      .select("id, title, lesson_id, status, order, lessons!inner(id, title, modules!inner(id, title, order))")
       .eq("course_id", id)
       .order("order", { ascending: true }),
     supabase.from("ppt_slides").select("id, video_id, status").eq("course_id", id),
     supabase.from("ppt_uploads").select("id, video_id, original_filename, slide_count, status").eq("course_id", id),
     supabase.from("content_briefs").select("video_id, status").eq("course_id", id),
+    supabase.from("courses").select("ppt_settings").eq("id", id).maybeSingle(),
   ]);
 
   // Phase 1 — only videos with an approved brief get a PPT slot
@@ -44,13 +45,14 @@ export default async function PresentationsTab({
   (uploads || []).forEach((u) => (uploadByVideo[u.video_id] = { filename: u.original_filename, status: u.status }));
 
   const rows: TrackerRow[] = filteredVideos.map((v) => {
-    const lesson = (v as { lessons?: { id?: string; title?: string; modules?: { title?: string } } }).lessons;
+    const lesson = (v as { lessons?: { id?: string; title?: string; modules?: { id?: string; title?: string } } }).lessons;
     return {
       videoId: v.id,
       videoTitle: v.title,
       lessonId: lesson?.id ?? "",
       lessonTitle: lesson?.title ?? "—",
       moduleTitle: lesson?.modules?.title ?? "—",
+      moduleId: lesson?.modules?.id,
       videoStatus: v.status as string,
       slidesTotal: slideCountByVideo[v.id]?.total ?? 0,
       slidesApproved: slideCountByVideo[v.id]?.approved ?? 0,
@@ -58,5 +60,16 @@ export default async function PresentationsTab({
     };
   });
 
-  return <PptTrackerClient courseId={id} courseHref={`/course/${id}`} initialRows={rows} waitingOnApproval={waitingOnApproval} totalVideos={totalVideos} />;
+  const pptSettings = (course as { ppt_settings?: Record<string, unknown> } | null)?.ppt_settings ?? null;
+
+  return (
+    <PptTrackerClient
+      courseId={id}
+      courseHref={`/course/${id}`}
+      initialRows={rows}
+      waitingOnApproval={waitingOnApproval}
+      totalVideos={totalVideos}
+      pptSettings={pptSettings as unknown as import("./DeckSettings").PptSettings | null}
+    />
+  );
 }
