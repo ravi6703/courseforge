@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { AppShell } from "@/components/shell/AppShell";
 import { KpiCard } from "@/components/ui/KpiCard";
+import { ProjectPlanGlimpse } from "./ProjectPlanGlimpse";
 import { Tag } from "@/components/ui/Tag";
 import { HealthPill } from "@/components/ui/HealthPill";
 import { AvatarStack } from "@/components/ui/AvatarStack";
@@ -157,6 +158,11 @@ export default function DashboardPage() {
           <span className="absolute top-2.5 right-2.5"><HealthScoreInfo compact /></span>
         </div>
         <KpiCard label="Published"             value={published.length}    icon={Zap}      tone="violet"  delta={deltaPublished} />
+      </div>
+
+      {/* Project plan glimpse — at-risk courses, this-week deliverables, bottleneck */}
+      <div className="mb-5">
+        <ProjectPlanGlimpse />
       </div>
 
       {/* Needs your attention — single quiet list combining "Recent" + "Queue" */}
