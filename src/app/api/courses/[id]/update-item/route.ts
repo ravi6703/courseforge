@@ -17,10 +17,25 @@ function pickFields(table: Tbl, body: Record<string, unknown>): Record<string, u
   if (typeof body.is_capstone === "boolean")     out.is_capstone = body.is_capstone;
   if (typeof body.lesson_id === "string" && table === "videos") out.lesson_id = body.lesson_id;
   if (typeof body.module_id === "string" && table === "lessons") out.module_id = body.module_id;
+  // New (2026-05): video typing + ideal duration drive downstream automation.
+  if (table === "videos") {
+    if (typeof body.video_type === "string") out.video_type = body.video_type;
+    if (typeof body.content_type === "string") out.content_type = body.content_type;
+    if (typeof body.ideal_duration_minutes === "number") {
+      out.ideal_duration_minutes = body.ideal_duration_minutes;
+    } else if (body.ideal_duration_minutes === null) {
+      out.ideal_duration_minutes = null;
+    }
+    // Allow setting duration_minutes to null too (when clearing the field).
+    if (body.duration_minutes === null) out.duration_minutes = null;
+  }
   if (table === "courses") {
     if (typeof body.company_logo_url === "string") out.company_logo_url = body.company_logo_url;
     if (typeof body.ppt_template_url === "string") out.ppt_template_url = body.ppt_template_url;
     if (body.hierarchy_preset && typeof body.hierarchy_preset === "object") out.hierarchy_preset = body.hierarchy_preset;
+    if (body.ppt_settings && typeof body.ppt_settings === "object") out.ppt_settings = body.ppt_settings;
+    if (typeof body.target_days === "number") out.target_days = body.target_days;
+    if (typeof body.target_completion_date === "string") out.target_completion_date = body.target_completion_date;
   }
   return Object.keys(out).length ? out : null;
 }

@@ -152,6 +152,15 @@ export function PptEditor({
                   }`}
                 >
                   <span className="text-[10px] font-mono text-bi-navy-400 tabular-nums w-5 mt-0.5">{s.slide_number}</span>
+                  <span
+                    className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${
+                      s.status === "approved" || s.status === "finalized" ? "bg-emerald-500" :
+                      s.status === "in_review" ? "bg-purple-500" :
+                      s.status === "draft" || s.status === "generated" ? "bg-amber-500" :
+                      "bg-slate-300"
+                    }`}
+                    title={`Status: ${s.status}`}
+                  />
                   <div className="min-w-0 flex-1">
                     <div className={`text-[12px] truncate ${isSel ? "font-semibold text-bi-navy-900" : "text-bi-navy-700"}`}>{s.title || "Untitled"}</div>
                     <div className="text-[10.5px] text-bi-navy-400 capitalize">{s.layout_type.replace("_", " ")}</div>

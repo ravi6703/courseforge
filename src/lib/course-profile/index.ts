@@ -27,6 +27,9 @@ function mergeProfile(stored: unknown): CourseProfile {
   };
   return {
     audience:       { ...DEFAULT_PROFILE.audience,       ...sub("audience") },
+    outcomes:       { ...DEFAULT_PROFILE.outcomes,       ...sub("outcomes") },
+    monetization:   { ...DEFAULT_PROFILE.monetization,   ...sub("monetization") },
+    timeline:       { ...DEFAULT_PROFILE.timeline,       ...sub("timeline") },
     tone:           { ...DEFAULT_PROFILE.tone,           ...sub("tone") },
     pedagogy:       { ...DEFAULT_PROFILE.pedagogy,       ...sub("pedagogy") },
     vocabulary:     { ...DEFAULT_PROFILE.vocabulary,     ...sub("vocabulary") },
@@ -80,6 +83,20 @@ export function buildPromptFragment(profile: CourseProfile): string {
     if (profile.audience.secondary_personas.length > 0) {
       lines.push(`Secondary: ${profile.audience.secondary_personas.join("; ")}.`);
     }
+  }
+
+  if (profile.outcomes?.outcomes?.length) {
+    lines.push(`Learning outcomes (Bloom-cap: ${profile.outcomes.bloom_cap || "apply"}):`);
+    profile.outcomes.outcomes.slice(0, 8).forEach((o) => lines.push(`  - ${o}`));
+  }
+  if (profile.outcomes?.prerequisites?.length) {
+    lines.push(`Prerequisites: ${profile.outcomes.prerequisites.join("; ")}.`);
+  }
+  if (profile.outcomes?.success_criteria?.length) {
+    lines.push(`Success criteria: ${profile.outcomes.success_criteria.join("; ")}.`);
+  }
+  if (profile.monetization?.tier && profile.monetization.tier !== "free") {
+    lines.push(`Monetization tier: ${profile.monetization.tier}.`);
   }
 
   if (tone) {

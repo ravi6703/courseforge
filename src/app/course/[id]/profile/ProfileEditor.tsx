@@ -6,21 +6,35 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Save, Loader2, X, Plus } from "lucide-react";
-import { CourseProfile, TONE_PRESETS } from "@/types/course-profile";
+import Link from "next/link";
+import { Save, Loader2, X, Plus, ChevronRight } from "lucide-react";
+import {
+  CourseProfile, TONE_PRESETS, BLOOM_LEVELS, MONETIZATION_TIERS,
+} from "@/types/course-profile";
 import { buildPromptFragment, summarizeProfile } from "@/lib/course-profile";
 
-type Section = "audience" | "tone" | "pedagogy" | "vocabulary" | "brand" | "reading" | "difficulty";
+type Section =
+  | "audience" | "outcomes" | "monetization" | "timeline"
+  | "tone" | "pedagogy" | "vocabulary" | "brand" | "reading" | "difficulty";
 
-const SECTIONS: Array<{ id: Section; label: string; sub: string }> = [
-  { id: "audience",   label: "Audience",        sub: "Who is this course for?" },
-  { id: "tone",       label: "Tone & locale",   sub: "How should the AI sound?" },
-  { id: "pedagogy",   label: "Pedagogy",        sub: "How is learning structured?" },
-  { id: "vocabulary", label: "Vocabulary",      sub: "Domain terms — must-include & banned" },
-  { id: "brand",      label: "Brand kit",       sub: "Logo, colors, typography, slide template" },
-  { id: "reading",    label: "Reference reading", sub: "Papers and links the AI should know about" },
-  { id: "difficulty", label: "Difficulty arc",  sub: "How does cognitive demand rise?" },
+const SECTIONS: Array<{ id: Section; label: string; sub: string; group: "core" | "voice" | "branding" }> = [
+  { id: "audience",     label: "Audience",          sub: "Who is this course for?",                          group: "core" },
+  { id: "outcomes",     label: "Outcomes",          sub: "Bloom verbs, prerequisites, success criteria",     group: "core" },
+  { id: "monetization", label: "Monetization",      sub: "Free / paid / premium / enterprise",               group: "core" },
+  { id: "timeline",     label: "Timeline",          sub: "Days to complete · target deadline",               group: "core" },
+  { id: "tone",         label: "Tone & locale",     sub: "How should the AI sound?",                         group: "voice" },
+  { id: "pedagogy",     label: "Pedagogy",          sub: "How is learning structured?",                      group: "voice" },
+  { id: "vocabulary",   label: "Vocabulary",        sub: "Must-include & banned terms",                      group: "voice" },
+  { id: "difficulty",   label: "Difficulty arc",    sub: "How does cognitive demand rise?",                  group: "voice" },
+  { id: "brand",        label: "Brand kit",         sub: "Logo, colors, typography, slide template",         group: "branding" },
+  { id: "reading",      label: "Reference reading", sub: "Papers and links the AI can cite",                 group: "branding" },
 ];
+
+const GROUP_LABELS: Record<"core" | "voice" | "branding", string> = {
+  core: "Strategic",
+  voice: "Voice & pedagogy",
+  branding: "Brand & references",
+};
 
 export function ProfileEditor({ courseId, initial }: { courseId: string; initial: CourseProfile }) {
   const router = useRouter();
@@ -59,34 +73,52 @@ export function ProfileEditor({ courseId, initial }: { courseId: string; initial
     <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr_320px] gap-4">
       {/* Section nav */}
       <aside className="bg-white border border-slate-200 rounded-[10px] p-2 self-start">
-        {SECTIONS.map((s) => (
-          <button
-            key={s.id}
-            onClick={() => setActiveSection(s.id)}
-            className={`w-full text-left px-3 py-2 rounded-md text-[13.5px] transition-colors ${
-              activeSection === s.id
-                ? "bg-slate-900 text-white font-semibold"
-                : "text-slate-700 hover:bg-slate-50"
-            }`}
-          >
-            <div>{s.label}</div>
-            <div className={`text-[11px] mt-0.5 ${activeSection === s.id ? "text-slate-300" : "text-slate-500"}`}>
-              {s.sub}
+        {(["core","voice","branding"] as const).map((g) => (
+          <div key={g} className="mb-2 last:mb-0">
+            <div className="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-[.06em] text-slate-400">
+              {GROUP_LABELS[g]}
             </div>
-          </button>
+            {SECTIONS.filter((s) => s.group === g).map((s) => (
+              <button
+                key={s.id}
+                onClick={() => setActiveSection(s.id)}
+                className={`w-full text-left px-3 py-2 rounded-md text-[13.5px] transition-colors ${
+                  activeSection === s.id
+                    ? "bg-slate-900 text-white font-semibold"
+                    : "text-slate-700 hover:bg-slate-50"
+                }`}
+              >
+                <div>{s.label}</div>
+                <div className={`text-[11px] mt-0.5 ${activeSection === s.id ? "text-slate-300" : "text-slate-500"}`}>
+                  {s.sub}
+                </div>
+              </button>
+            ))}
+          </div>
         ))}
+        <div className="mt-3 px-2">
+          <Link
+            href={`/course/${courseId}/toc`}
+            className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md bg-bi-blue-600 text-white text-[12.5px] font-semibold hover:bg-bi-blue-700"
+          >
+            Continue to TOC <ChevronRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
       </aside>
 
       {/* Editor pane */}
       <main className="space-y-4">
         <div className="bg-white border border-slate-200 rounded-[10px] p-5">
-          {activeSection === "audience"   && <AudienceSection   profile={profile} update={update} />}
-          {activeSection === "tone"       && <ToneSection       profile={profile} update={update} />}
-          {activeSection === "pedagogy"   && <PedagogySection   profile={profile} update={update} />}
-          {activeSection === "vocabulary" && <VocabularySection profile={profile} update={update} />}
-          {activeSection === "brand"      && <BrandSection      profile={profile} update={update} />}
-          {activeSection === "reading"    && <ReadingSection    profile={profile} update={update} />}
-          {activeSection === "difficulty" && <DifficultySection profile={profile} update={update} />}
+          {activeSection === "audience"     && <AudienceSection     profile={profile} update={update} />}
+          {activeSection === "outcomes"     && <OutcomesSection     profile={profile} update={update} />}
+          {activeSection === "monetization" && <MonetizationSection profile={profile} update={update} />}
+          {activeSection === "timeline"     && <TimelineSection     profile={profile} update={update} />}
+          {activeSection === "tone"         && <ToneSection         profile={profile} update={update} />}
+          {activeSection === "pedagogy"     && <PedagogySection     profile={profile} update={update} />}
+          {activeSection === "vocabulary"   && <VocabularySection   profile={profile} update={update} />}
+          {activeSection === "brand"        && <BrandSection        profile={profile} update={update} />}
+          {activeSection === "reading"      && <ReadingSection      profile={profile} update={update} />}
+          {activeSection === "difficulty"   && <DifficultySection   profile={profile} update={update} />}
         </div>
 
         {/* Save bar */}
@@ -444,6 +476,143 @@ function DifficultySection({ profile, update }: { profile: CourseProfile; update
           </button>
         ))}
       </div>
+    </>
+  );
+}
+
+function OutcomesSection({ profile, update }: { profile: CourseProfile; update: <K extends keyof CourseProfile>(k: K, v: CourseProfile[K]) => void }) {
+  const o = profile.outcomes;
+  const set = (patch: Partial<typeof o>) => update("outcomes", { ...o, ...patch });
+  return (
+    <>
+      <h2 className="text-[16px] font-bold text-slate-900 mb-1">Outcomes</h2>
+      <p className="text-[12.5px] text-slate-500 mb-4">
+        Action-verb statements the learner will be able to do. Used by the AI when generating
+        TOCs, briefs, and assessments — and to drive learner-readiness scoring.
+      </p>
+      <Field label="Bloom-level cap" hint="The highest cognitive demand the course will reach.">
+        <div className="grid grid-cols-3 lg:grid-cols-6 gap-1.5">
+          {BLOOM_LEVELS.map((b) => (
+            <button
+              key={b.id}
+              onClick={() => set({ bloom_cap: b.id })}
+              className={`px-2 py-2 rounded-md border text-[11.5px] font-semibold capitalize transition-all ${
+                o.bloom_cap === b.id
+                  ? "bg-slate-900 text-white border-slate-900"
+                  : "border-slate-200 text-slate-700 hover:bg-slate-50"
+              }`}
+              title={`Verbs: ${b.verbs.join(", ")}`}
+            >{b.label}</button>
+          ))}
+        </div>
+      </Field>
+      <Field label="Learning outcomes" hint='One per line — start each with a Bloom verb. e.g. "Build a multi-agent workflow that handles edge cases".'>
+        <textarea
+          rows={6}
+          className={inputCls}
+          value={(o.outcomes ?? []).join("\n")}
+          onChange={(e) => set({ outcomes: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean) })}
+          placeholder={"Implement a CRUD API with auth\nDiagnose 5xx errors using observability tools\nDesign a database schema for a SaaS"}
+        />
+      </Field>
+      <Field label="Prerequisites" hint="What the learner should know coming in. One per line.">
+        <textarea
+          rows={3}
+          className={inputCls}
+          value={(o.prerequisites ?? []).join("\n")}
+          onChange={(e) => set({ prerequisites: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean) })}
+          placeholder={"Comfortable with JavaScript fundamentals\nHas used Git for at least 3 months"}
+        />
+      </Field>
+      <Field label="Success criteria" hint="How we'll know the learner has mastered the course.">
+        <textarea
+          rows={3}
+          className={inputCls}
+          value={(o.success_criteria ?? []).join("\n")}
+          onChange={(e) => set({ success_criteria: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean) })}
+          placeholder={"Ships a working capstone project\nScores 80%+ on the final assessment\nCan answer 'why' questions in their own words"}
+        />
+      </Field>
+    </>
+  );
+}
+
+function MonetizationSection({ profile, update }: { profile: CourseProfile; update: <K extends keyof CourseProfile>(k: K, v: CourseProfile[K]) => void }) {
+  const m = profile.monetization;
+  const set = (patch: Partial<typeof m>) => update("monetization", { ...m, ...patch });
+  return (
+    <>
+      <h2 className="text-[16px] font-bold text-slate-900 mb-1">Monetization</h2>
+      <p className="text-[12.5px] text-slate-500 mb-4">
+        How the course is delivered. Affects expected production quality, asset count, and pricing tier signals downstream.
+      </p>
+      <Field label="Tier">
+        <div className="grid grid-cols-2 gap-2">
+          {MONETIZATION_TIERS.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => set({ tier: t.id })}
+              className={`text-left px-3 py-2.5 rounded-md border transition-all ${
+                m.tier === t.id ? "bg-slate-900 text-white border-slate-900" : "border-slate-200 text-slate-700 hover:bg-slate-50"
+              }`}
+            >
+              <div className="text-[13px] font-semibold">{t.label}</div>
+              <div className={`text-[11px] mt-0.5 ${m.tier === t.id ? "text-slate-300" : "text-slate-500"}`}>{t.what}</div>
+            </button>
+          ))}
+        </div>
+      </Field>
+      {(m.tier === "paid" || m.tier === "premium") && (
+        <Field label="Target list price (USD)" hint="Used for benchmarking against competitor courses.">
+          <input
+            type="number"
+            min={0}
+            className={inputCls}
+            value={m.price_usd ?? ""}
+            onChange={(e) => set({ price_usd: e.target.value === "" ? undefined : Number(e.target.value) })}
+            placeholder={m.tier === "premium" ? "499" : "99"}
+          />
+        </Field>
+      )}
+    </>
+  );
+}
+
+function TimelineSection({ profile, update }: { profile: CourseProfile; update: <K extends keyof CourseProfile>(k: K, v: CourseProfile[K]) => void }) {
+  const t = profile.timeline;
+  const set = (patch: Partial<typeof t>) => update("timeline", { ...t, ...patch });
+  return (
+    <>
+      <h2 className="text-[16px] font-bold text-slate-900 mb-1">Timeline</h2>
+      <p className="text-[12.5px] text-slate-500 mb-4">
+        How long you have to ship this course. When you lock the TOC, we'll auto-generate a per-lesson Gantt
+        plan (script → slides → record → edit → transcript → assets → publish) using these targets.
+      </p>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Target days to complete" hint="Rough days you're giving yourself.">
+          <input
+            type="number"
+            min={1}
+            max={365}
+            className={inputCls}
+            value={t.target_days ?? ""}
+            onChange={(e) => set({ target_days: e.target.value === "" ? undefined : Number(e.target.value) })}
+            placeholder="21"
+          />
+        </Field>
+        <Field label="Hard deadline (optional)" hint="Or pick a date — we'll back-solve days.">
+          <input
+            type="date"
+            className={inputCls}
+            value={t.target_date ?? ""}
+            onChange={(e) => set({ target_date: e.target.value || undefined })}
+          />
+        </Field>
+      </div>
+      <p className="text-[11.5px] text-slate-500 mt-2">
+        Tip: if you're not sure, start with a target — you can always change it. Slipping steps surface as
+        red in the Gantt and trigger in-app notifications.
+      </p>
     </>
   );
 }

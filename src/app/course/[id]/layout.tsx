@@ -2,13 +2,16 @@ import Link from "next/link";
 import { ReactNode } from "react";
 import { CourseHeader } from "../_components/CourseHeader";
 import { CourseTree } from "../_components/CourseTree";
+import { CollapsibleRail } from "../_components/CollapsibleRail";
 import { loadCourseTreeData } from "../_components/loadCourseTree";
+import { loadStageStatus } from "../_components/loadStageStatus";
 import { AppShell } from "@/components/shell/AppShell";
 import { getServerSupabase } from "@/lib/supabase/server";
 
-// Course shell — replaces the old horizontal CourseTabs stage bar with
-// a persistent left rail (CourseTree). Stage navigation lives inside
-// the tree under "Stages"; the lesson hierarchy lives below.
+// Course shell — collapsible left rail (CourseTree) + workflow stepper
+// in the header (StageNav). The shell is intentionally minimal so each
+// page can use the freed space; the rail collapses to a 44px gutter.
+
 export default async function CourseLayout({
   children,
   params,
@@ -19,9 +22,10 @@ export default async function CourseLayout({
   const { id } = await params;
   const sb = await getServerSupabase();
 
-  const [{ data: course }, treeData] = await Promise.all([
+  const [{ data: course }, treeData, stageStatus] = await Promise.all([
     sb.from("courses").select("title").eq("id", id).maybeSingle(),
     loadCourseTreeData(sb, id),
+    loadStageStatus(sb, id),
   ]);
 
   const crumbs = [
@@ -32,16 +36,16 @@ export default async function CourseLayout({
   return (
     <AppShell crumbs={crumbs} fullBleed>
       <div className="bg-white">
-        <CourseHeader courseId={id} />
+        <CourseHeader courseId={id} stageStatus={stageStatus} />
       </div>
       <div className="max-w-[1480px] mx-auto px-7 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-5">
           {treeData ? (
-            <div className="lg:sticky lg:top-[120px] lg:self-start" style={{ maxHeight: "calc(100vh - 140px)" }}>
+            <CollapsibleRail courseId={id}>
               <CourseTree data={treeData} />
-            </div>
+            </CollapsibleRail>
           ) : (
-            <div className="bg-white border border-slate-200 rounded-[10px] p-4 text-[13px] text-slate-500">
+            <div className="bg-white border border-slate-200 rounded-[10px] p-4 text-[13px] text-slate-500 lg:w-[300px]">
               Course tree unavailable.
             </div>
           )}
@@ -66,3 +70,6 @@ function ExportBar({ courseId }: { courseId: string }) {
     </div>
   );
 }
+
+// CollapsibleRail wraps the right-side gutter width; child width must be 300px
+// when expanded, 44px when collapsed. The component handles both states.

@@ -362,13 +362,27 @@ export function RecordingView({
 }
 
 function StatusPill({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    pending: "bg-bi-navy-100 text-bi-navy-600",
-    scheduled: "bg-blue-50 text-blue-700",
-    recording: "bg-orange-50 text-orange-700",
-    uploaded: "bg-purple-50 text-purple-700",
-    processing: "bg-cyan-50 text-cyan-700",
-    ready: "bg-emerald-50 text-emerald-700",
+  // Color-coded explicit states per coach feedback. Each tone matches the
+  // emotional read: gray = inert, amber = waiting on coach, blue =
+  // working, purple = needs review, green = done, red = retake.
+  const map: Record<string, { bg: string; fg: string; ring: string; dot: string; label: string }> = {
+    pending:    { bg: "bg-slate-100",   fg: "text-slate-600",    ring: "ring-slate-200",   dot: "bg-slate-400",   label: "Not recorded" },
+    scheduled:  { bg: "bg-amber-50",    fg: "text-amber-700",    ring: "ring-amber-200",   dot: "bg-amber-500",   label: "Scheduled" },
+    recording:  { bg: "bg-bi-blue-50",  fg: "text-bi-blue-700",  ring: "ring-bi-blue-200", dot: "bg-bi-blue-500", label: "Recording" },
+    uploaded:   { bg: "bg-amber-50",    fg: "text-amber-700",    ring: "ring-amber-200",   dot: "bg-amber-500",   label: "Pending upload" },
+    processing: { bg: "bg-bi-blue-50",  fg: "text-bi-blue-700",  ring: "ring-bi-blue-200", dot: "bg-bi-blue-500", label: "Processing" },
+    ready:      { bg: "bg-emerald-50",  fg: "text-emerald-700",  ring: "ring-emerald-200", dot: "bg-emerald-500", label: "Ready" },
+    in_review:  { bg: "bg-purple-50",   fg: "text-purple-700",   ring: "ring-purple-200",  dot: "bg-purple-500",  label: "In review" },
+    approved:   { bg: "bg-emerald-50",  fg: "text-emerald-700",  ring: "ring-emerald-200", dot: "bg-emerald-500", label: "Approved" },
+    needs_retake: { bg: "bg-rose-50",   fg: "text-rose-700",     ring: "ring-rose-200",    dot: "bg-rose-500",    label: "Needs retake" },
+    draft:      { bg: "bg-amber-50",    fg: "text-amber-700",    ring: "ring-amber-200",   dot: "bg-amber-500",   label: "Draft" },
   };
-  return <span className={`text-xs px-2 py-0.5 rounded ${map[status] || map.pending}`}>{status}</span>;
+  const t = map[status] ?? map.pending;
+  const animate = status === "recording" || status === "processing";
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold ring-1 ${t.bg} ${t.fg} ${t.ring}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${t.dot} ${animate ? "animate-pulse" : ""}`} />
+      {t.label}
+    </span>
+  );
 }

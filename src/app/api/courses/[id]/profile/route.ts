@@ -14,6 +14,20 @@ const ProfileSchema = z.object({
     level: z.enum(["beginner", "intermediate", "advanced"]),
     secondary_personas: z.array(z.string().max(300)).max(5),
   }),
+  outcomes: z.object({
+    outcomes:         z.array(z.string().max(300)).max(20).default([]),
+    prerequisites:    z.array(z.string().max(300)).max(20).default([]),
+    success_criteria: z.array(z.string().max(300)).max(20).default([]),
+    bloom_cap: z.enum(["remember","understand","apply","analyze","evaluate","create"]).default("apply"),
+  }).default({ outcomes: [], prerequisites: [], success_criteria: [], bloom_cap: "apply" }),
+  monetization: z.object({
+    tier: z.enum(["free","paid","premium","enterprise"]).default("paid"),
+    price_usd: z.number().int().min(0).max(99999).optional(),
+  }).default({ tier: "paid" }),
+  timeline: z.object({
+    target_days: z.number().int().min(1).max(365).optional(),
+    target_date: z.string().max(20).optional(),
+  }).default({}),
   tone: z.object({
     primary: z.enum(["concise","detailed","professional","educational","conversational","storytelling"]),
     locale: z.string().max(20),

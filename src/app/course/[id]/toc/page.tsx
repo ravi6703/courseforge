@@ -1,18 +1,22 @@
 // src/app/course/[id]/toc/page.tsx
 //
-// The TOC tab — fully extracted from the 1738-line monolith as the model for
-// how the other six tabs (briefs, ppts, recording, transcript, content,
-// review) should be split. Server-rendered for the initial paint, then the
-// `<TocTree />` client component handles inline edits + comment threading.
-//
-// Each lesson row links into deeper detail. Comments are now backed by the
-// generic `comments` table (target_type='module' | 'lesson' | 'video' | 'toc')
-// from migration_v2.sql.
+// TOC tab — overhaul v1.
+// Top of page:
+//   1. ProfileChangedBanner   (if profile_updated_at > toc baseline)
+//   2. ResearchPanel          (existing — moved into a collapsed details)
+//   3. TocPresets             (named shape presets, replaces depth slider)
+//   4. TocSummary             (counts + running totals + type mix)
+// Body:
+//   5. TocTree                (the in-place editor, unchanged)
+//   6. Gantt                  (auto-generated project plan)
+//   7. FinalToc               (read-only canonical learner view)
 
-import Link from "next/link";
 import { TocTree } from "./TocTree";
-import { DepthSlider } from "./DepthSlider";
+import { TocPresets } from "./TocPresets";
+import { TocSummary } from "./TocSummary";
+import { Gantt } from "./Gantt";
 import { FinalToc } from "./FinalToc";
+import { ProfileChangedBanner } from "./ProfileChangedBanner";
 import { getServerSupabase } from "@/lib/supabase/server";
 
 export default async function TocTab({
@@ -24,12 +28,17 @@ export default async function TocTab({
   const supabase = await getServerSupabase();
 
   const [
-    { data: modules }, { data: lessons }, { data: videos },
-    { data: comments }, { data: research }, { data: course }, { data: lessonItems },
+    { data: modules },
+    { data: lessons },
+    { data: videos },
+    { data: comments },
+    { data: research },
+    { data: course },
+    { data: lessonItems },
   ] = await Promise.all([
     supabase
       .from("modules")
-      .select("id, title, description, order, learning_objectives")
+      .select("id, title, description, order, learning_objectives, updated_at")
       .eq("course_id", id)
       .order("order", { ascending: true }),
     supabase
@@ -39,7 +48,7 @@ export default async function TocTab({
       .order("order", { ascending: true }),
     supabase
       .from("videos")
-      .select("id, lesson_id, title, order")
+      .select("id, lesson_id, title, order, video_type, content_type, ideal_duration_minutes, duration_minutes")
       .eq("course_id", id)
       .order("order", { ascending: true }),
     supabase
@@ -55,7 +64,7 @@ export default async function TocTab({
       .single(),
     supabase
       .from("courses")
-      .select("title, learning_objectives, profile")
+      .select("title, learning_objectives, profile, profile_updated_at")
       .eq("id", id)
       .single(),
     supabase
@@ -65,8 +74,13 @@ export default async function TocTab({
       .not("lesson_id", "is", null),
   ]);
 
-  const profile = (course as unknown as { profile?: { difficulty_arc?: "beginner_only" | "beginner_to_intermediate" | "mixed" | "advanced" } } | null)?.profile;
+  const profile = (course as unknown as {
+    profile?: { difficulty_arc?: "beginner_only" | "beginner_to_intermediate" | "mixed" | "advanced" };
+    profile_updated_at?: string;
+  } | null)?.profile;
   const initialArc = profile?.difficulty_arc ?? "mixed";
+  const profileUpdatedAt =
+    (course as unknown as { profile_updated_at?: string } | null)?.profile_updated_at ?? null;
 
   const moduleCount = (modules || []).length;
   const lessonCount = (lessons || []).length;
@@ -79,37 +93,65 @@ export default async function TocTab({
     videosByModule[l.module_id] = (videosByModule[l.module_id] || 0) + lessonVideoCount;
   });
 
+  const totalMinutes = (videos || []).reduce(
+    (sum, v) => sum + (v.ideal_duration_minutes ?? v.duration_minutes ?? 0),
+    0,
+  );
+  const typeBreakdown: Record<string, number> = {};
+  (videos || []).forEach((v) => {
+    const t = v.video_type ?? "theory";
+    typeBreakdown[t] = (typeBreakdown[t] ?? 0) + 1;
+  });
+
+  // Use the most recently updated module's updated_at as the "TOC baseline"
+  // for stale-banner comparison.
+  const tocBaseline = (modules || []).reduce<string | null>((latest, m) => {
+    const u = m.updated_at as string | undefined;
+    if (!u) return latest;
+    return latest && new Date(latest).getTime() >= new Date(u).getTime() ? latest : u;
+  }, null);
+
+  const lessonForGantt = (lessons || []).map((l) => ({
+    id: l.id,
+    title: l.title,
+    module_id: l.module_id,
+  }));
+
   return (
     <div className="space-y-6">
+      {profileUpdatedAt && (
+        <ProfileChangedBanner
+          courseId={id}
+          profileUpdatedAt={profileUpdatedAt}
+          tocLastGeneratedAt={tocBaseline}
+        />
+      )}
       <ResearchPanel research={research} />
-      <DepthSlider courseId={id} initial={initialArc} />
-      <div className="rounded-lg border border-bi-navy-200 bg-bi-navy-50 px-4 py-3 text-sm text-bi-navy-700 flex items-center gap-6 flex-wrap">
-        <div><span className="font-semibold">{moduleCount}</span> <span className="text-bi-navy-500">modules</span></div>
-        <div><span className="font-semibold">{lessonCount}</span> <span className="text-bi-navy-500">lessons</span></div>
-        <div><span className="font-semibold">{videoCount}</span> <span className="text-bi-navy-500">videos</span></div>
-        <div className="text-xs text-bi-navy-500 ml-auto flex items-center gap-3">
-          <Link href={`/course/${id}/profile`} className="text-bi-blue-700 font-semibold hover:underline">
-            ← Back to Course Profile
-          </Link>
-          <span>Briefs, slides, recordings and content all default to 1 per video.</span>
-        </div>
-      </div>
+      <TocPresets courseId={id} initialArc={initialArc} />
+      <TocSummary
+        courseId={id}
+        moduleCount={moduleCount}
+        lessonCount={lessonCount}
+        videoCount={videoCount}
+        totalMinutes={totalMinutes}
+        videoTypeBreakdown={typeBreakdown}
+      />
       <TocTree
         courseId={id}
         courseTitle={course?.title ?? ""}
         courseObjectives={(course?.learning_objectives as unknown[] | null) ?? []}
         modules={modules || []}
         lessons={lessons || []}
-        videos={videos || []}
+        videos={(videos || []).map((v) => ({
+          ...v,
+          // Coerce optional numbers so client component can rely on them.
+          ideal_duration_minutes: v.ideal_duration_minutes ?? null,
+          video_type: v.video_type ?? "theory",
+        }))}
         comments={comments || []}
         videoCountByModule={videosByModule}
       />
-
-      {/* Final TOC — read-only ordered view of the whole course as it
-          will appear to a learner: every video first, then every
-          non-video lesson artifact, in proper order. Per coach
-          feedback the editor (above) is for outcomes; this section
-          is the canonical "what the course looks like." */}
+      <Gantt courseId={id} lessons={lessonForGantt} />
       <FinalToc
         courseId={id}
         modules={modules || []}
@@ -129,26 +171,27 @@ function ResearchPanel({ research }: { research: unknown }) {
     competitor_courses?: Array<{ name: string; rating?: number }>;
   };
   return (
-    <section className="rounded-lg border border-emerald-200 bg-emerald-50/40 p-4">
-      <div className="text-xs font-medium text-emerald-700 uppercase tracking-wider mb-1">
-        Why this TOC is better
+    <details className="rounded-lg border border-emerald-200 bg-emerald-50/40 overflow-hidden">
+      <summary className="px-4 py-2 cursor-pointer list-none [&::-webkit-details-marker]:hidden flex items-center justify-between hover:bg-emerald-50">
+        <span className="text-xs font-medium text-emerald-700 uppercase tracking-wider">
+          Why this TOC is better
+        </span>
+        <span className="text-[11px] text-emerald-600 font-semibold">
+          {(r.competitor_courses?.length ?? 0)} competitors · click to expand
+        </span>
+      </summary>
+      <div className="px-4 pb-3 pt-1">
+        {r.positioning_statement && (
+          <p className="text-sm text-bi-navy-800 mb-2">{r.positioning_statement}</p>
+        )}
+        {r.why_better && r.why_better.length > 0 && (
+          <ul className="text-sm text-bi-navy-700 list-disc pl-5 space-y-1">
+            {r.why_better.map((b: string, i: number) => (
+              <li key={i}>{b}</li>
+            ))}
+          </ul>
+        )}
       </div>
-      {r.positioning_statement && (
-        <p className="text-sm text-bi-navy-800 mb-2">{r.positioning_statement}</p>
-      )}
-      {r.why_better && r.why_better.length > 0 && (
-        <ul className="text-sm text-bi-navy-700 list-disc pl-5 space-y-1">
-          {r.why_better.map((b: string, i: number) => (
-            <li key={i}>{b}</li>
-          ))}
-        </ul>
-      )}
-      {r.competitor_courses && r.competitor_courses.length > 0 && (
-        <div className="mt-2 text-xs text-bi-navy-500">
-          Benchmarked against {r.competitor_courses.length} competitor course
-          {r.competitor_courses.length === 1 ? "" : "s"}
-        </div>
-      )}
-    </section>
+    </details>
   );
 }

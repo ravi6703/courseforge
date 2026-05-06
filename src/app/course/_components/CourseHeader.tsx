@@ -5,6 +5,8 @@ import { Tag } from "@/components/ui/Tag";
 import { HealthPill } from "@/components/ui/HealthPill";
 import { AvatarMini } from "@/components/ui/AvatarStack";
 import { StageNav } from "./StageNav";
+import { NotificationBell } from "./NotificationBell";
+import type { StageSlug, StageStatus } from "./loadStageStatus";
 
 const STATUS_PCT: Record<string, number> = {
   draft: 4, toc_generation: 12, toc_review: 18, toc_approved: 24, content_briefs: 32,
@@ -26,11 +28,17 @@ function pseudoHealth(courseId: string): number {
   return 60 + (s % 40);
 }
 
-export async function CourseHeader({ courseId }: { courseId: string }) {
+export async function CourseHeader({
+  courseId,
+  stageStatus,
+}: {
+  courseId: string;
+  stageStatus?: Partial<Record<StageSlug, StageStatus>>;
+}) {
   const supabase = await getServerSupabase();
   const { data: course } = await supabase
     .from("courses")
-    .select("title, description, status, platform, domain, duration_weeks, audience_level, created_at")
+    .select("title, description, status, platform, domain, duration_weeks, audience_level, created_at, target_completion_date, target_days")
     .eq("id", courseId)
     .maybeSingle();
 
@@ -51,6 +59,16 @@ export async function CourseHeader({ courseId }: { courseId: string }) {
   const created = new Date(course.created_at);
   const days = Math.max(1, Math.floor((Date.now() - created.getTime()) / 86_400_000));
 
+  // Days remaining vs. target
+  let daysRemaining: number | null = null;
+  let deadlineTone: "ok" | "tight" | "over" | null = null;
+  if (course.target_completion_date) {
+    const tgt = new Date(course.target_completion_date);
+    const ms = tgt.getTime() - Date.now();
+    daysRemaining = Math.round(ms / 86_400_000);
+    deadlineTone = daysRemaining < 0 ? "over" : daysRemaining < 7 ? "tight" : "ok";
+  }
+
   return (
     <div className="bg-white border-b border-bi-navy-100 px-7 pt-5">
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -65,6 +83,27 @@ export async function CourseHeader({ courseId }: { courseId: string }) {
             <span className="inline-flex items-center gap-1.5"><AvatarMini name="Ravi Bohra" /> Ravi Bohra <span className="text-bi-navy-400">· coach</span></span>
             <span className="w-[3px] h-[3px] bg-bi-navy-300 rounded-full" />
             <span>Created {created.toLocaleDateString(undefined, { month: "short", day: "numeric" })} · {days}d in production</span>
+            {daysRemaining !== null && (
+              <>
+                <span className="w-[3px] h-[3px] bg-bi-navy-300 rounded-full" />
+                <span
+                  className={`font-semibold inline-flex items-center gap-1.5 ${
+                    deadlineTone === "over" ? "text-rose-700" :
+                    deadlineTone === "tight" ? "text-amber-700" :
+                    "text-emerald-700"
+                  }`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      deadlineTone === "over" ? "bg-rose-700" :
+                      deadlineTone === "tight" ? "bg-amber-700" :
+                      "bg-emerald-700"
+                    }`}
+                  />
+                  {daysRemaining < 0 ? `${Math.abs(daysRemaining)}d over deadline` : `${daysRemaining}d to deadline`}
+                </span>
+              </>
+            )}
             <span className="w-[3px] h-[3px] bg-bi-navy-300 rounded-full" />
             <span className="text-emerald-700 font-semibold inline-flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 bg-emerald-700 rounded-full" /> Health <HealthPill score={health} />
@@ -78,7 +117,13 @@ export async function CourseHeader({ courseId }: { courseId: string }) {
             </div>
             <span className="text-[12px] font-bold text-bi-navy-700">{pct}%</span>
           </div>
-          <Link href={`/dashboard?settings=${courseId}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-bi-navy-100 text-[13px] font-semibold text-bi-navy-700 hover:bg-bi-navy-50">
+          <NotificationBell courseId={courseId} />
+          {/* FIXED: settings now opens the in-context Course Profile (was wrongly routing to /dashboard) */}
+          <Link
+            href={`/course/${courseId}/profile`}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-bi-navy-100 text-[13px] font-semibold text-bi-navy-700 hover:bg-bi-navy-50"
+            title="Course settings"
+          >
             <Settings className="w-3.5 h-3.5" />Settings
           </Link>
           <button
@@ -96,7 +141,7 @@ export async function CourseHeader({ courseId }: { courseId: string }) {
       </div>
 
       <div className="mt-3 pb-2">
-        <StageNav courseId={courseId} />
+        <StageNav courseId={courseId} stageStatus={stageStatus} />
       </div>
     </div>
   );

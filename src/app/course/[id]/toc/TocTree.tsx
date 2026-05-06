@@ -25,11 +25,20 @@ import {
   ChevronDown, ChevronRight, Plus, Trash2, Pencil, FileText, Loader2,
   Sparkles, Check, X,
 } from "lucide-react";
+import { VideoTypeTag, VideoDurationField, type VideoTypeId } from "./VideoMeta";
 
 type LearningObjective = { id: string; text: string; bloom_level?: string };
 type Module = { id: string; title: string; description?: string | null; order: number; learning_objectives?: unknown };
 type Lesson = { id: string; module_id: string; title: string; description?: string | null; order: number; learning_objectives?: unknown };
-type Video  = { id: string; lesson_id: string; title: string; order: number };
+type Video  = {
+  id: string;
+  lesson_id: string;
+  title: string;
+  order: number;
+  video_type?: string | null;
+  ideal_duration_minutes?: number | null;
+  duration_minutes?: number | null;
+};
 
 type Selection =
   | { kind: "course" }
@@ -420,6 +429,22 @@ function VideoLine({ video, index, courseId, onRename, onDelete }: {
         />
       ) : (
         <span className="flex-1 truncate text-[12.5px] text-bi-navy-700">{video.title}</span>
+      )}
+      {!editing && (
+        <span className="flex items-center gap-1 shrink-0">
+          <VideoTypeTag
+            courseId={courseId}
+            videoId={video.id}
+            initial={(video.video_type as VideoTypeId | null | undefined) ?? "theory"}
+            size="sm"
+          />
+          <VideoDurationField
+            courseId={courseId}
+            videoId={video.id}
+            videoType={(video.video_type as VideoTypeId | null | undefined) ?? "theory"}
+            initial={video.ideal_duration_minutes ?? video.duration_minutes ?? null}
+          />
+        </span>
       )}
       <Link
         href={`/course/${courseId}/briefs?focus=${video.id}`}
