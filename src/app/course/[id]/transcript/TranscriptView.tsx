@@ -7,6 +7,8 @@ import { useState } from "react";
 import { Loader2, RotateCcw, Eye, Sparkles, BookOpen, Download, Languages, ArrowRight, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
 import { AssetHub } from "./AssetHub";
+import { SyncDiff } from "./SyncDiff";
+import { AutoGlossary } from "./AutoGlossary";
 
 export interface TranscriptVideoRow {
   videoId: string;
@@ -279,6 +281,8 @@ export function TranscriptView({
                                   transcriptId={row.transcript!.id}
                                   videoId={row.videoId}
                                 />
+                                <SyncDiff transcriptId={row.transcript!.id} />
+                                <AutoGlossary transcriptId={row.transcript!.id} courseId={courseId} />
                               </div>
                             )}
 

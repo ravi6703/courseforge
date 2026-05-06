@@ -7,6 +7,8 @@ import { AuditFindings } from "./AuditFindings";
 import { WcagFindings } from "./WcagFindings";
 import { CourseraPublish } from "./CourseraPublish";
 import { ReviewTabs } from "./ReviewTabs";
+import { PreflightScorecard } from "./PreflightScorecard";
+import { MultiTargetExport } from "./MultiTargetExport";
 import { getServerSupabase } from "@/lib/supabase/server";
 
 export default async function ReviewTab({ params }: { params: Promise<{ id: string }> }) {
@@ -24,7 +26,13 @@ export default async function ReviewTab({ params }: { params: Promise<{ id: stri
       a11y={<WcagFindings courseId={id} />}
       health={<CourseHealthPanel courseId={id} />}
       share={<ShareHealthScoreToggle courseId={id} initialPublic={Boolean(courseRow?.public_health_score)} />}
-      publish={<CourseraPublish courseId={id} />}
+      publish={
+        <div className="space-y-3">
+          <PreflightScorecard courseId={id} />
+          <MultiTargetExport courseId={id} />
+          <CourseraPublish courseId={id} />
+        </div>
+      }
     />
   );
 }

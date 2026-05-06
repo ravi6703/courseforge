@@ -2,6 +2,8 @@ import { ReactNode } from "react";
 import { CourseHeader } from "../_components/CourseHeader";
 import { CourseTree } from "../_components/CourseTree";
 import { CollapsibleRail } from "../_components/CollapsibleRail";
+import { CoPilot } from "../_components/CoPilot";
+import { JobsDrawer } from "../_components/JobsDrawer";
 import { loadCourseTreeData } from "../_components/loadCourseTree";
 import { loadStageStatus } from "../_components/loadStageStatus";
 import { AppShell } from "@/components/shell/AppShell";
@@ -54,6 +56,8 @@ export default async function CourseLayout({
           <div className="min-w-0">{children}</div>
         </div>
       </div>
+      <CoPilot courseId={id} />
+      <JobsDrawer courseId={id} />
     </AppShell>
   );
 }

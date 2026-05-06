@@ -2,21 +2,17 @@
 
 // Gantt / project plan view — auto-generated when the TOC is locked.
 //
-// Coach feedback v2: showing 64 per-lesson sub-steps is too granular —
-// the project plan should be at the PHASE level (~9 bars), not the
-// video-step level. Roll up the per-lesson rows by step_kind, span the
-// bar from the earliest scheduled_start to the latest scheduled_end of
-// that phase, and show aggregate done-count + slip-count.
+// Coach feedback v3 (final): only show the 9 phases. No drill-down.
+// Per-lesson detail is "long project management" noise. The project
+// plan should be 9 horizontal bars and that's it.
 //
-// The underlying timeline_steps rows stay per-lesson (so we can still
-// surface per-step status/slip detection elsewhere). This view is just
-// the rollup.
-//
-// Coaches can expand any phase to see its per-lesson steps if needed.
+// The underlying timeline_steps rows stay per-lesson in the DB so slip
+// detection / notifications still work — but this view rolls them up
+// into 9 phase bars and never exposes the per-lesson detail.
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  Loader2, Calendar, AlertTriangle, CheckCircle2, RefreshCw, ChevronDown, ChevronRight,
+  Loader2, Calendar, AlertTriangle, CheckCircle2, RefreshCw,
 } from "lucide-react";
 import { STEP_LABELS, STEP_COLORS, type TimelineStepKind } from "@/lib/timeline";
 
@@ -67,7 +63,7 @@ export function Gantt({
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [targetDays, setTargetDays] = useState(21);
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  void lessons; // kept in signature for future per-lesson drill (currently unused — phase-only view)
 
   const load = async () => {
     setLoading(true);
@@ -179,8 +175,6 @@ export function Gantt({
   const totalSteps = phases.reduce((s, p) => s + p.totalCount, 0);
   const allDone = totalDone === totalSteps && totalSteps > 0;
 
-  const lessonById = Object.fromEntries(lessons.map((l) => [l.id, l]));
-
   return (
     <section className="rounded-lg border border-bi-navy-200 bg-white">
       <header className="px-4 py-3 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2">
@@ -218,110 +212,51 @@ export function Gantt({
       </header>
 
       <div className="overflow-auto">
-        <div className="min-w-[780px]">
+        <div className="min-w-[640px]">
           {phases.map((p) => {
-            const isExp = expanded[p.kind] ?? false;
             const phaseSlipping = p.slipCount > 0;
             const phaseDone = p.doneCount === p.totalCount && p.totalCount > 0;
             const left = ((p.start - startMs) / totalMs) * 100;
             const width = Math.max(2, ((p.end - p.start) / totalMs) * 100);
             const color = STEP_COLORS[p.kind];
             const labelDate = fmt(new Date(p.end).toISOString());
-            const isCourseLevel = p.steps.every((s) => !s.lesson_id);
 
             return (
-              <div key={p.kind} className={isExp ? "border-b border-slate-200" : ""}>
-                {/* Phase rollup row */}
-                <div className="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 border-b border-slate-100 last:border-b-0">
-                  <button
-                    onClick={() => setExpanded((e) => ({ ...e, [p.kind]: !isExp }))}
-                    className="p-1 rounded text-slate-400 hover:bg-slate-200"
-                    title={isExp ? "Collapse" : "Show per-lesson detail"}
-                    disabled={isCourseLevel}
-                  >
-                    {isCourseLevel ? <span className="block w-3 h-3" /> :
-                      isExp ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-                  </button>
-                  <span className="w-28 text-[12.5px] font-bold text-slate-800 truncate shrink-0">
-                    {STEP_LABELS[p.kind]}
-                  </span>
-                  <span className="w-20 text-[10.5px] text-slate-500 truncate shrink-0 font-mono">
-                    {p.doneCount}/{p.totalCount} done
-                  </span>
-                  <div className="flex-1 relative h-6 bg-slate-100 rounded">
-                    <div
-                      className={`absolute top-0 bottom-0 rounded-sm transition-all ${
-                        phaseSlipping ? "ring-2 ring-rose-400" : ""
-                      }`}
-                      style={{
-                        left: `${left}%`,
-                        width: `${width}%`,
-                        backgroundColor: phaseDone ? "#10b981" : color,
-                        opacity: 0.95,
-                      }}
-                      title={`${STEP_LABELS[p.kind]} · ${fmt(new Date(p.start).toISOString())} → ${fmt(new Date(p.end).toISOString())} · ${p.doneCount}/${p.totalCount} done${p.slipCount ? ` · ${p.slipCount} slipping` : ""}`}
-                    />
-                  </div>
-                  <span
-                    className={`w-24 text-[10.5px] font-mono shrink-0 text-right ${
-                      phaseDone
-                        ? "text-emerald-700 font-bold"
-                        : phaseSlipping
-                          ? "text-rose-700 font-bold"
-                          : "text-slate-500"
+              <div
+                key={p.kind}
+                className="flex items-center gap-2 px-4 py-2.5 hover:bg-slate-50 border-b border-slate-100 last:border-b-0"
+              >
+                <span className="w-28 text-[13px] font-bold text-slate-800 truncate shrink-0">
+                  {STEP_LABELS[p.kind]}
+                </span>
+                <span className="w-20 text-[11px] text-slate-500 truncate shrink-0 font-mono">
+                  {p.doneCount}/{p.totalCount} done
+                </span>
+                <div className="flex-1 relative h-7 bg-slate-100 rounded">
+                  <div
+                    className={`absolute top-0 bottom-0 rounded-sm transition-all ${
+                      phaseSlipping ? "ring-2 ring-rose-400" : ""
                     }`}
-                  >
-                    {phaseDone ? "✓ done" : phaseSlipping ? `${p.slipCount} late` : labelDate}
-                  </span>
+                    style={{
+                      left: `${left}%`,
+                      width: `${width}%`,
+                      backgroundColor: phaseDone ? "#10b981" : color,
+                      opacity: 0.95,
+                    }}
+                    title={`${STEP_LABELS[p.kind]} · ${fmt(new Date(p.start).toISOString())} → ${fmt(new Date(p.end).toISOString())} · ${p.doneCount}/${p.totalCount} done${p.slipCount ? ` · ${p.slipCount} slipping` : ""}`}
+                  />
                 </div>
-
-                {/* Per-lesson detail (drill-down) */}
-                {isExp && !isCourseLevel && (
-                  <div className="bg-slate-50/40 py-1 border-b border-slate-100">
-                    {p.steps.map((s) => {
-                      const sMs = new Date(s.scheduled_start).getTime();
-                      const eMs = new Date(s.scheduled_end).getTime();
-                      const sLeft = ((sMs - startMs) / totalMs) * 100;
-                      const sWidth = Math.max(1.5, ((eMs - sMs) / totalMs) * 100);
-                      const slipping =
-                        s.status !== "done" && new Date(s.scheduled_end).getTime() < Date.now();
-                      const lessonTitle = s.lesson_id ? (lessonById[s.lesson_id]?.title ?? "Lesson") : "—";
-                      return (
-                        <div
-                          key={s.id}
-                          className="flex items-center gap-2 pl-9 pr-3 py-0.5 hover:bg-white"
-                        >
-                          <span className="w-32 text-[10.5px] text-slate-600 truncate shrink-0" title={lessonTitle}>
-                            {lessonTitle}
-                          </span>
-                          <div className="flex-1 relative h-3 bg-slate-200/60 rounded">
-                            <div
-                              className={`absolute top-0 bottom-0 rounded-sm ${slipping ? "ring-1 ring-rose-400" : ""}`}
-                              style={{
-                                left: `${sLeft}%`,
-                                width: `${sWidth}%`,
-                                backgroundColor: s.status === "done" ? "#10b981" : color,
-                                opacity: s.status === "not_started" ? 0.5 : 0.85,
-                              }}
-                              title={`${lessonTitle} · ${s.scheduled_start} → ${s.scheduled_end} · ${s.status}`}
-                            />
-                          </div>
-                          <span
-                            className={`w-24 text-[9.5px] font-mono shrink-0 text-right ${
-                              s.status === "done"
-                                ? "text-emerald-700"
-                                : slipping
-                                  ? "text-rose-700 font-bold"
-                                  : "text-slate-500"
-                            }`}
-                          >
-                            {s.status === "done" ? "✓" : slipping ? `${daysFromNow(s.scheduled_end)}d late` : fmt(s.scheduled_end)}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                <span
+                  className={`w-24 text-[11px] font-mono shrink-0 text-right ${
+                    phaseDone
+                      ? "text-emerald-700 font-bold"
+                      : phaseSlipping
+                        ? "text-rose-700 font-bold"
+                        : "text-slate-500"
+                  }`}
+                >
+                  {phaseDone ? "✓ done" : phaseSlipping ? `${p.slipCount} late` : labelDate}
+                </span>
               </div>
             );
           })}
@@ -334,7 +269,4 @@ export function Gantt({
 function fmt(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-}
-function daysFromNow(iso: string): number {
-  return Math.abs(Math.round((Date.now() - new Date(iso).getTime()) / 86_400_000));
 }
