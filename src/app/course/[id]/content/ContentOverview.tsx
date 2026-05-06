@@ -5,6 +5,10 @@
 // One job: tell the coach at a glance which lesson-level artifact is
 // done, in progress, or missing. Click any cell → focused editor for
 // that lesson + kind.
+//
+// 2026-05 overhaul: explicit summary metrics at the top + a banner
+// whenever the transcript pipeline has queued asset generations the
+// coach should review (status === "generating").
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -44,9 +48,24 @@ export function ContentOverview({
     (s, r) => s + CONTENT_KINDS.reduce((c, k) => c + (r.contentItems.find((i) => i.kind === k)?.status === "draft" ? 1 : 0), 0),
     0,
   );
+  const generatingCells = rows.reduce(
+    (s, r) => s + CONTENT_KINDS.reduce((c, k) => c + (r.contentItems.find((i) => i.kind === k)?.status === "generating" ? 1 : 0), 0),
+    0,
+  );
 
   return (
     <div className="space-y-3">
+      {generatingCells > 0 && (
+        <div className="rounded-lg border border-bi-blue-200 bg-bi-blue-50 px-4 py-2.5 text-[12.5px] text-bi-blue-900 flex items-center gap-2">
+          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-bi-blue-600 text-white">
+            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+          </span>
+          <span>
+            <span className="font-bold">{generatingCells}</span> asset{generatingCells > 1 ? "s" : ""} generating from transcripts.
+            They&apos;ll appear here as soon as they&apos;re ready.
+          </span>
+        </div>
+      )}
       <header className="bg-white border border-bi-navy-100 rounded-lg px-4 py-3 flex items-center gap-4 flex-wrap">
         <div>
           <div className="text-[11px] text-bi-navy-500 uppercase tracking-wider">Lesson artifacts</div>

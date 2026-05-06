@@ -92,6 +92,82 @@ export async function GET() {
   const erroredAi = (aiRows ?? []).filter((r) => r.status === "error").length;
   const fallbackRate = totalAi ? round1(((deniedAi + erroredAi) / totalAi) * 100) : null;
 
+  // 2026-05 overhaul — per-course health snapshot.
+  const inProductionIds = inProduction.map((c) => c.id);
+  const courseHealth: Array<{
+    id: string; title: string; status: string;
+    progress_pct: number; bottleneck: string;
+    days_in_production: number; target_days: number | null;
+    days_remaining: number | null; readiness_pct: number;
+  }> = [];
+
+  if (inProductionIds.length > 0) {
+    const [
+      { data: videosCH }, { data: briefsCH }, { data: slidesCH },
+      { data: recordingsCH }, { data: transcriptsCH }, { data: contentItemsCH },
+      { data: courseTargetsCH },
+    ] = await Promise.all([
+      supabase.from("videos").select("id, course_id").in("course_id", inProductionIds),
+      supabase.from("content_briefs").select("course_id, status").in("course_id", inProductionIds),
+      supabase.from("ppt_slides").select("course_id, status").in("course_id", inProductionIds),
+      supabase.from("recordings").select("course_id, status").in("course_id", inProductionIds),
+      supabase.from("transcripts").select("course_id, status").in("course_id", inProductionIds),
+      supabase.from("content_items").select("course_id, status").in("course_id", inProductionIds),
+      supabase.from("courses").select("id, target_days, target_completion_date").in("id", inProductionIds),
+    ]);
+
+    const STATUS_PCT_CH: Record<string, number> = {
+      draft: 4, toc_generation: 12, toc_review: 18, toc_approved: 24, content_briefs: 32,
+      ppt_generation: 44, ppt_review: 50, recording: 60, transcription: 68,
+      content_generation: 76, content_review: 84, final_review: 92, published: 100,
+    };
+
+    inProduction.forEach((c) => {
+      const myVideos = (videosCH ?? []).filter((v) => v.course_id === c.id);
+      const myBriefsApproved = (briefsCH ?? []).filter((b) => b.course_id === c.id && b.status === "approved");
+      const mySlides = (slidesCH ?? []).filter((s) => s.course_id === c.id);
+      const myRec = (recordingsCH ?? []).filter((r) => r.course_id === c.id && (r.status === "ready" || r.status === "uploaded"));
+      const myTr = (transcriptsCH ?? []).filter((t) => t.course_id === c.id);
+      const myCi = (contentItemsCH ?? []).filter((i) => i.course_id === c.id && i.status === "approved");
+      const totalVideos = myVideos.length;
+
+      const ratios: Array<[string, number]> = [
+        ["briefs",     totalVideos ? myBriefsApproved.length / totalVideos : 0],
+        ["slides",     totalVideos ? Math.min(1, mySlides.length / (totalVideos * 6)) : 0],
+        ["recording",  totalVideos ? myRec.length / totalVideos : 0],
+        ["transcript", totalVideos ? myTr.length / totalVideos : 0],
+        ["content",    myCi.length > 0 ? 0.7 : 0],
+      ];
+      let bottleneck = "briefs";
+      let minR = 1.1;
+      for (const [k, v] of ratios) { if (v < minR) { minR = v; bottleneck = k; } }
+      const readinessPct = Math.round(ratios.reduce((s, [, v]) => s + v, 0) / ratios.length * 100);
+
+      const target = (courseTargetsCH ?? []).find((x) => x.id === c.id) as
+        | { id: string; target_days: number | null; target_completion_date: string | null } | undefined;
+      const created = new Date(c.created_at);
+      const days = Math.max(0, Math.floor((Date.now() - created.getTime()) / 86_400_000));
+      let daysRemaining: number | null = null;
+      if (target?.target_completion_date) {
+        daysRemaining = Math.round((new Date(target.target_completion_date).getTime() - Date.now()) / 86_400_000);
+      } else if (target?.target_days) {
+        daysRemaining = (target.target_days ?? 0) - days;
+      }
+
+      courseHealth.push({
+        id: c.id,
+        title: c.title,
+        status: c.status,
+        progress_pct: STATUS_PCT_CH[c.status] ?? 0,
+        bottleneck,
+        days_in_production: days,
+        target_days: target?.target_days ?? null,
+        days_remaining: daysRemaining,
+        readiness_pct: readinessPct,
+      });
+    });
+  }
+
   return NextResponse.json({
     org_id: auth.orgId,
     generated_at: new Date().toISOString(),
@@ -119,6 +195,7 @@ export async function GET() {
       fallback_rate_pct: fallbackRate,
       target_max_pct: 2,
     },
+    course_health: courseHealth,
   });
 }
 

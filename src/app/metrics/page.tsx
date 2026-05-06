@@ -18,6 +18,18 @@ interface MetricsResponse {
   toc_revisions: { sample_size: number; mean_per_course: number | null; target_max: number };
   coach_throughput_30d: { target_per_coach: number; per_coach: Array<{ coach_id: string; courses_30d: number }> };
   ai_health_24h: { total_requests: number; denied: number; errored: number; fallback_rate_pct: number | null; target_max_pct: number };
+  // 2026-05 overhaul: per-course health snapshot (computed when present).
+  course_health?: Array<{
+    id: string;
+    title: string;
+    status: string;
+    progress_pct: number;
+    bottleneck: string;
+    days_in_production: number;
+    target_days: number | null;
+    days_remaining: number | null;
+    readiness_pct: number;
+  }>;
 }
 
 export default function MetricsPage() {
@@ -108,6 +120,67 @@ export default function MetricsPage() {
           </div>
         </Panel>
       </div>
+
+      {data.course_health && data.course_health.length > 0 && (
+        <Panel title="Active courses — health snapshot" sub="Velocity, bottleneck step, readiness vs target">
+          <div className="-mx-5 -mb-5">
+            <table className="w-full">
+              <thead className="border-b border-bi-navy-100">
+                <tr>
+                  <th className="text-left px-5 py-2.5 text-[10.5px] font-bold uppercase tracking-[.04em] text-bi-navy-500">Course</th>
+                  <th className="text-left px-5 py-2.5 text-[10.5px] font-bold uppercase tracking-[.04em] text-bi-navy-500">Progress</th>
+                  <th className="text-left px-5 py-2.5 text-[10.5px] font-bold uppercase tracking-[.04em] text-bi-navy-500">Readiness</th>
+                  <th className="text-left px-5 py-2.5 text-[10.5px] font-bold uppercase tracking-[.04em] text-bi-navy-500">Bottleneck</th>
+                  <th className="text-left px-5 py-2.5 text-[10.5px] font-bold uppercase tracking-[.04em] text-bi-navy-500">Days</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.course_health.map((c) => {
+                  const overdue = c.days_remaining !== null && c.days_remaining < 0;
+                  const tight = c.days_remaining !== null && c.days_remaining >= 0 && c.days_remaining < 7;
+                  return (
+                    <tr key={c.id} className="border-b border-bi-navy-50 last:border-0 hover:bg-bi-navy-50">
+                      <td className="px-5 py-3">
+                        <a href={`/course/${c.id}`} className="text-[13px] font-bold text-bi-navy-900 hover:text-bi-blue-700">{c.title}</a>
+                        <div className="text-[10.5px] text-bi-navy-500">{c.status.replace(/_/g, " ")}</div>
+                      </td>
+                      <td className="px-5 py-3">
+                        <div className="flex items-center gap-2 min-w-[140px]">
+                          <div className="flex-1 h-1.5 rounded-full bg-bi-navy-100 overflow-hidden">
+                            <div className="h-full bg-gradient-to-r from-bi-blue-600 to-bi-accent-600" style={{ width: `${c.progress_pct}%` }} />
+                          </div>
+                          <span className="text-[11px] font-mono font-bold tabular-nums w-10 text-right">{c.progress_pct}%</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3">
+                        <div className="flex items-center gap-2 min-w-[140px]">
+                          <div className="flex-1 h-1.5 rounded-full bg-bi-navy-100 overflow-hidden">
+                            <div className={`h-full ${c.readiness_pct >= 80 ? "bg-emerald-500" : c.readiness_pct >= 50 ? "bg-amber-500" : "bg-rose-500"}`} style={{ width: `${c.readiness_pct}%` }} />
+                          </div>
+                          <span className="text-[11px] font-mono font-bold tabular-nums w-10 text-right">{c.readiness_pct}%</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3 text-[12px] capitalize">
+                        <span className="px-1.5 py-0.5 rounded bg-bi-navy-50 text-bi-navy-700 font-semibold">
+                          {c.bottleneck.replace(/_/g, " ")}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3 text-[12px]">
+                        <span className="text-bi-navy-700 font-mono">{c.days_in_production}d</span>
+                        {c.days_remaining !== null && (
+                          <span className={`ml-2 text-[10.5px] font-bold ${overdue ? "text-rose-700" : tight ? "text-amber-700" : "text-emerald-700"}`}>
+                            {overdue ? `${Math.abs(c.days_remaining)}d over` : `${c.days_remaining}d left`}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Panel>
+      )}
 
       <Panel title="Coach throughput · last 30 days">
         <div className="-mx-5 -mb-5">

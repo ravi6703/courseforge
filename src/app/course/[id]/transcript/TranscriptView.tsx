@@ -6,6 +6,7 @@
 import { useState } from "react";
 import { Loader2, RotateCcw, Eye, Sparkles, BookOpen, Download, Languages, ArrowRight, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
+import { AssetHub } from "./AssetHub";
 
 export interface TranscriptVideoRow {
   videoId: string;
@@ -270,10 +271,14 @@ export function TranscriptView({
 
                             {/* Expanded preview */}
                             {isExpanded && hasTranscript && (
-                              <div className="mt-3 pt-3 border-t border-bi-navy-200">
+                              <div className="mt-3 pt-3 border-t border-bi-navy-200 space-y-3">
                                 <pre className="text-xs whitespace-pre-wrap font-mono text-bi-navy-700 bg-bi-navy-50 rounded p-2 max-h-96 overflow-y-auto">
                                   {row.transcript!.text_content || "(loading...)"}
                                 </pre>
+                                <AssetHub
+                                  transcriptId={row.transcript!.id}
+                                  videoId={row.videoId}
+                                />
                               </div>
                             )}
 
