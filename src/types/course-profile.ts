@@ -28,12 +28,44 @@ export interface BrandKit {
   slide_template?: "minimal" | "editorial" | "vibrant" | "academic";
 }
 
+export type MonetizationTier = "free" | "paid" | "premium" | "enterprise";
+
+export type BloomLevel =
+  | "remember" | "understand" | "apply" | "analyze" | "evaluate" | "create";
+
+export interface OutcomesSection {
+  /** Action-verb statements: "Learner will be able to <verb> <object>". */
+  outcomes: string[];
+  /** Prerequisites — what the learner should know coming in. */
+  prerequisites: string[];
+  /** Success criteria — how we know the learner mastered the course. */
+  success_criteria: string[];
+  /** Highest Bloom level the course targets. */
+  bloom_cap: BloomLevel;
+}
+
+export interface MonetizationSection {
+  tier: MonetizationTier;
+  /** Target list price in USD if paid/premium. */
+  price_usd?: number;
+}
+
+export interface TimelineSection {
+  /** Days the coach gives themselves to ship the course. Drives the Gantt. */
+  target_days?: number;
+  /** Hard deadline (date string, ISO yyyy-mm-dd). */
+  target_date?: string;
+}
+
 export interface CourseProfile {
   audience: {
     primary_persona: string;     // free text — "Backend dev, 2-5y, comfortable with REST"
     level: "beginner" | "intermediate" | "advanced";
     secondary_personas: string[]; // optional
   };
+  outcomes: OutcomesSection;
+  monetization: MonetizationSection;
+  timeline: TimelineSection;
   tone: {
     primary: ToneId;
     locale: string;              // BCP-47, e.g. "en-IN"
@@ -57,6 +89,16 @@ export const DEFAULT_PROFILE: CourseProfile = {
     level: "intermediate",
     secondary_personas: [],
   },
+  outcomes: {
+    outcomes: [],
+    prerequisites: [],
+    success_criteria: [],
+    bloom_cap: "apply",
+  },
+  monetization: {
+    tier: "paid",
+  },
+  timeline: {},
   tone: {
     primary: "educational",
     locale: "en-US",
@@ -79,6 +121,22 @@ export const DEFAULT_PROFILE: CourseProfile = {
   reading_list: [],
   difficulty_arc: "mixed",
 };
+
+export const BLOOM_LEVELS: Array<{ id: BloomLevel; label: string; verbs: string[] }> = [
+  { id: "remember",   label: "Remember",   verbs: ["recall", "list", "name", "define"] },
+  { id: "understand", label: "Understand", verbs: ["explain", "summarize", "interpret"] },
+  { id: "apply",      label: "Apply",      verbs: ["use", "implement", "execute"] },
+  { id: "analyze",    label: "Analyze",    verbs: ["compare", "diagnose", "differentiate"] },
+  { id: "evaluate",   label: "Evaluate",   verbs: ["critique", "assess", "judge"] },
+  { id: "create",     label: "Create",     verbs: ["design", "build", "compose"] },
+];
+
+export const MONETIZATION_TIERS: Array<{ id: MonetizationTier; label: string; what: string }> = [
+  { id: "free",       label: "Free",       what: "Lead-gen / community / open course." },
+  { id: "paid",       label: "Paid",       what: "Standard tier — typically $49–$299." },
+  { id: "premium",    label: "Premium",    what: "High-touch — cohort, mentorship, certificate." },
+  { id: "enterprise", label: "Enterprise", what: "Sold to teams; SCORM/LMS delivery." },
+];
 
 // Tone presets are canonical labels used by the brief tone selector,
 // the AI Coach generator, and any other surface that lets the coach
