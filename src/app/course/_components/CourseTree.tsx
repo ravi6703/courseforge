@@ -102,30 +102,28 @@ export function CourseTree({ data }: { data: CourseTreeData }) {
 
   return (
     <aside className="bg-white border border-slate-200 rounded-[10px] flex flex-col overflow-hidden">
-      {/* Course root — always visible */}
-      <header className="px-4 py-3 border-b border-slate-200 flex items-start gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="text-[10.5px] font-bold uppercase tracking-[.06em] text-slate-500">Course</div>
-          <Link
-            href={`/course/${data.courseId}/toc`}
-            className="block mt-0.5 text-[14px] font-bold text-slate-900 truncate hover:text-bi-blue-700"
-            title={data.courseTitle}
-          >
-            {data.courseTitle}
-          </Link>
-          <div className="mt-1.5 flex items-center gap-2 text-[11px]">
-            <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-bi-blue-600 to-bi-accent-600" style={{ width: `${data.progressPct}%` }} />
-            </div>
-            <span className="font-bold text-slate-700">{data.progressPct}%</span>
-            {typeof data.healthScore === "number" && (
-              <span className={`px-1.5 py-px rounded-full text-[10px] font-bold ${
-                data.healthScore >= 80 ? "bg-emerald-50 text-emerald-700" :
-                data.healthScore >= 60 ? "bg-amber-50 text-amber-700" :
-                                          "bg-red-50 text-red-700"
-              }`}>{data.healthScore}</span>
-            )}
+      {/* Compact rail header — course title shown in page chrome above,
+          so the rail just shows progress + an "open TOC" affordance. */}
+      <header className="px-3 py-2 border-b border-slate-200 flex items-center gap-2">
+        <Link
+          href={`/course/${data.courseId}/toc`}
+          className="text-[10.5px] font-bold uppercase tracking-[.06em] text-slate-500 hover:text-bi-blue-700 shrink-0"
+          title="Open TOC"
+        >
+          Tree
+        </Link>
+        <div className="flex-1 flex items-center gap-1.5">
+          <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-bi-blue-600 to-bi-accent-600" style={{ width: `${data.progressPct}%` }} />
           </div>
+          <span className="font-bold text-slate-700 text-[10.5px] tabular-nums">{data.progressPct}%</span>
+          {typeof data.healthScore === "number" && (
+            <span className={`px-1.5 py-px rounded-full text-[10px] font-bold ${
+              data.healthScore >= 80 ? "bg-emerald-50 text-emerald-700" :
+              data.healthScore >= 60 ? "bg-amber-50 text-amber-700" :
+                                        "bg-red-50 text-red-700"
+            }`}>{data.healthScore}</span>
+          )}
         </div>
       </header>
 

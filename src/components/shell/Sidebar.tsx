@@ -15,7 +15,6 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, BarChart, BookOpen, Plus,
-  Layers, FileText, Presentation, Video, Mic, CheckCircle,
   Heart, Beaker,
   Settings, Users, LogOut, ChevronDown,
 } from "lucide-react";
@@ -39,20 +38,9 @@ const SECTIONS: Section[] = [
       { label: "New course",  href: "/create",    icon: Plus    },
     ],
   },
-  {
-    id: "pipeline", label: "Course pipeline",
-    visibleOn: (p) => /^\/course\/[^/]+/.test(p),
-    items: [
-      { label: "Course profile",    href: "/course/CURRENT/profile",    icon: Settings       },
-      { label: "Table of contents", href: "/course/CURRENT/toc",        icon: Layers         },
-      { label: "Content briefs",    href: "/course/CURRENT/briefs",     icon: FileText    },
-      { label: "Presentations",     href: "/course/CURRENT/ppts",       icon: Presentation     },
-      { label: "Recordings",        href: "/course/CURRENT/recording",  icon: Video            },
-      { label: "Transcripts",       href: "/course/CURRENT/transcript", icon: Mic              },
-      { label: "Content",           href: "/course/CURRENT/content",    icon: BookOpen         },
-      { label: "Final review",      href: "/course/CURRENT/review",     icon: CheckCircle     },
-    ],
-  },
+  // 2026-05 declutter: removed the duplicate "Course pipeline" section.
+  // The workflow stepper at the top of every course page is the single
+  // source of truth for stage navigation now.
   {
     id: "public", label: "Public",
     items: [

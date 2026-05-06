@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { ReactNode } from "react";
 import { CourseHeader } from "../_components/CourseHeader";
 import { CourseTree } from "../_components/CourseTree";
@@ -8,9 +7,12 @@ import { loadStageStatus } from "../_components/loadStageStatus";
 import { AppShell } from "@/components/shell/AppShell";
 import { getServerSupabase } from "@/lib/supabase/server";
 
-// Course shell — collapsible left rail (CourseTree) + workflow stepper
-// in the header (StageNav). The shell is intentionally minimal so each
-// page can use the freed space; the rail collapses to a 44px gutter.
+// Course shell.
+// 2026-05 declutter v2:
+//   - Bottom export bar removed; exports live in the new Settings menu
+//     (CourseSettingsMenu) on the header instead.
+//   - CollapsibleRail picks its default state from the URL — collapsed
+//     on overview pages, expanded on drill-down pages.
 
 export default async function CourseLayout({
   children,
@@ -52,24 +54,6 @@ export default async function CourseLayout({
           <div className="min-w-0">{children}</div>
         </div>
       </div>
-      <ExportBar courseId={id} />
     </AppShell>
   );
 }
-
-function ExportBar({ courseId }: { courseId: string }) {
-  return (
-    <div className="border-t border-slate-200 bg-white">
-      <div className="max-w-[1480px] mx-auto px-7 py-3 flex items-center gap-3 text-[13px]">
-        <span className="font-semibold text-slate-700">Export:</span>
-        <Link href={`/api/export/pptx?courseId=${courseId}`}     className="px-3 py-1.5 rounded-md border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium">PowerPoint</Link>
-        <Link href={`/api/export/scorm?courseId=${courseId}`}    className="px-3 py-1.5 rounded-md border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium">SCORM 1.2</Link>
-        <Link href={`/api/export/coursera?courseId=${courseId}`} className="px-3 py-1.5 rounded-md border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium">Coursera</Link>
-        <span className="text-[11.5px] text-slate-500 ml-auto">Udemy &amp; xAPI exports coming soon</span>
-      </div>
-    </div>
-  );
-}
-
-// CollapsibleRail wraps the right-side gutter width; child width must be 300px
-// when expanded, 44px when collapsed. The component handles both states.

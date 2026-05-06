@@ -4,7 +4,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type StageSlug =
-  | "profile" | "toc" | "briefs" | "ppts"
+  | "profile" | "toc" | "timeline" | "briefs" | "ppts"
   | "recording" | "transcript" | "content" | "review";
 
 export type StageStatus = "done" | "active" | "in_progress" | "todo";
@@ -26,6 +26,7 @@ export async function loadStageStatus(
     { count: transcripts },
     { count: contentItems },
     { count: contentApproved },
+    { data: timeline },
   ] = await Promise.all([
     sb.from("courses").select("profile, toc_locked, status").eq("id", courseId).maybeSingle(),
     sb.from("modules").select("id", { count: "exact", head: true }).eq("course_id", courseId),
@@ -38,6 +39,7 @@ export async function loadStageStatus(
     sb.from("transcripts").select("id", { count: "exact", head: true }).eq("course_id", courseId),
     sb.from("content_items").select("id", { count: "exact", head: true }).eq("course_id", courseId),
     sb.from("content_items").select("id", { count: "exact", head: true }).eq("course_id", courseId).eq("status", "approved"),
+    sb.from("course_timelines").select("id, status").eq("course_id", courseId).maybeSingle(),
   ]);
 
   const profile = (course?.profile ?? {}) as Record<string, unknown>;
@@ -62,6 +64,9 @@ export async function loadStageStatus(
   const status: Partial<Record<StageSlug, StageStatus>> = {
     profile: profileFilled ? "done" : "in_progress",
     toc: tocLocked ? "done" : tocStarted ? "in_progress" : "todo",
+    timeline: timeline?.id
+      ? (timeline.status === "complete" ? "done" : "in_progress")
+      : "todo",
     briefs:
       totalBriefs === 0
         ? "todo"

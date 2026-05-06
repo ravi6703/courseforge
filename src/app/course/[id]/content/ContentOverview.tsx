@@ -1,19 +1,24 @@
 "use client";
 
-// Content overview — lessons × artifact-kinds grid.
+// Content overview — module cards layout (v2).
 //
-// One job: tell the coach at a glance which lesson-level artifact is
-// done, in progress, or missing. Click any cell → focused editor for
-// that lesson + kind.
+// Coach feedback v2: the lessons × icons grid was unscannable. The 7
+// artifact codes (RD/PQ/GQ/WE/DX/SC/AC) appearing as tiny circles
+// across columns made it hard to see which lesson needs work.
 //
-// 2026-05 overhaul: explicit summary metrics at the top + a banner
-// whenever the transcript pipeline has queued asset generations the
-// coach should review (status === "generating").
+// New layout:
+//   - One card per module. Module title shown ONCE at the top of the
+//     card, never repeated per lesson row.
+//   - Each lesson row has a horizontal pip strip with full label
+//     (Reading · Quiz · Assessment …) sized so it's readable.
+//   - A status filter chip row at the top (All / Missing / Draft /
+//     In review / Approved / Generating) filters cards in place.
+//   - Search lives in the page header only — no second search box.
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { CONTENT_KINDS, KIND_META } from "./types";
-import { Search, Video as VideoIcon } from "lucide-react";
+import { CONTENT_KINDS, KIND_META, type ContentKindKey } from "./types";
+import { Search, ChevronDown, ChevronRight } from "lucide-react";
 
 interface OverviewRow {
   lessonId: string;
@@ -24,6 +29,35 @@ interface OverviewRow {
   contentItems: Array<{ id: string; kind: string; status: string; stale_since?: string | null }>;
 }
 
+type FilterMode = "all" | "missing" | "draft" | "in_review" | "approved" | "generating";
+
+const FILTERS: Array<{ id: FilterMode; label: string; tone: string }> = [
+  { id: "all",        label: "All",         tone: "bg-slate-100 text-slate-700 border-slate-200" },
+  { id: "missing",    label: "Missing",     tone: "bg-slate-50 text-slate-600 border-slate-200" },
+  { id: "draft",      label: "Draft",       tone: "bg-amber-50 text-amber-700 border-amber-200" },
+  { id: "generating", label: "Generating",  tone: "bg-bi-blue-50 text-bi-blue-700 border-bi-blue-200" },
+  { id: "in_review",  label: "In review",   tone: "bg-purple-50 text-purple-700 border-purple-200" },
+  { id: "approved",   label: "Approved",    tone: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+];
+
+// Map raw db status → our filter bucket.
+function bucketOf(status: string | undefined): FilterMode {
+  if (!status) return "missing";
+  if (status === "approved") return "approved";
+  if (status === "in_review") return "in_review";
+  if (status === "generating") return "generating";
+  return "draft";
+}
+
+const PIP_TONE: Record<FilterMode, { bg: string; fg: string; ring: string }> = {
+  all:        { bg: "bg-slate-50",     fg: "text-slate-500",   ring: "ring-slate-200" },
+  missing:    { bg: "bg-slate-50",     fg: "text-slate-400",   ring: "ring-slate-200" },
+  draft:      { bg: "bg-amber-50",     fg: "text-amber-700",   ring: "ring-amber-200" },
+  generating: { bg: "bg-bi-blue-50",   fg: "text-bi-blue-700", ring: "ring-bi-blue-300" },
+  in_review:  { bg: "bg-purple-50",    fg: "text-purple-700",  ring: "ring-purple-200" },
+  approved:   { bg: "bg-emerald-50",   fg: "text-emerald-700", ring: "ring-emerald-200" },
+};
+
 export function ContentOverview({
   courseId, rows,
 }: {
@@ -31,6 +65,21 @@ export function ContentOverview({
   rows: OverviewRow[];
 }) {
   const [q, setQ] = useState("");
+  const [filter, setFilter] = useState<FilterMode>("all");
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+
+  // Aggregate counts for the header.
+  const totalCells = rows.length * CONTENT_KINDS.length;
+  const cellsByBucket: Record<FilterMode, number> = {
+    all: totalCells, missing: 0, draft: 0, in_review: 0, approved: 0, generating: 0,
+  };
+  rows.forEach((r) => {
+    CONTENT_KINDS.forEach((k) => {
+      const item = r.contentItems.find((i) => i.kind === k);
+      cellsByBucket[bucketOf(item?.status)]++;
+    });
+  });
+
   const visible = useMemo(
     () => rows.filter((r) =>
       !q || r.lessonTitle.toLowerCase().includes(q.toLowerCase())
@@ -39,19 +88,29 @@ export function ContentOverview({
     [rows, q],
   );
 
-  const totalCells = rows.length * CONTENT_KINDS.length;
-  const approvedCells = rows.reduce(
-    (s, r) => s + CONTENT_KINDS.reduce((c, k) => c + (r.contentItems.find((i) => i.kind === k)?.status === "approved" ? 1 : 0), 0),
-    0,
-  );
-  const draftCells = rows.reduce(
-    (s, r) => s + CONTENT_KINDS.reduce((c, k) => c + (r.contentItems.find((i) => i.kind === k)?.status === "draft" ? 1 : 0), 0),
-    0,
-  );
-  const generatingCells = rows.reduce(
-    (s, r) => s + CONTENT_KINDS.reduce((c, k) => c + (r.contentItems.find((i) => i.kind === k)?.status === "generating" ? 1 : 0), 0),
-    0,
-  );
+  // Group by module, preserving order.
+  const grouped = useMemo(() => {
+    const m = new Map<string, { moduleTitle: string; moduleOrder: number; rows: OverviewRow[] }>();
+    visible.forEach((r) => {
+      const k = r.moduleTitle || "Module";
+      const g = m.get(k);
+      if (g) g.rows.push(r);
+      else m.set(k, { moduleTitle: r.moduleTitle || "Module", moduleOrder: r.moduleOrder, rows: [r] });
+    });
+    return Array.from(m.values()).sort((a, b) => a.moduleOrder - b.moduleOrder);
+  }, [visible]);
+
+  // Lesson passes the filter if it has at least one cell in that bucket
+  // (or `all` is selected).
+  const lessonInFilter = (r: OverviewRow): boolean => {
+    if (filter === "all") return true;
+    return CONTENT_KINDS.some((k) => {
+      const item = r.contentItems.find((i) => i.kind === k);
+      return bucketOf(item?.status) === filter;
+    });
+  };
+
+  const generatingCells = cellsByBucket.generating;
 
   return (
     <div className="space-y-3">
@@ -62,23 +121,24 @@ export function ContentOverview({
           </span>
           <span>
             <span className="font-bold">{generatingCells}</span> asset{generatingCells > 1 ? "s" : ""} generating from transcripts.
-            They&apos;ll appear here as soon as they&apos;re ready.
+            They&apos;ll appear in their lesson cards as soon as they&apos;re ready.
           </span>
         </div>
       )}
+
       <header className="bg-white border border-bi-navy-100 rounded-lg px-4 py-3 flex items-center gap-4 flex-wrap">
         <div>
-          <div className="text-[11px] text-bi-navy-500 uppercase tracking-wider">Lesson artifacts</div>
+          <div className="text-[10.5px] font-bold uppercase tracking-[.06em] text-bi-navy-500">Lesson artifacts</div>
           <div className="text-[20px] font-semibold text-bi-navy-800">
-            {approvedCells}<span className="text-[13px] font-normal text-bi-navy-500"> / {totalCells} approved</span>
+            {cellsByBucket.approved}<span className="text-[13px] font-normal text-bi-navy-500"> / {totalCells} approved</span>
           </div>
         </div>
         <div className="flex-1 min-w-[200px]">
           <div className="h-1.5 bg-bi-navy-100 rounded-full overflow-hidden">
-            <div className="h-full bg-emerald-300" style={{ width: `${totalCells ? Math.round((approvedCells / totalCells) * 100) : 0}%` }} />
+            <div className="h-full bg-emerald-300" style={{ width: `${totalCells ? Math.round((cellsByBucket.approved / totalCells) * 100) : 0}%` }} />
           </div>
           <div className="text-[11px] text-bi-navy-500 mt-1">
-            {draftCells} draft · click a cell to open or generate · Reading / Quiz / Assessment / Worked example / Discussion / SCORM / AI Coach are all per-lesson now
+            {cellsByBucket.draft} draft · {cellsByBucket.in_review} in review · {cellsByBucket.missing} missing · click any pip to open or generate that artifact
           </div>
         </div>
         <div className="inline-flex items-center gap-2 border border-bi-navy-100 bg-white rounded-lg px-3 py-1.5 w-72">
@@ -91,74 +151,116 @@ export function ContentOverview({
         </div>
       </header>
 
-      <div className="bg-white border border-bi-navy-100 rounded-lg overflow-hidden">
-        <div
-          className="grid border-b border-bi-navy-100 bg-bi-navy-50/40 px-4 py-2 text-[10.5px] font-semibold uppercase tracking-wider text-bi-navy-500"
-          style={{ gridTemplateColumns: `minmax(240px, 1fr) 60px repeat(${CONTENT_KINDS.length}, 60px)` }}
-        >
-          <div>Lesson</div>
-          <div className="text-center">Videos</div>
-          {CONTENT_KINDS.map((k) => (
-            <div key={k} className="text-center" title={KIND_META[k].label}>
-              <span className={`text-[9.5px] font-bold tracking-wider px-1.5 py-0.5 rounded ${KIND_META[k].tone}`}>
-                {KIND_META[k].icon}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        <div className="divide-y divide-bi-navy-100">
-          {visible.length === 0 ? (
-            <div className="px-4 py-12 text-center text-[13px] text-bi-navy-500 italic">
-              {rows.length === 0
-                ? "No lessons yet — generate a TOC first."
-                : "No lessons match your search."}
-            </div>
-          ) : visible.map((r) => (
-            <div
-              key={r.lessonId}
-              className="grid items-center px-4 py-2 hover:bg-bi-navy-50/40"
-              style={{ gridTemplateColumns: `minmax(240px, 1fr) 60px repeat(${CONTENT_KINDS.length}, 60px)` }}
+      {/* Status filter chips */}
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {FILTERS.map((f) => {
+          const isActive = filter === f.id;
+          const n = cellsByBucket[f.id];
+          return (
+            <button
+              key={f.id}
+              onClick={() => setFilter(f.id)}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-bold border transition-all ${
+                isActive ? `${f.tone} ring-2 ring-offset-1 ring-current/30` : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+              }`}
             >
-              <Link
-                href={`/course/${courseId}/content/lesson/${r.lessonId}`}
-                className="min-w-0 pr-3"
-              >
-                <div className="text-[10.5px] text-bi-navy-500 uppercase tracking-wider truncate">
-                  M{r.moduleOrder} · {r.moduleTitle}
+              {f.label}
+              <span className="font-mono tabular-nums opacity-70">{n}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Module cards */}
+      <div className="space-y-3">
+        {grouped.length === 0 ? (
+          <div className="bg-white border border-dashed border-bi-navy-200 rounded-lg p-12 text-center text-[13px] text-bi-navy-500">
+            {rows.length === 0 ? "No lessons yet — generate a TOC first." : "No lessons match your search."}
+          </div>
+        ) : grouped.map((g) => {
+          const filteredRows = g.rows.filter(lessonInFilter);
+          if (filteredRows.length === 0) return null;
+          const isCol = collapsed[g.moduleTitle] ?? false;
+          // Module-level approved %
+          const moduleCells = g.rows.length * CONTENT_KINDS.length;
+          const moduleApproved = g.rows.reduce(
+            (s, r) => s + CONTENT_KINDS.reduce(
+              (c, k) => c + ((r.contentItems.find((i) => i.kind === k)?.status === "approved") ? 1 : 0),
+              0
+            ),
+            0,
+          );
+          const pct = moduleCells ? Math.round((moduleApproved / moduleCells) * 100) : 0;
+          return (
+            <section key={g.moduleTitle} className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+              <header className="px-4 py-2.5 flex items-center gap-3 border-b border-slate-200 bg-slate-50">
+                <button
+                  onClick={() => setCollapsed((c) => ({ ...c, [g.moduleTitle]: !isCol }))}
+                  className="p-1 rounded hover:bg-slate-200 text-slate-500"
+                  aria-label={isCol ? "Expand" : "Collapse"}
+                >
+                  {isCol ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                </button>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[10.5px] font-bold uppercase tracking-[.06em] text-slate-500">
+                    Module {g.moduleOrder}
+                  </div>
+                  <div className="text-[14px] font-bold text-slate-900 truncate">{g.moduleTitle}</div>
                 </div>
-                <div className="text-[13px] font-medium text-bi-navy-900 truncate hover:text-bi-blue-700">{r.lessonTitle}</div>
-              </Link>
-              <div className="text-center text-[12px] text-bi-navy-500 inline-flex items-center justify-center gap-1">
-                <VideoIcon className="w-3 h-3 text-bi-navy-300" />
-                {r.videoCount}
-              </div>
-              {CONTENT_KINDS.map((k) => {
-                const item = r.contentItems.find((i) => i.kind === k);
-                const status = item?.status ?? "missing";
-                const stale = !!item?.stale_since;
-                return (
-                  <Link
-                    key={k}
-                    href={`/course/${courseId}/content/lesson/${r.lessonId}/${k}`}
-                    className="grid place-items-center"
-                    title={`${KIND_META[k].label} · ${status}${stale ? " · stale" : ""}`}
-                  >
-                    <Cell status={status} stale={stale} />
-                  </Link>
-                );
-              })}
-            </div>
-          ))}
-        </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <div className="w-32 h-1.5 rounded-full bg-slate-200 overflow-hidden">
+                    <div className="h-full bg-emerald-500" style={{ width: `${pct}%` }} />
+                  </div>
+                  <span className="text-[11px] font-mono font-bold text-slate-700 tabular-nums w-10 text-right">{pct}%</span>
+                </div>
+              </header>
+
+              {!isCol && (
+                <ul className="divide-y divide-slate-100">
+                  {filteredRows.map((r) => (
+                    <li key={r.lessonId} className="px-4 py-2.5 hover:bg-slate-50/60">
+                      <div className="flex items-center gap-3">
+                        <Link
+                          href={`/course/${courseId}/content/lesson/${r.lessonId}`}
+                          className="flex-1 min-w-0"
+                        >
+                          <div className="text-[13px] font-semibold text-slate-900 truncate hover:text-bi-blue-700">
+                            {r.lessonTitle}
+                          </div>
+                          <div className="text-[10.5px] text-slate-500">
+                            {r.videoCount} video{r.videoCount === 1 ? "" : "s"}
+                          </div>
+                        </Link>
+                        {/* Pip strip */}
+                        <div className="flex items-center gap-1 flex-wrap shrink-0">
+                          {CONTENT_KINDS.map((k) => {
+                            const item = r.contentItems.find((i) => i.kind === k);
+                            const bucket = bucketOf(item?.status);
+                            const t = PIP_TONE[bucket];
+                            const meta = KIND_META[k as ContentKindKey];
+                            const isStale = !!item?.stale_since;
+                            return (
+                              <Link
+                                key={k}
+                                href={`/course/${courseId}/content/lesson/${r.lessonId}?k=${k}`}
+                                title={`${meta.label} — ${bucket.replace("_", " ")}${isStale ? " · stale" : ""}`}
+                                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md ring-1 ${t.bg} ${t.fg} ${t.ring} text-[10px] font-bold transition-all hover:brightness-95 ${isStale ? "outline outline-1 outline-orange-300" : ""}`}
+                              >
+                                <span className="font-mono">{meta.icon}</span>
+                                <span className="hidden xl:inline">{meta.label}</span>
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          );
+        })}
       </div>
     </div>
   );
-}
-
-function Cell({ status, stale }: { status: string; stale?: boolean }) {
-  const ring = stale ? "ring-2 ring-amber-300 ring-offset-1" : "";
-  if (status === "approved") return <span className={`w-3 h-3 rounded-full bg-emerald-400 ${ring}`} />;
-  if (status === "draft")    return <span className={`w-3 h-3 rounded-full bg-bi-blue-300 ${ring}`} />;
-  return                            <span className={`w-3 h-3 rounded-full border border-bi-navy-200 bg-white ${ring}`} />;
 }
