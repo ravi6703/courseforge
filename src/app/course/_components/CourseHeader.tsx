@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { ChevronLeft, Settings, Send } from "lucide-react";
+import { ChevronLeft, Send } from "lucide-react";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { Tag } from "@/components/ui/Tag";
 import { HealthPill } from "@/components/ui/HealthPill";
 import { AvatarMini } from "@/components/ui/AvatarStack";
 import { StageNav } from "./StageNav";
 import { NotificationBell } from "./NotificationBell";
+import { CourseSettingsMenu } from "./CourseSettingsMenu";
 import type { StageSlug, StageStatus } from "./loadStageStatus";
 
 const STATUS_PCT: Record<string, number> = {
@@ -118,14 +119,9 @@ export async function CourseHeader({
             <span className="text-[12px] font-bold text-bi-navy-700">{pct}%</span>
           </div>
           <NotificationBell courseId={courseId} />
-          {/* FIXED: settings now opens the in-context Course Profile (was wrongly routing to /dashboard) */}
-          <Link
-            href={`/course/${courseId}/profile`}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-bi-navy-100 text-[13px] font-semibold text-bi-navy-700 hover:bg-bi-navy-50"
-            title="Course settings"
-          >
-            <Settings className="w-3.5 h-3.5" />Settings
-          </Link>
+          {/* Settings menu (was wrongly routing to /dashboard before).
+              Now consolidates Profile / Timeline / Export. */}
+          <CourseSettingsMenu courseId={courseId} />
           <button
             disabled={phase !== "Final review" && phase !== "Published"}
             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-bi-blue-100 text-bi-blue-700 border border-bi-blue-200 text-[13px] font-semibold hover:bg-bi-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
