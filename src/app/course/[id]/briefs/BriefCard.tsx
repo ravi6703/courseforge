@@ -9,6 +9,8 @@ import {
   Wand2, Check, X, CheckCircle2, RotateCcw,
 } from "lucide-react";
 import { BriefControls } from "./BriefControls";
+import { BriefLint } from "./BriefLint";
+import { BriefVariants } from "./BriefVariants";
 
 interface CoachInput {
   key_topics: string;
@@ -347,6 +349,14 @@ export function BriefCard({
           )}
         </div>
       </div>
+      )}
+
+      {/* Lint + variants — show when a brief exists. */}
+      {brief && (
+        <div className="px-2 pb-2 space-y-2">
+          <BriefLint videoId={videoId} />
+          <BriefVariants videoId={videoId} onPicked={() => location.reload()} />
+        </div>
       )}
 
       {/* Compact embedded action bar (only when embedded) */}
