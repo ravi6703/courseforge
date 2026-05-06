@@ -16,7 +16,7 @@
 
 -- 1. Profile templates
 CREATE TABLE IF NOT EXISTS profile_templates (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id UUID REFERENCES orgs(id) ON DELETE CASCADE,
   is_global BOOLEAN NOT NULL DEFAULT FALSE,
   name TEXT NOT NULL,
@@ -36,7 +36,7 @@ CREATE POLICY pt_select ON profile_templates FOR SELECT
 
 -- 2. Coach capacity (cross-course)
 CREATE TABLE IF NOT EXISTS coach_capacity (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id UUID NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   hours_per_week INTEGER NOT NULL DEFAULT 20,
@@ -54,7 +54,7 @@ CREATE POLICY cc_org_all ON coach_capacity FOR ALL
 
 -- 3. Brief A/B variants
 CREATE TABLE IF NOT EXISTS brief_variants (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   course_id UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
   video_id UUID NOT NULL REFERENCES videos(id) ON DELETE CASCADE,
   variant_label TEXT NOT NULL,         -- 'A' | 'B' | 'C'
@@ -73,7 +73,7 @@ CREATE POLICY bv_org_all ON brief_variants FOR ALL
 
 -- 4. Lesson lint results
 CREATE TABLE IF NOT EXISTS lesson_lint_results (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   course_id UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
   lesson_id UUID NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
   scope TEXT NOT NULL CHECK (scope IN ('brief','content','consistency')),
@@ -95,7 +95,7 @@ CREATE POLICY llr_org_all ON lesson_lint_results FOR ALL
 
 -- 5. Glossary entries
 CREATE TABLE IF NOT EXISTS glossary_entries (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   course_id UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
   term TEXT NOT NULL,
   definition TEXT,
@@ -114,7 +114,7 @@ CREATE POLICY ge_org_all ON glossary_entries FOR ALL
 
 -- 6. Generation jobs (background queue)
 CREATE TABLE IF NOT EXISTS generation_jobs (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   course_id UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
   kind TEXT NOT NULL,
   payload JSONB NOT NULL DEFAULT '{}'::jsonb,
@@ -137,7 +137,7 @@ CREATE POLICY gj_org_all ON generation_jobs FOR ALL
 
 -- 7. Co-pilot sessions / messages
 CREATE TABLE IF NOT EXISTS copilot_sessions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   course_id UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
   user_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
   title TEXT,
@@ -147,7 +147,7 @@ CREATE TABLE IF NOT EXISTS copilot_sessions (
 CREATE INDEX IF NOT EXISTS idx_copilot_sessions_course ON copilot_sessions(course_id, updated_at DESC);
 
 CREATE TABLE IF NOT EXISTS copilot_messages (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   session_id UUID NOT NULL REFERENCES copilot_sessions(id) ON DELETE CASCADE,
   role TEXT NOT NULL CHECK (role IN ('user','assistant','system')),
   content TEXT NOT NULL,
@@ -176,7 +176,7 @@ ALTER TABLE recordings ADD COLUMN IF NOT EXISTS smart_cuts JSONB DEFAULT '[]'::j
 
 -- 10. Preflight scorecards
 CREATE TABLE IF NOT EXISTS preflight_scorecards (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   course_id UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE UNIQUE,
   overall_score INTEGER NOT NULL DEFAULT 0,
   wcag_score INTEGER NOT NULL DEFAULT 0,
@@ -194,7 +194,7 @@ CREATE POLICY ps_org_all ON preflight_scorecards FOR ALL
 
 -- 11. Multi-target exports
 CREATE TABLE IF NOT EXISTS multi_target_exports (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   course_id UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
   target TEXT NOT NULL CHECK (target IN ('scorm12','scorm2004','coursera','xapi','mp4','landing_md','linkedin_post')),
   status TEXT NOT NULL DEFAULT 'queued' CHECK (status IN ('queued','running','done','error')),
