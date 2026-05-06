@@ -11,7 +11,9 @@ import { Save, Loader2, X, Plus, ChevronRight } from "lucide-react";
 import {
   CourseProfile, TONE_PRESETS, BLOOM_LEVELS, MONETIZATION_TIERS,
 } from "@/types/course-profile";
-import { buildPromptFragment, summarizeProfile } from "@/lib/course-profile";
+import { summarizeProfile } from "@/lib/course-profile";
+import { ProfilePreview } from "./ProfilePreview";
+import { TemplatesPicker } from "./TemplatesPicker";
 
 type Section =
   | "audience" | "outcomes" | "monetization" | "timeline"
@@ -130,6 +132,11 @@ export function ProfileEditor({ courseId, initial }: { courseId: string; initial
           <div className="flex items-center gap-3">
             {savedAt && <span className="text-[11px] text-emerald-700 font-semibold">Saved at {savedAt}</span>}
             {error && <span className="text-[11px] text-red-700">{error}</span>}
+            <TemplatesPicker
+              onPick={(picked) => {
+                setProfile(picked);
+              }}
+            />
             <button
               onClick={save}
               disabled={busy}
@@ -142,18 +149,8 @@ export function ProfileEditor({ courseId, initial }: { courseId: string; initial
         </div>
       </main>
 
-      {/* Live system-prompt preview — shows the coach what the AI sees */}
-      <aside className="self-start bg-white border border-slate-200 rounded-[10px] p-4">
-        <div className="text-[10.5px] font-bold uppercase tracking-[.06em] text-slate-500 mb-2">
-          AI sees this on every prompt
-        </div>
-        <pre className="text-[11px] text-slate-700 bg-slate-50 border border-slate-200 rounded-md p-3 whitespace-pre-wrap font-mono leading-relaxed max-h-[60vh] overflow-auto">
-{buildPromptFragment(profile)}
-        </pre>
-        <div className="text-[11px] text-slate-500 mt-2">
-          Updated automatically as you edit. Changes apply to all future generations across this course.
-        </div>
-      </aside>
+      {/* Live AI preview — rendered samples + raw prompt fragment */}
+      <ProfilePreview courseId={courseId} profile={profile} />
     </div>
   );
 }
